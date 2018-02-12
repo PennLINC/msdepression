@@ -5,6 +5,13 @@ library(dplyr)
 library(plm)
 library(MatchIt)
 
+
+
+###### This script reads in demographics, cnb_scores, health and psych summaries, merges them, removes NAs, codes and separates by depression#####
+####Also preps for hydra, both using a typical GAM model and matching (we lose a lot of people) and also with residuals plotted so we don't have to match#########
+########Also provides matched data sets and tests them, if we decide to use them.  It significantly reduces N to match (dataset from 3022 to 1424)
+
+
 #read in csvs
 demographics <- read.csv("/Users/eballer/BBL/from_chead/ballerDepHeterogen/data/n9498_demographics_go1_20161212.csv", header = TRUE, sep = ",") #from /data/joy/BBL/projects/ballerDepHeterogen/data/n9498_demographics_go1_20161212.csv
 cnb_scores <- read.csv("/Users/eballer/BBL/from_chead/ballerDepHeterogen/data/n9498_cnb_zscores_fr_20170202.csv", header = TRUE, sep = ",") #from /data/joy/BBL/projects/ballerDepHeterogen/data/n9498_cnb_zscores_fr_20170202.csv
@@ -46,10 +53,15 @@ subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$age_in_years <- 
 #age demeaned and squared, from Toni
 subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$ageSq <- as.numeric(I(scale(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$age_in_years, scale = FALSE, center = TRUE)^2))
 
-#race binarized for plotting purposes
+#race binarized for plotting purposes, caucasian 1, non-caucasion 0
 subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$race_binarized <- ifelse(as.factor(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$race) == 1, 1, 0)
 
-#Subset only variables needed for hydra analysis 
+#remove people with NA in their cognitive measures
+subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED <- subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[complete.cases(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39]),]
+
+
+
+#Subset only variables needed for hydra analysis , with regular stat values
 #(BBLID, cognitive variables, depression), also do by males(1555)/females(1729) separately
 subset_bblidAndCog_features <- data.frame(cbind(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[1], subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39], subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[77]))
 subset_bblidAndCog_features_males <- subset.data.frame(data.frame(cbind(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[1], subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39], subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[77])), subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$sex == 1)
@@ -78,11 +90,91 @@ write.csv(subset_bblidAndCovariates_males, file="/Users/eballer/BBL/from_chead/b
 write.csv(subset_bblidAndCog_features_females, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/CogFeatures.csv", row.names = FALSE, quote = FALSE)
 write.csv(subset_bblidAndCovariates_females, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/CogCovariates.csv", row.names = FALSE, quote = FALSE)
 
+###### Using residuals age and sex######
 
-#match with matchit n(3022), male (1434)/ female (1588)
+#GAM to get residuals for hydra since too hard to match on age and race
+cnb_measure_names <- names(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)[grep("_z", names(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED))] #get the names of all the columns with _z in the name
+CNB_cog_scores_residuals_age_and_sex <- subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED
+
+CNB_cog_score_stats_gam_age_and_sex <- lapply(cnb_measure_names, function(x) 
+{
+  #gam(substitute(i ~ s(age_in_years) + race_binarized, list(i = as.name(x))), data = subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)
+  gam(substitute(i ~ s(age_in_years) + sex, list(i = as.name(x))), data = subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)
+  #lapply(CNB_cog_score_stats_gam_age_and_sex, function(x) {visreg(x)})
+}) 
+
+CNB_cog_score_stats_gam_age <- lapply(cnb_measure_names, function(x) 
+{
+  #gam(substitute(i ~ s(age_in_years) + race_binarized, list(i = as.name(x))), data = subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)
+  gam(substitute(i ~ s(age_in_years), list(i = as.name(x))), data = subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)
+  #lapply(CNB_cog_score_stats_gam_age, function(x) {visreg(x)})
+}) 
+names(CNB_cog_score_stats_gam_age_and_sex) <- cnb_measure_names
+names(CNB_cog_score_stats_gam_age) <- cnb_measure_names
+
+#set CNB_cog_score_residuals_age_and_sex, and CNB_cog_score_residuals_age to original data frame and remove NAs
+CNB_cog_scores_residuals_age_and_sex <- subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[complete.cases(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39]),]
+CNB_cog_scores_residuals_age <- subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[complete.cases(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39]),]
+
+#substitute residuals_age_and_sex from CNB_cog_score_stats_gam for results.  Did not work with for loop when indexing by cog score, did work with while loop and using numbers 'cnt'
+
+cnt = 14
+cnt_gam = 1
+#for(cog_score in cnb_measure_names) did not work as for loop
+
+#get residuals_age_and_sex, put these in to hydra instead of main #s
+while(cnt < 40)
+{
+  CNB_cog_scores_residuals_age_and_sex[[cnt]] <- as.vector(residuals(CNB_cog_score_stats_gam_age_and_sex[[cnt_gam]]))
+  CNB_cog_scores_residuals_age[[cnt]] <- as.vector(residuals(CNB_cog_score_stats_gam_age[[cnt_gam]]))
+  
+  cnt = cnt + 1
+  cnt_gam = cnt_gam + 1
+  
+  #from old for loop
+  #resids <- residuals_age_and_sex(CNB_cog_score_stats_gam$cog_score)
+  #CNB_cog_scores_residuals_age_and_sex$cog_score <- resids
+  
+}
+
+#Subset only variables needed for hydra analysis, use _r to make sure it is clear that these are residuals_age_and_sex we are looking at
+#(BBLID, cognitive variables, depression), also do by males(1555)/females(1729) separately(use only age regressed residuals, not sex + age)
+subset_bblidAndCog_features_r <- data.frame(cbind(CNB_cog_scores_residuals_age_and_sex[1], CNB_cog_scores_residuals_age_and_sex[14:39], CNB_cog_scores_residuals_age_and_sex[77]))
+subset_bblidAndCog_features_males_r <- subset.data.frame(data.frame(cbind(CNB_cog_scores_residuals_age[1], CNB_cog_scores_residuals_age[14:39], CNB_cog_scores_residuals_age[77])), CNB_cog_scores_residuals_age$sex == 1)
+subset_bblidAndCog_features_females_r <- subset.data.frame(data.frame(cbind(CNB_cog_scores_residuals_age[1], CNB_cog_scores_residuals_age[14:39], CNB_cog_scores_residuals_age[77])), CNB_cog_scores_residuals_age$sex == 2)
+
+#remove NAs from hydra - n(3022), male (1434)/ female (1588); IF WE want to keep these people, comment out these lines
+subset_bblidAndCog_features_r <- subset_bblidAndCog_features_r[complete.cases(subset_bblidAndCog_features_r[2:27]),]
+subset_bblidAndCog_features_males_r <- subset_bblidAndCog_features_males_r[complete.cases(subset_bblidAndCog_features_males_r[2:27]),]
+subset_bblidAndCog_features_females_r <- subset_bblidAndCog_features_females_r[complete.cases(subset_bblidAndCog_features_females_r[2:27]),]
+
+#subset of covariates (BBLID), also do by males/females -> since using residuals_age_and_sex, there are no covariates, so it is blank (also using just age for males/females, not sex + age)
+subset_bblidAndCovariates_r <- data.frame(cbind(CNB_cog_scores_residuals_age_and_sex[1]))
+subset_bblidAndCovariates_males_r <- subset.data.frame(data.frame(cbind(CNB_cog_scores_residuals_age[1])), CNB_cog_scores_residuals_age$sex == 1)
+subset_bblidAndCovariates_females_r <- subset.data.frame(data.frame(cbind(CNB_cog_scores_residuals_age[1])), CNB_cog_scores_residuals_age$sex == 2)
+
+#THIS DID NOT WORK****** and did not change # people only include bblid and covariates for people who have full hydra sets (again, n(3022), male 1434/ female 1588)
+#subset_bblidAndCovariates_r <- subset_bblidAndCovariates_r[subset_bblidAndCovariates_r$bblid %in% c(subset_bblidAndCog_features_r$bblid), ]
+#subset_bblidAndCovariates_males_r <- subset_bblidAndCovariates_males_r[subset_bblidAndCovariates_males_r$bblid %in% c(subset_bblidAndCog_features_males_r$bblid), ]
+#subset_bblidAndCovariates_females_r <- subset_bblidAndCovariates_females_r[subset_bblidAndCovariates_females_r$bblid %in% c(subset_bblidAndCog_features_females_r$bblid), ]
+
+#save files for hydra
+write.csv(subset_bblidAndCog_features_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_all_gender/residuals/CogFeatures.csv", row.names = FALSE, quote = FALSE)
+write.csv(subset_bblidAndCovariates_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_all_gender/residuals/CogCovariates.csv", row.names = FALSE, quote = FALSE)
+write.csv(subset_bblidAndCog_features_males_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_males/residuals/CogFeatures.csv", row.names = FALSE, quote = FALSE)
+write.csv(subset_bblidAndCovariates_males_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_males/residuals/CogCovariates.csv", row.names = FALSE, quote = FALSE)
+write.csv(subset_bblidAndCog_features_females_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/residuals/CogFeatures.csv", row.names = FALSE, quote = FALSE)
+write.csv(subset_bblidAndCovariates_females_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/residuals/CogCovariates.csv", row.names = FALSE, quote = FALSE)
+
+
+
+
+
+#match with matchit n(3022), male (1434)/ female (1588), this is NOT residuals
 data.unmatched = subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED
 data.unmatched$unmatchedRows =rownames(data.unmatched)
 dataset = data.unmatched
+
 # Some preprocessing
 #dataset = dplyr::select(dataset, sex, age_in_years, ageSq, medu1, race, dep_binarized, unmatchedRows)
 dataset = dplyr::select(dataset, sex, age_in_years, ageSq, medu1, race_binarized, dep_binarized, unmatchedRows)
@@ -153,3 +245,43 @@ data.matched = data.unmatched[data.unmatched$unmatchedRows%in%m.data$unmatchedRo
 data.matched$unmatchedRows = NULL
 
 saveRDS(data.matched, file='/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydraMatched_age_race_medu1_sex_20180115_matched.rds')
+
+#Make table 1 (demographics) for matched data
+#subset demographics
+listVars <- c("Race_binarized", "Sex", "Maternal Ed", "Age", "Depression") #Race 1 = caucasian, Maternal Ed = years, age = years, dep 1 = dep, 0 = non_dep
+
+demo_data.matched <- data.frame(data.matched$race_binarized, data.matched$sex, data.matched$medu1, data.matched$age_in_years, data.matched$dep_binarized)
+names(demo_data.matched) <- c(listVars)
+#subset_demographics_for_table1_males <- data.frame(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_males$race, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_males$medu1, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_males$age_in_years, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_males$dep_binarized)
+#names(subset_demographics_for_table1_males) <- c(listVars)
+#subset_demographics_for_table1_females <- data.frame(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_females$race, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_females$medu1, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_females$age_in_years, subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED_females$dep_binarized)
+#names(subset_demographics_for_table1_females) <- c(listVars)
+
+#Change categorical values to have names
+demo_data.matched$Depression <- ifelse(demo_data.matched$Depression == 1, "Depressed", "Non-depressed")
+demo_data.matched$Race <- ifelse(demo_data.matched$Race == 1, "Caucasian", "Non-caucasian")
+demo_data.matched$Sex <- ifelse(demo_data.matched$Sex == 1, "Male", "Female")
+#subset_demographics_for_table1_males$Depression <- ifelse(subset_demographics_for_table1_males$Depression == 1, "Depressed", "Non-depressed")
+#subset_demographics_for_table1_males$Race <- ifelse(subset_demographics_for_table1_males$Race == "1", "Caucasian","Non-caucasian")
+#subset_demographics_for_table1_females$Depression <- ifelse(subset_demographics_for_table1_females$Depression == 1, "Depressed", "Non-depressed")
+#subset_demographics_for_table1_females$Race <- ifelse(subset_demographics_for_table1_females$Race == "1", "Caucasian","Non-caucasian")
+
+#make variable list
+table_titles <- c("Non-depressed", "Depressed", "P-value")
+#table_titles_males <- c("Males Non-depressed", "Males depressed", "p-value")
+#table_titles_males <- c("Females Non-depressed", "Females depressed", "p-value")
+
+#Define Categorical Variables
+cat_variables <- c("Race", "Depression", "Sex")
+#cat_variables <- c("Race")
+
+#create demographics table
+demo_data.matched_table <- CreateTableOne(vars = listVars, data = demo_data.matched, factorVars = cat_variables, strata = c("Depression"))
+print(demo_data.matched_table, showAllLevels = TRUE)
+#demographics_table_males <- CreateTableOne(vars = listVars, data = subset_demographics_for_table1_males, factorVars = cat_variables, strata = c("Depression"))
+#print(demographics_table_males, showAllLevels = TRUE)
+
+#females depressed = 514, non-depressed 1215
+#demographics_table_females <- CreateTableOne(vars = listVars, data = subset_demographics_for_table1_females, factorVars = cat_variables, strata = c("Depression"))
+#print(demographics_table_females, showAllLevels = TRUE)
+

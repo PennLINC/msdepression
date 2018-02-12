@@ -157,7 +157,7 @@ subset_demographics_for_table1_females$Race <- ifelse(subset_demographics_for_ta
 
 #make variable list
 table_titles_males <- c("Males Non-depressed", "Males depressed", "p-value")
-table_titles_males <- c("Females Non-depressed", "Females depressed", "p-value")
+table_titles_females <- c("Females Non-depressed", "Females depressed", "p-value")
 
 #Define Categorical Variables
 cat_variables <- c("Race", "Depression")
