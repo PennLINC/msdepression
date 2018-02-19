@@ -5,12 +5,14 @@ library(dplyr)
 library(plm)
 library(MatchIt)
 
-
-
 ###### This script reads in demographics, cnb_scores, health and psych summaries, merges them, removes NAs, codes and separates by depression#####
 ####Also preps for hydra, both using a typical GAM model and matching (we lose a lot of people) and also with residuals plotted so we don't have to match#########
 ########Also provides matched data sets and tests them, if we decide to use them.  It significantly reduces N to match (dataset from 3022 to 1424)
 
+
+#######################################################
+############ READ IN, MERGE AND SUBSET DATA############
+#######################################################
 
 #read in csvs
 demographics <- read.csv("/Users/eballer/BBL/from_chead/ballerDepHeterogen/data/n9498_demographics_go1_20161212.csv", header = TRUE, sep = ",") #from /data/joy/BBL/projects/ballerDepHeterogen/data/n9498_demographics_go1_20161212.csv
@@ -59,7 +61,9 @@ subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED$race_binarized <
 #remove people with NA in their cognitive measures
 subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED <- subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[complete.cases(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED[14:39]),]
 
-
+#########################################
+############## PREP FOR HYDRA############
+#########################################
 
 #Subset only variables needed for hydra analysis , with regular stat values
 #(BBLID, cognitive variables, depression), also do by males(1555)/females(1729) separately
@@ -90,7 +94,9 @@ write.csv(subset_bblidAndCovariates_males, file="/Users/eballer/BBL/from_chead/b
 write.csv(subset_bblidAndCog_features_females, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/CogFeatures.csv", row.names = FALSE, quote = FALSE)
 write.csv(subset_bblidAndCovariates_females, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/CogCovariates.csv", row.names = FALSE, quote = FALSE)
 
+########################################
 ###### Using residuals age and sex######
+########################################
 
 #GAM to get residuals for hydra since too hard to match on age and race
 cnb_measure_names <- names(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED)[grep("_z", names(subset_dep_or_no_psych_and_no_medicalratingExclude_DEPBINARIZED))] #get the names of all the columns with _z in the name
@@ -167,7 +173,9 @@ write.csv(subset_bblidAndCog_features_females_r, file="/Users/eballer/BBL/from_c
 write.csv(subset_bblidAndCovariates_females_r, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_females/residuals/CogCovariates.csv", row.names = FALSE, quote = FALSE)
 
 
-
+################################
+######## MATCHING ##############
+################################
 
 
 #match with matchit n(3022), male (1434)/ female (1588), this is NOT residuals
@@ -190,18 +198,13 @@ dataset$sex = 1*(dataset$sex==1)
 dataset <- dataset[!is.na(dataset$medu1),]
 
 # Plot prematch
-#plot(dataset$age_in_years,jitter(dataset$medu1, factor=3), col=2*dataset$race+dataset$dep_binarized+1,pch=16, ylab="Maternal Edu", xlab="Age")
 plot(dataset$age_in_years,jitter(dataset$medu1, factor=3), pch=c(15, 7, 18, 9), col=c(1,2,3,4), ylab="Maternal Edu", xlab="Age")
 
 legend("bottomright",c("Non-white, non-depressed", "Non-white, depressed", "White, non-depressed", "White, depressed"),pch=c(15, 7, 18, 9), col=c(1,2,3,4))
 
-#GAM for propensity score
-#ps.model =gam(dep_binarized ~s(age_in_years) +s(medu1) + race + sex, data=dataset, family=binomial)
+#GAM for propensity score, though we NEVER USE THIS, COULD COMMENT OUT
 ps.model =gam(dep_binarized ~s(age_in_years) +s(medu1) + race_binarized + sex, data=dataset, family=binomial)
-
 ps =exp(predict(ps.model))/(1 +exp(predict(ps.model)))
-
-#Before race was binarized, N = 1518 (M = 518, F = 1000), after race binarized N = 1530 (M 522, F 1008)
 
 #trying to match exact with medu1 and race binarized - N = 1530 (M 522, F 1008)
 #m.out <-matchit(dep_binarized ~ age_in_years, data=dataset, method="nearest", exact=c("race", "medu1", "sex"), distance="mahalanobis")
@@ -228,6 +231,7 @@ plot(m.out)
 m.data <- match.data(m.out)
 
 # Test for significant difference in age between groups
+#results: Trend for race by depression, significant sex by depression, no diff age by depression
 t.test(age_in_years~dep_binarized, data=m.data)
 #t.test(race~dep_binarized, data=m.data)
 t.test(race_binarized~dep_binarized, data=m.data)
@@ -245,6 +249,10 @@ data.matched = data.unmatched[data.unmatched$unmatchedRows%in%m.data$unmatchedRo
 data.matched$unmatchedRows = NULL
 
 saveRDS(data.matched, file='/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydraMatched_age_race_medu1_sex_20180115_matched.rds')
+
+####FOR HYDRA####
+for_hydra_data.matched <- data.frame(cbind(data.matched[1], data.matched[14:39], data.matched[77]))
+write.csv(for_hydra_data.matched, file="/Users/eballer/BBL/from_chead/ballerDepHeterogen/results/hydra_matched/CogFeatures.csv", row.names = FALSE, quote = FALSE)
 
 #Make table 1 (demographics) for matched data
 #subset demographics
