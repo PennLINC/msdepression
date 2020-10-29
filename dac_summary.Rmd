@@ -1,0 +1,141 @@
+---
+title: "Dac Summary"
+output:
+  html_document
+---
+
+## Dac summary
+First run on: 20201008
+Spreadsheet: 
+
+This script goes through data that has been returned from the DAC and summarizes it
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+
+
+```{r summary}
+#preprocessing - because these are sent 
+
+#Load original MS database from melissa
+#load("/Users/eballer/BBL/msdepression/data/database_2019-03-04.RData")
+
+#read in melissa's xls: n=30915
+melissa_xls <- read.csv("/Users/eballer/BBL/msdepression/data/mri_file_upd_w_empi.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
+
+#load our df
+data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninpatientswithmsmaskdataaddedmoredxcodes.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
+
+data2 <- read.csv("/Users/eballer/Documents/Penn T32/MS_Depression_Ted_Taki/Documents/investigatingdepressioninpatientswithmultiplesclerosis10-23medsinonerow (1).csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
+#subset EMPI, accession codes, F-codes, Phq2 and phq9 #n = 42101
+data_empi_acc_f_phq <- data#subset(data, select = c("EMPI", "ACCESSION_NUM", "PHQ.2", "PHQ.9"))
+
+##########################
+### some preprocessing ###
+##########################
+
+#change accession name for ease of merging with Rdata if using
+#names(data_empi_acc_f_phq) <- gsub(pattern = "ACCESSION_NUM", replacement = "AccessionNumber", names(data_empi_acc_f_phq))
+
+
+
+#make accession # and lab findings into integer type, contained in row 28:42, Margin=2 to work on columns
+data_empi_acc_f_phq$ACCESSION_NUM <- as.integer(data_empi_acc_f_phq$ACCESSION_NUM)
+data_empi_acc_f_phq[28:42] <- apply(X = data_empi_acc_f_phq[28:42], FUN = as.integer, MARGIN = 2)
+data_empi_acc_f_phq$sex_binarized <- ifelse(data_empi_acc_f_phq$SEX == "MALE", 1, 2)
+data_empi_acc_f_phq$race_binarized <- ifelse(data_empi_acc_f_phq$RACE == "WHITE", 1, 2)
+
+#get empis of people who have wacky deidentified empis
+db_empi_acc <- subset(melissa_xls, select = c("ACCESSION_NUM", "EMPI"))
+
+#change EMPI to "patient ID"
+names(db_empi_acc) <- gsub(pattern = "EMPI", replacement = "PatientID", names(db_empi_acc))
+                      #subset(database, select = c("AccessionNumber", "PatientID"))
+
+#merge with our database, PatientID is De-identified EMPI, n = 30799
+data_empi_acc_f_phq_ptID <- merge(data_empi_acc_f_phq, db_empi_acc, by = "ACCESSION_NUM")
+
+# number of unique scanners and scans
+print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(which(!duplicated(data_empi_acc_f_phq$PROC_CODE)))))
+print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(which(!duplicated(data_empi_acc_f_phq$DEPARTMENT_NAME)))))
+print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(which(!duplicated(data_empi_acc_f_phq$MODALITY)))))
+
+#phq-2;
+print(paste0("N PHQ-2 = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))))
+
+#print histogram of phq-2s for people
+
+hist(data_empi_acc_f_phq$PHQ.2[which(!is.na(data_empi_acc_f_phq$PHQ.2))], main = paste0("PHQ-2 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
+
+hist(data_empi_acc_f_phq_ptID$PHQ.2[which(!is.na(data_empi_acc_f_phq_ptID$PHQ.2))], main = paste0("PHQ-2 Histo in Melissa's subgroup #: n = ", length(which(!is.na(data_empi_acc_f_phq_ptID$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
+
+#phq-9
+print(paste0("N PHQ-9 = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))))
+
+#print histogram of phq-9s for people
+hist(data_empi_acc_f_phq$PHQ.9[which(!is.na(data_empi_acc_f_phq$PHQ.9))], main = paste0("PHQ-9 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+hist(data_empi_acc_f_phq_ptID$PHQ.9[which(!is.na(data_empi_acc_f_phq_ptID$PHQ.9))], main = paste0("PHQ-9 Histo In Melissa's group: n = ", length(which(!is.na(data_empi_acc_f_phq_ptID$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+#both phq2 and 9
+
+num_both_phq2_and_9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & !is.na(data_empi_acc_f_phq$PHQ.9)))
+print(num_both_phq2_and_9)
+
+#looking at just people with phq-2 and 9
+phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=5855
+phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n=606
+
+#checking logic for order of subsetting - unique EMPI then ph2/9 == phq2/9 then EMPI subsetting - this works
+unique_phq2_empis <- length(which(!duplicated(phq2_subset$EMPI))) #n=797
+unique_phq9_empis <- length(which(!duplicated(phq9_subset$EMPI))) #n=107
+
+
+#age histogram
+hist(data_empi_acc_f_phq$MRI_ENC_AGE[which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE))], main = paste0("Age Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+#tsh
+hist(data_empi_acc_f_phq$TSH[which(!is.na(data_empi_acc_f_phq$TSH))], main = paste0("TSH Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$TSH)))), xlab = "TSH")
+
+#hemoglobin
+hist(data_empi_acc_f_phq$hemoglobin[which(!is.na(data_empi_acc_f_phq$hemoglobin))], main = paste0("Hemoglobin Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$hemoglobin)))), xlab = "hemoglobin")
+
+#folate
+hist(data_empi_acc_f_phq$FOLATE[which(!is.na(data_empi_acc_f_phq$FOLATE))], main = paste0("Folate Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "folate", breaks = 10)
+
+#sex
+hist(data_empi_acc_f_phq$sex_binarized[which(!is.na(data_empi_acc_f_phq$sex_binarized))], 
+     main = paste0("Sex Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$sex_binarized))), "; M = ", length(which(data_empi_acc_f_phq$sex_binarized == 1)), "; F = ", length(which(data_empi_acc_f_phq$sex_binarized == 2)) ), 
+     xlab = "Male = 1, Female = 2", 
+     breaks = 2)
+
+#race
+hist(data_empi_acc_f_phq$race_binarized[which(!is.na(data_empi_acc_f_phq$race_binarized))], 
+     main = paste0("Race Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$race))), "; White = ", length(which(data_empi_acc_f_phq$race_binarized == 1)), "; NW = ", length(which(data_empi_acc_f_phq$race_binarized == 2))),
+     xlab = "white = 1, other = 2", 
+     breaks = 2)
+
+#subet people with unique EMPIs
+
+#melissa's group
+data_empi_acc_f_phq_unique_EMPI_m <- data_empi_acc_f_phq_ptID[!duplicated(data_empi_acc_f_phq_ptID$PatientID),]
+print(paste0("N unique EMPIs in Melissa's group = ", dim(data_empi_acc_f_phq_unique_EMPI_m)[1]))
+
+#my group
+data_empi_acc_f_phq_unique_EMPI <- data_empi_acc_f_phq[!duplicated(data_empi_acc_f_phq$EMPI),]
+print(paste0("N unique EMPIS in my group = ", dim(data_empi_acc_f_phq_unique_EMPI)[1]))
+
+#histos
+hist(data_empi_acc_f_phq_unique_EMPI$PHQ.2[which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.2))], main = paste0("PHQ-2 Histo my group w/unique EMPI : n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.2)))), xlab = "PHQ-2", breaks = 6)
+
+hist(data_empi_acc_f_phq_unique_EMPI$PHQ.9[which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.9))], main = paste0("PHQ-9 Histo my group w/unique EMPI : n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+#age histogram
+hist(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE[which(!is.na(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE))], main = paste0("Age Histo my group w/unique EMPI: n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+
+```
+

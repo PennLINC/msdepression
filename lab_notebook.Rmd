@@ -1,0 +1,43 @@
+---
+title: "R Notebook for MSDepression Project"
+output:
+  html_notebook
+---
+
+#### 20201008
+
+First, need to summarize data
+
+1) Got data into csv format
+  - Opened /Users/eballer/Documents/Penn T32/MS_Depression_Ted_Taki/Documents/*xls in excel and saved as csv
+2)
+```{move_data bash}
+cd /Users/eballer/BBL/msdepression/data/
+mkdir dac
+cp /Users/eballer/Documents/Penn T32/MS_Depression_Ted_Taki/Documents/*csv .
+```
+
+3) In R, started /Users/eballer/BBL/msdepression/dac_summary.Rmd to summarize data
+
+** during the last iteration of de-identifying the DAC, the PHQ-9 scores all vanished. Will need to ask for them to be re-added.
+** also, number of people dropped by 50% (from 36277 to 16383)
+
+#### 20201012
+
+Continued with descriptives
+
+  - Read in Melissa's data sheet.
+  - subsetted EMPI and Accession # (since our EMPI's are deidentified)
+  - Merged with my datasheet on Accession #
+  - "PatientID == EMPI"
+
+Merged Melissa's data with mine to get empis.
+
+#### 20201013
+
+[x] Figure out how many people with repeat mrns - to remove doubles. Will need to remove duplicates.
+
+#### 20201027
+
+Going back and forth a lot with DAC people, should have a new update soon. Big thing will be to parse PHQ2/9. We will get all of them but have to tie them to their appropriate scans
+
