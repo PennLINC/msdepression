@@ -27,11 +27,40 @@ knitr::opts_chunk$set(echo = TRUE)
 melissa_xls <- read.csv("/Users/eballer/BBL/msdepression/data/mri_file_upd_w_empi.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
 
 #load our df
-data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninpatientswithmsmaskdataaddedmoredxcodes.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
+data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninpatientswithmsmaskdataaddedmoredxcodes.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL")) #n=42101, with 42044 unique accession codes
 
 data2 <- read.csv("/Users/eballer/Documents/Penn T32/MS_Depression_Ted_Taki/Documents/investigatingdepressioninpatientswithmultiplesclerosis10-23medsinonerow (1).csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"))
-#subset EMPI, accession codes, F-codes, Phq2 and phq9 #n = 42101
-data_empi_acc_f_phq <- data#subset(data, select = c("EMPI", "ACCESSION_NUM", "PHQ.2", "PHQ.9"))
+#subset EMPI, accession codes, F-codes, Phq2 and phq9 #n = 29226, with 21378 unique accession codes
+
+
+#drawn from Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninpatientswithmsmaskdataaddedmoredxcodes.csv, which was split into 2 b/c the spreadsheet was too big 
+data3_p1 <- read.csv("/Users/eballer/BBL/msdepression/data/dac/20201029_msdep_pt1.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"), sep = ",") # n = 28556 with 20871 unique accession codes
+
+data3_p2 <- read.csv("/Users/eballer/BBL/msdepression/data/dac/20201029_msdep_pt2.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"), sep = ",") 
+
+data3 <- rbind(data3_p1, data3_p2)
+write.csv(x = data3, file = "/Users/eballer/BBL/msdepression/data/dac/msdep_20201029_merged.csv")
+
+#set data_empi_acc_f_phq to data3
+data_empi_acc_f_phq <- data3#subset(data, select = c("EMPI", "ACCESSION_NUM", "PHQ.2", "PHQ.9"))
+
+#number of unique in melissa's
+m_access_n <- length(unique(melissa_xls$ACCESSION_NUM)) #n = 29183
+
+#number of unique in my group
+eb_access_n <- length(unique(data_empi_acc_f_phq$ACCESSION_NUM)) #n = 21027
+
+#number of overlap
+
+melissa_peeps_in_eb_group <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_empi_acc_f_phq$ACCESSION_NUM)) #n = 15137
+
+eb_peeps_in_melissa_group <- sum(unique(data_empi_acc_f_phq$ACCESSION_NUM) %in% unique(melissa_xls$ACCESSION_NUM)) #n=15137
+
+print(paste0("Number of Melissa's people in EB group : ", melissa_peeps_in_eb_group, " out of ", m_access_n, " unique accession numbers")) #suggesting that Melissa has a lot of people that don't have ms defined the same way we do
+
+print(paste0("Number of EB's people in Melissa's group : ", eb_peeps_in_melissa_group, " out of ", eb_access_n, " unique accession numbers"))
+
+overlap_group <- data_empi_acc_f_phq[which(unique(data_empi_acc_f_phq$ACCESSION_NUM) %in% unique(melissa_xls$ACCESSION_NUM)),] #n=15137
 
 ##########################
 ### some preprocessing ###
@@ -59,12 +88,12 @@ names(db_empi_acc) <- gsub(pattern = "EMPI", replacement = "PatientID", names(db
 data_empi_acc_f_phq_ptID <- merge(data_empi_acc_f_phq, db_empi_acc, by = "ACCESSION_NUM")
 
 # number of unique scanners and scans
-print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(which(!duplicated(data_empi_acc_f_phq$PROC_CODE)))))
-print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(which(!duplicated(data_empi_acc_f_phq$DEPARTMENT_NAME)))))
-print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(which(!duplicated(data_empi_acc_f_phq$MODALITY)))))
+print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(unique(data_empi_acc_f_phq$PROC_CODE))))
+print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(unique(data_empi_acc_f_phq$DEPARTMENT_NAME))))
+print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(unique(data_empi_acc_f_phq$MODALITY))))
 
 #phq-2;
-print(paste0("N PHQ-2 = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))))
+print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2))))
 
 #print histogram of phq-2s for people
 
@@ -73,7 +102,7 @@ hist(data_empi_acc_f_phq$PHQ.2[which(!is.na(data_empi_acc_f_phq$PHQ.2))], main =
 hist(data_empi_acc_f_phq_ptID$PHQ.2[which(!is.na(data_empi_acc_f_phq_ptID$PHQ.2))], main = paste0("PHQ-2 Histo in Melissa's subgroup #: n = ", length(which(!is.na(data_empi_acc_f_phq_ptID$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
 
 #phq-9
-print(paste0("N PHQ-9 = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))))
+print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9))))
 
 #print histogram of phq-9s for people
 hist(data_empi_acc_f_phq$PHQ.9[which(!is.na(data_empi_acc_f_phq$PHQ.9))], main = paste0("PHQ-9 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
@@ -83,15 +112,15 @@ hist(data_empi_acc_f_phq_ptID$PHQ.9[which(!is.na(data_empi_acc_f_phq_ptID$PHQ.9)
 #both phq2 and 9
 
 num_both_phq2_and_9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & !is.na(data_empi_acc_f_phq$PHQ.9)))
-print(num_both_phq2_and_9)
+print(paste0("num people with both phq2 and 9 = ", num_both_phq2_and_9))
 
 #looking at just people with phq-2 and 9
 phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=5855
 phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n=606
 
 #checking logic for order of subsetting - unique EMPI then ph2/9 == phq2/9 then EMPI subsetting - this works
-unique_phq2_empis <- length(which(!duplicated(phq2_subset$EMPI))) #n=797
-unique_phq9_empis <- length(which(!duplicated(phq9_subset$EMPI))) #n=107
+unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=1005
+unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=70
 
 
 #age histogram
@@ -118,23 +147,165 @@ hist(data_empi_acc_f_phq$race_binarized[which(!is.na(data_empi_acc_f_phq$race_bi
      xlab = "white = 1, other = 2", 
      breaks = 2)
 
-#subet people with unique EMPIs
+#f-codes - people usually have BOTH icd9/10 or neither
+num_depression <- length(which(!is.na(data_empi_acc_f_phq$ICD9))) #n=11131
+print(paste0("N with ICD 9/10 codes for depression = ", num_depression))
 
-#melissa's group
-data_empi_acc_f_phq_unique_EMPI_m <- data_empi_acc_f_phq_ptID[!duplicated(data_empi_acc_f_phq_ptID$PatientID),]
-print(paste0("N unique EMPIs in Melissa's group = ", dim(data_empi_acc_f_phq_unique_EMPI_m)[1]))
+num_unique_EMPI_and_dep <- length(which(!is.na(data_empi_acc_f_phq$ICD9) & unique(data_empi_acc_f_phq$EMPI))) #n = 593
+print(paste0("N with ICD 9/10 codes for depression and unique EMPI = ", num_unique_EMPI_and_dep))
 
-#my group
-data_empi_acc_f_phq_unique_EMPI <- data_empi_acc_f_phq[!duplicated(data_empi_acc_f_phq$EMPI),]
-print(paste0("N unique EMPIS in my group = ", dim(data_empi_acc_f_phq_unique_EMPI)[1]))
+num_phq2_and_dep <- length(which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.2))) #n = 4855
+print(paste0("N with ICD 9/10 codes for depression and phq2 = ", num_phq2_and_dep))
+
+num_phq9_and_dep <- length(which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.9))) #n=669
+print(paste0("N with ICD 9/10 codes for depression and phq9 = ", num_phq9_and_dep))
+
+#fcode histos
+hist(data_empi_acc_f_phq$PHQ.2[which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.2))], 
+     main = paste0("PHQ2 and Dep Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.2)))), xlab = paste0("PHQ2"))
+
+hist(data_empi_acc_f_phq$PHQ.9[which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.9))], 
+     main = paste0("PHQ9 and Dep Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$ICD9) & !is.na(data_empi_acc_f_phq$PHQ.9)))), xlab = paste0("PHQ9"))
+
+
+############ 11/5/2020 #############
+#########################
+##### overlap group #####
+#########################
+
+#make accession # and lab findings into integer type, contained in row 28:42, Margin=2 to work on columns
+overlap_group$ACCESSION_NUM <- as.integer(overlap_group$ACCESSION_NUM)
+overlap_group[28:42] <- apply(X = overlap_group[28:42], FUN = as.integer, MARGIN = 2)
+overlap_group$sex_binarized <- ifelse(overlap_group$SEX == "MALE", 1, 2)
+overlap_group$race_binarized <- ifelse(overlap_group$RACE == "WHITE", 1, 2)
+
+#remove people who do not have phq2 or 9
+overlap_group_with_phq2 <- overlap_group[which(!is.na(overlap_group$PHQ.2)),] #4864
+overlap_group_with_phq9 <- overlap_group[which(!is.na(overlap_group$PHQ.9)),] #376
+
+#subset people with unique scans (these are one time scanners)
+overlap_group_no_duplicate_EMPI <- overlap_group[which(!duplicated(overlap_group$EMPI)),] #2675
+
+overlap_group_with_phq2_no_duplicate_EMPI <- overlap_group_with_phq2[which(!duplicated(overlap_group_with_phq2$EMPI)),] #670
+
+overlap_group_with_phq9_no_duplicate_EMPI <- overlap_group_with_phq9[which(!duplicated(overlap_group_with_phq9$EMPI)),] #44
+
+#####take duplicated people and take first instance
+
+#get duplicated people
+overlap_group_with_duplicate_EMPI <- overlap_group[which(duplicated(overlap_group$EMPI)),]
+
+overlap_group_with_phq2_w_duplicate_EMPI <- overlap_group_with_phq2[which(duplicated(overlap_group_with_phq2$EMPI)),]
+
+overlap_group_with_phq9_w_duplicate_EMPI <- overlap_group_with_phq9[which(duplicated(overlap_group_with_phq9$EMPI)),]
+
+
+#get match - i.e. first instance of each
+overlap_group_with_duplicated_EMPI_first_instance <- overlap_group_with_duplicate_EMPI[match(unique(overlap_group_with_duplicate_EMPI$EMPI), overlap_group_with_duplicate_EMPI$EMPI),]
+
+
+overlap_group_with_phq2_duplicated_EMPI_first_instance <- overlap_group_with_phq2_w_duplicate_EMPI[match(unique(overlap_group_with_phq2_w_duplicate_EMPI$EMPI), overlap_group_with_phq2_w_duplicate_EMPI$EMPI),]
+
+overlap_group_with_phq9_duplicated_EMPI_first_instance <- overlap_group_with_phq9_w_duplicate_EMPI[match(unique(overlap_group_with_phq9_w_duplicate_EMPI$EMPI), overlap_group_with_phq9_w_duplicate_EMPI$EMPI),]
+
+
+#combine groups
+overlap_group_unique_EMPI_combined <- rbind(overlap_group_no_duplicate_EMPI, overlap_group_with_duplicated_EMPI_first_instance)
+
+overlap_group_phq2_unique_empi_combined <- rbind(overlap_group_with_phq2_no_duplicate_EMPI, overlap_group_with_phq2_duplicated_EMPI_first_instance)
+
+overlap_group_phq9_unique_empi_combined <- rbind(overlap_group_with_phq9_no_duplicate_EMPI, overlap_group_with_phq9_duplicated_EMPI_first_instance)
+
+#summarize
+print(paste0("N unique EMPIs in EB and Melissa overlap group = ", length(unique(overlap_group$EMPI)), " out of ", dim(overlap_group)[1])) #
+
+print(paste0("N unique EMPIs in EB and Melissa overlap group w/phq2 = ", dim(overlap_group_phq2_unique_empi_combined)[1], " out of ", dim(overlap_group)[1])) #
+
+print(paste0("N unique EMPIs in EB and Melissa overlap group w/phq9 = ", dim(overlap_group_phq9_unique_empi_combined)[1], " out of ", dim(overlap_group)[1])) #
 
 #histos
-hist(data_empi_acc_f_phq_unique_EMPI$PHQ.2[which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.2))], main = paste0("PHQ-2 Histo my group w/unique EMPI : n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.2)))), xlab = "PHQ-2", breaks = 6)
+hist(overlap_group_phq2_unique_empi_combined$PHQ.2, main = paste0("PHQ-2 Histo combined group w/unique EMPI vs all EMPI: n = ", dim(overlap_group_phq2_unique_empi_combined)[1], "/", length(which(!is.na(overlap_group$PHQ.2)))), xlab = "PHQ-2", breaks = 6)
 
-hist(data_empi_acc_f_phq_unique_EMPI$PHQ.9[which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.9))], main = paste0("PHQ-9 Histo my group w/unique EMPI : n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+#histos
+hist(overlap_group_phq9_unique_empi_combined$PHQ.9, main = paste0("PHQ-9 Histo combined group w/unique EMPI vs all EMPI: n = ", dim(overlap_group_phq9_unique_empi_combined)[1], "/", length(which(!is.na(overlap_group$PHQ.9)))), xlab = "PHQ-9", breaks = 6)
 
-#age histogram
-hist(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE[which(!is.na(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE))], main = paste0("Age Histo my group w/unique EMPI: n = ", length(which(!is.na(data_empi_acc_f_phq_unique_EMPI$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+#########################
+### Erica's group  ####
+#########################
+data_e <- data3
+
+#make accession # and lab findings into integer type, contained in row 28:42, Margin=2 to work on columns
+data_e$ACCESSION_NUM <- as.integer(data_e$ACCESSION_NUM)
+data_e[28:42] <- apply(X = data_e[28:42], FUN = as.integer, MARGIN = 2)
+data_e$sex_binarized <- ifelse(data_e$SEX == "MALE", 1, 2)
+data_e$race_binarized <- ifelse(data_e$RACE == "WHITE", 1, 2)
+
+#remove people who do not have phq2 or 9
+data_e_with_phq2 <- data_e[which(!is.na(data_e$PHQ.2)),] #4864
+data_e_with_phq9 <- data_e[which(!is.na(data_e$PHQ.9)),] #376
+
+#subset people with unique scans (these are one time scanners)
+data_e_no_duplicate_EMPI <- data_e[which(!duplicated(data_e$EMPI)),]
+
+data_e_with_phq2_no_duplicate_EMPI <- data_e_with_phq2[which(!duplicated(data_e_with_phq2$EMPI)),]
+
+data_e_with_phq9_no_duplicate_EMPI <- data_e_with_phq9[which(!duplicated(data_e_with_phq9$EMPI)),]
+
+#####take duplicated people and take first instance
+
+#get duplicated people
+data_e_with_duplicate_EMPI <- data_e[which(duplicated(data_e$EMPI)),]
+
+data_e_with_phq2_w_duplicate_EMPI <- data_e_with_phq2[which(duplicated(data_e_with_phq2$EMPI)),]
+
+data_e_with_phq9_w_duplicate_EMPI <- data_e_with_phq9[which(duplicated(data_e_with_phq9$EMPI)),]
+
+
+#get match - i.e. first instance of each
+data_e_with_duplicated_EMPI_first_instance <- data_e_with_duplicate_EMPI[match(unique(data_e_with_duplicate_EMPI$EMPI), data_e_with_duplicate_EMPI$EMPI),]
+
+
+data_e_with_phq2_duplicated_EMPI_first_instance <- data_e_with_phq2_w_duplicate_EMPI[match(unique(data_e_with_phq2_w_duplicate_EMPI$EMPI), data_e_with_phq2_w_duplicate_EMPI$EMPI),]
+
+data_e_with_phq9_duplicated_EMPI_first_instance <- data_e_with_phq9_w_duplicate_EMPI[match(unique(data_e_with_phq9_w_duplicate_EMPI$EMPI), data_e_with_phq9_w_duplicate_EMPI$EMPI),]
+
+
+#combine groups
+data_e_unique_EMPI_combined <- rbind(data_e_no_duplicate_EMPI, data_e_with_duplicated_EMPI_first_instance)
+
+data_e_phq2_unique_empi_combined <- rbind(data_e_with_phq2_no_duplicate_EMPI, data_e_with_phq2_duplicated_EMPI_first_instance)
+
+data_e_phq9_unique_empi_combined <- rbind(data_e_with_phq9_no_duplicate_EMPI, data_e_with_phq9_duplicated_EMPI_first_instance)
+
+#summarize
+#print(paste0("N unique EMPIs in EB group = ", dim(data_e_unique_EMPI_combined)[1], " out of ", dim(data_e)[1])) #
+
+print(paste0("N unique EMPIs in EB group = ", length(unique(data_e$EMPI)), " out of ", dim(data_e)[1]))
+
+print(paste0("N unique EMPIs in EB group w/phq2 = ", dim(data_e_phq2_unique_empi_combined)[1], " out of ", dim(data_e)[1])) #
+
+print(paste0("N unique EMPIs in EB group w/phq9 = ", dim(data_e_phq9_unique_empi_combined)[1], " out of ", dim(data_e)[1])) #
+
+print(paste0("N in EB group w/phq2 = ", length(which(!is.na(data_e_no_duplicate_EMPI$PHQ.2))), " out of ", dim(data_e)[1])) #
+
+print(paste0("N in EB group w/phq9 = ", length(which(!is.na(data_e_no_duplicate_EMPI$PHQ.9))), " out of ", dim(data_e)[1])) #
+
+print(paste0("N unique EMPIs in Melissa's group = ", length(unique(melissa_xls$EMPI)), " out of ", dim(melissa_xls)[1]))
+
+print(paste0("N in EB + Melissa overlap group w/depression ICD 9/10 = ", length(which(!is.na(overlap_group$ICD9))), " out of ", dim(overlap_group)[1])) #
+
+print(paste0("N in EB & Melissa's group with dep ICD 9/10 and phq2 = ", length(which(!is.na(overlap_group_with_phq2$ICD9))), " out of ", dim(overlap_group)[1]))
+
+print(paste0("N in EB & Melissa's group with dep ICD 9/10 and phq9 = ", length(which(!is.na(overlap_group_with_phq9$ICD9))), " out of ", dim(overlap_group)[1]))
+
+
+#histos
+hist(data_e_phq2_unique_empi_combined$PHQ.2, main = paste0("PHQ-2 Histo EB group w/unique EMPI vs all EMPI: n = ", dim(data_e_phq2_unique_empi_combined)[1], "/", length(which(!is.na(data_e$PHQ.2)))), xlab = "PHQ-2", breaks = 6)
+
+#histos
+hist(data_e_phq9_unique_empi_combined$PHQ.9, main = paste0("PHQ-9 Histo EB group w/unique EMPI vs all EMPI: n = ", dim(data_e_phq9_unique_empi_combined)[1], "/", length(which(!is.na(data_e$PHQ.9)))), xlab = "PHQ-9", breaks = 6)
+
 
 
 ```
