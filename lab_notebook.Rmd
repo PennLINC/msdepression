@@ -41,3 +41,46 @@ Merged Melissa's data with mine to get empis.
 
 Going back and forth a lot with DAC people, should have a new update soon. Big thing will be to parse PHQ2/9. We will get all of them but have to tie them to their appropriate scans
 
+
+#### 20201117
+
+Lots of back and forth with DAC, significantly less people in my pull that limited its pull to people who had G35 codes only. Went back to emails with Sunil (Taki involved). See email below.
+
+---
+
+I think my focus was more on the images and using the challenging radiology data.
+So I took a quick look at the codes and files that I might have sent or used. Unfortunately, I can’t remember what the last file I sent was and I don’t have access to the lothal drive anymore.
+ 
+Criteria:
+Don’t see any dates used. Guessing data probably was up to 7/2018(around the time I ran the report)
+I looked for patients with order associated diagnosis (%340% or %G35%)  which we mentioned that it is something that is not always populated.
+And specific proc codes or cpt codes:
+-          '70551','70552','70553','MHDI', 'IMGMR0128','IMGMR0047','IMGMR0061','IMGMR0054','70551','70552','70553','MHDI', 'IMGMR0128','IMGMR0047','IMGMR0061','IMGMR0054'
+Performing Depts: 361, 547, 6004, 6013
+ 
+--If I remember correctly, we added additional proc code and cpt codes in because the data output was very low and associated diagnosis was not always populated. Also, Taki, Melissa and I talked about some of the possible discrepancies. Which was really helpful.
+ 
+Recommendation: I recommend taking a couple patients and looking at their records.
+ 
+For ex: I reviewed a patient: Zylstra, Whitney
+I don’t see any ms diagnosis on the main snapshot problem list on the chart and started assuming she doesn’t have MS.
+I looked further and found that there was a procedure encounter diag on 9/11/2017 with diag of “G35”.
+
+ 
+But if you look at the orders, I found a couple orders with the procode listed above but the associated diagnosis was not 340 or G35. I’m not clinical and I could be wrong but I would think this patient would be on your report.
+ 
+Thanks
+Sunil
+ 
+cid:image001.gif@01D291AA.9A09B140
+Sunil Thomas
+Senior Clinical Information Analyst
+(: 215-662-4784
+📧: Sunil.Thomas@pennmedicine.upenn.edu
+ 
+“Be water, my friend.”
+ 
+This is the best I have for now guys. I hope this helps!
+
+---
+
