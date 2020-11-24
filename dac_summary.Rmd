@@ -54,6 +54,16 @@ eb_access_n <- length(unique(data_empi_acc_f_phq$ACCESSION_NUM)) #n = 21027
 
 melissa_peeps_in_eb_group <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_empi_acc_f_phq$ACCESSION_NUM)) #n = 15137
 
+#make a column that indicates whether or not accession number in melissa's is in my group
+melissa_xls$overlap <- ((melissa_xls$ACCESSION_NUM) %in% (data_empi_acc_f_phq$ACCESSION_NUM)) 
+
+#grab unique accession numbers that are NOT in the overlap group 
+unique_access_nums_only_melissas_group <- melissa_xls$ACCESSION_NUM[which(!melissa_xls$overlap)]
+names(unique_access_nums_only_melissas_group) <- c("count", "accession_num")
+
+#write table, n = 14785
+write.table(file = "/Users/eballer/BBL/msdepression/data/dac/unique_access_nums_in_melissas_group_from_mri_file_upd_w_empi.csv", x = unique_access_nums_only_melissas_group, sep = ",", col.names = TRUE, row.names = FALSE)
+
 eb_peeps_in_melissa_group <- sum(unique(data_empi_acc_f_phq$ACCESSION_NUM) %in% unique(melissa_xls$ACCESSION_NUM)) #n=15137
 
 print(paste0("Number of Melissa's people in EB group : ", melissa_peeps_in_eb_group, " out of ", m_access_n, " unique accession numbers")) #suggesting that Melissa has a lot of people that don't have ms defined the same way we do
