@@ -84,3 +84,11 @@ This is the best I have for now guys. I hope this helps!
 
 ---
 
+#### 20210126
+
+A lot of success. Went back and forth with DAC, decided to ask for basically everyone, and we would post sort for providers that were associated with MS clinic, assuming that patients who received a diagnosis of MS from one of these people actually had it. 
+
+Updates dac_summary to include not only a summary of the returned DAC pull, but also of the subset of people with MS providers. dac_summary.Rmd can be found on github, and summary table on: https://docs.google.com/presentation/d/1pDWXYUmq6sq7Xe08HaWdxLELa-qtQtABCw8RIIZ_7to/edit#slide=id.gb446eacf6a_0_0
+
+
+
