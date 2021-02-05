@@ -48,6 +48,9 @@ data4_20210119 <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigati
 #set data_empi_acc_f_phq to data4
 data_empi_acc_f_phq <- data4_20210119#subset(data, select = c("EMPI", "ACCESSION_NUM", "PHQ.2", "PHQ.9"))
 
+
+############ Start to synthesie data ###########
+
 #number of unique in melissa's
 m_access_n <- length(unique(melissa_xls$ACCESSION_NUM)) #n = 29183
 
@@ -414,11 +417,73 @@ print(paste0("N unique EMPIs in EB group w/phq2 = ", dim(data_e_phq2_unique_empi
 
 print(paste0("N unique EMPIs in EB group w/phq9 = ", dim(data_e_phq9_unique_empi_combined)[1], " out of ", dim(data_e)[1])) #
 
-print(paste0("N in EB group w/phq2 = ", sum(!is.na(data_e_no_duplicate_EMPI$PHQ.2)), " out of ", dim(data_e)[1])) #
+print(paste0("N in EB group w/phq2, one time scanners = ", sum(!is.na(data_e_no_duplicate_EMPI$PHQ.2)), " out of ", dim(data_e)[1])) #
 
-print(paste0("N in EB group w/phq9 = ", sum(!is.na(data_e_no_duplicate_EMPI$PHQ.9)), " out of ", dim(data_e)[1])) #
+print(paste0("N in EB group w/phq9, one time scanners = ", sum(!is.na(data_e_no_duplicate_EMPI$PHQ.9)), " out of ", dim(data_e)[1])) #
+
+########################
+####### overlap ########
+########################
+
+eb_icd_and_phq2 <- data_e$ACCESSION_NUM[which(!is.na(data_e[dep_df,]$PHQ.2))] #n = 741
+eb_icd_and_phq9 <- data_e$ACCESSION_NUM[which(!is.na(data_e[dep_df,]$PHQ.9))] #n = 106
+
+#overlap of groups
+n_melissa <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM))
+
+#unique empis
+n_melissa_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM))]))
+
+#overlap of people with just icds
+n_melissa_icd <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[dep_df]))
+n_melissa_icd_unique_empi <- length(unique(melissa_xls$EMPI[unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[dep_df])]))
+
+#overlap of people with phq2, phq9
+n_melissa_phq2 <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.2))]))
+n_melissa_phq9 <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.9))]))
+
+#unique people with phq2/9
+n_melissa_phq2_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.2))]))]))
+
+n_melissa_phq9_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.9))]))]))
 
 
+#overlap of icd dx + phq2 or 9
+n_melissa_peeps_in_eb_icd_phq2_group <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(eb_icd_and_phq2)) #n = 615
+n_melissa_peeps_in_eb_icd_phq9_group <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(eb_icd_and_phq9)) #n = 87
+
+#overlap of unique subjects + phq2, phq9 + icd9/10
+n_mellisa_peeps_in_eb_icd_phq2_group_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(eb_icd_and_phq2))]))
+
+n_mellisa_peeps_in_eb_icd_phq9_group_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(eb_icd_and_phq9))]))
+######
+
+print(paste0("n people in Melissa and EB overlap group: ", n_melissa, " out of ", length(unique(data_e$ACCESSION_NUM))))
+
+print(paste0("n people in Melissa and EB overlap group, unique empi: ", n_melissa_unique_empi, " out of ", length(unique(data_e$ACCESSION_NUM))))
+
+print(paste0("n with icd9/10 in Melissa and EB overlap groups: ", n_melissa_icd, " out of ", length(unique(data_e$ACCESSION_NUM[dep_df])))) 
+
+print(paste0("n people w/icd9/10 in Melissa and EB overlap group with unique empi: ", n_melissa_icd_unique_empi, " out of ", length(unique(data_e$ACCESSION_NUM))))
+
+print(paste0("n with phq2 in Melissa and EB overlap groups: ", n_melissa_phq2, " out of ", length(unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.2))])))) 
+
+print(paste0("n with phq9 in Melissa and EB overlap groups: ", n_melissa_phq9, " out of ", length(unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.9))])))) 
+
+print(paste0("n with phq2 in Melissa and EB overlap groups, unique empi: ", n_melissa_phq2_unique_empi, " out of ", length(unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.2))])))) 
+
+print(paste0("n with phq9 in Melissa and EB overlap groups, unique empi: ", n_melissa_phq9_unique_empi, " out of ", length(unique(data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.9))])))) 
+
+
+print(paste0("n with icd and phq2 in Melissa and EB overlap groups: ", n_melissa_peeps_in_eb_icd_phq2_group, " out of ", length(unique(eb_icd_and_phq2)))) 
+
+print(paste0("n with icd and phq9 in Melissa and EB groups: ", n_melissa_peeps_in_eb_icd_phq9_group, " out of ", length(unique(eb_icd_and_phq9)))) 
+
+print(paste0("n with icd and phq2 in Melissa and EB overlap groups, unique empi: ", n_mellisa_peeps_in_eb_icd_phq2_group_unique_empi, " out of ", length(unique(eb_icd_and_phq2)))) 
+
+print(paste0("n with icd and phq9 in Melissa and EB groups, unique empi: ", n_mellisa_peeps_in_eb_icd_phq9_group_unique_empi, " out of ", length(unique(eb_icd_and_phq9)))) 
+
+###########
 #histos
 hist(data_e_phq2_unique_empi_combined$PHQ.2, main = paste0("PHQ-2 Histo EB group w/unique EMPI vs all EMPI: n = ", dim(data_e_phq2_unique_empi_combined)[1], "/", length(which(!is.na(data_e$PHQ.2)))), xlab = "PHQ-2", breaks = 6)
 
