@@ -344,7 +344,7 @@ ms_providers <- c("MARKOWITZ, CLYDE E.", "JACOBS, LINDA", "WILLIAMSON, ERIC MICH
 
 data_e <- data4_20210119[which(data_empi_acc_f_phq$Provider %in% ms_providers),]
 dep_df <- grep("F3", data_e$ICD10)
-unique_empi <- match(unique(data_e$EMPI), data_e$EMPI)
+unique_empi <- which(unique(data_e$EMPI) %in% data_e$EMPI) #index of the locations of unique empis
 num_unique_EMPI_and_dep <- sum(unique_empi %in% dep_df) #n = 469
 
 
@@ -392,7 +392,7 @@ data_e_phq2_unique_empi_combined <- rbind(data_e_with_phq2_no_duplicate_EMPI, da
 data_e_phq9_unique_empi_combined <- rbind(data_e_with_phq9_no_duplicate_EMPI, data_e_with_phq9_duplicated_EMPI_first_instance)
 
 #summarize
-#print(paste0("N unique EMPIs in EB group = ", dim(data_e_unique_EMPI_combined)[1], " out of ", dim(data_e)[1])) #
+print(paste0("N unique EMPIs in EB group = ", length(unique_empi), " out of ", dim(data_e)[1])) #
 
 print(paste0("This looks at data set that only includes people with MS PROVIDERS:"))
 print(paste0(ms_providers))
@@ -425,14 +425,15 @@ print(paste0("N in EB group w/phq9, one time scanners = ", sum(!is.na(data_e_no_
 ####### overlap ########
 ########################
 
-eb_icd_and_phq2 <- data_e$ACCESSION_NUM[which(!is.na(data_e[dep_df,]$PHQ.2))] #n = 741
-eb_icd_and_phq9 <- data_e$ACCESSION_NUM[which(!is.na(data_e[dep_df,]$PHQ.9))] #n = 106
+eb_icd_and_phq2 <- data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.2[dep_df]))] #n = 741
+eb_icd_and_phq9 <- data_e$ACCESSION_NUM[which(!is.na(data_e$PHQ.9[dep_df]))] #n = 106
 
 #overlap of groups
 n_melissa <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM))
 
 #unique empis
-n_melissa_unique_empi <- length(unique(melissa_xls$EMPI[(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM))]))
+n_melissa_unique_empi <- sum(unique(melissa_xls$EMPI) %in% unique(data_e$EMPI))
+n_melissa_unique_accession <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM))
 
 #overlap of people with just icds
 n_melissa_icd <- sum(unique(melissa_xls$ACCESSION_NUM) %in% unique(data_e$ACCESSION_NUM[dep_df]))
@@ -460,7 +461,9 @@ n_mellisa_peeps_in_eb_icd_phq9_group_unique_empi <- length(unique(melissa_xls$EM
 
 print(paste0("n people in Melissa and EB overlap group: ", n_melissa, " out of ", length(unique(data_e$ACCESSION_NUM))))
 
-print(paste0("n people in Melissa and EB overlap group, unique empi: ", n_melissa_unique_empi, " out of ", length(unique(data_e$ACCESSION_NUM))))
+print(paste0("n people in Melissa and EB overlap group, unique empi: ", n_melissa_unique_empi, " out of ", length(unique(data_e$EMPI))))
+
+print(paste0("n people in Melissa and EB overlap group, unique accession #: ", n_melissa_unique_accession, " out of ", length(unique(data_e$ACCESSION_NUM))))
 
 print(paste0("n with icd9/10 in Melissa and EB overlap groups: ", n_melissa_icd, " out of ", length(unique(data_e$ACCESSION_NUM[dep_df])))) 
 

@@ -96,5 +96,9 @@ Updates dac_summary to include not only a summary of the returned DAC pull, but 
 [x] figure out what the overlap in # of scans between Melissa and my new group are
 
 #### 20210208
-[] check logic of unique EMPIs, looks like something wonky is going on - less unique empis in my group than in the overlap group. Obviously they should be the same if not better
+[x] check logic of unique EMPIs, looks like something wonky is going on - less unique empis in my group than in the overlap group. Obviously they should be the same if not better
+   - fixed, using accession #s and not empis to look for unique empis. Now that I look for unique EMPIs, we are all good!
+   
+#### 20210209
+[] post to channel tomorrow
 
