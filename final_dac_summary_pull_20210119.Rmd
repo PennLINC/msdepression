@@ -1,0 +1,239 @@
+---
+title: "Dac summary 01/19/2021"
+author: "Erica Baller"
+date: "4/15/2021"
+output: html_document
+---
+
+title: "Dac Summary"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Dac summary
+
+Welcome to the MS project! This is a really exciting project dedicated to understanding psychopathology, particular depression in patients with MS. It is unqiue in a variety of ways, primarily that it uses clinical images that are research grade.
+
+The team so far is big.
+PIs- Ted Satterthwaite and Taki Shinohara
+Senior Scientists - Azeez Adebimpe and Matt Cieslak
+Research Specialist- Timothy Robert-Fitzgerald
+Graduate students - Melissa Martin
+Data Analysist - Sidney Covitz
+Collaborators - Aaron Alexander-Bloch and Jenna Young
+DAC Pull done by - Victoria Rautman(2020/2021) and Sunil Thomas (2018)
+
+Date of FINAL Pull: 1/19/2021
+Spreadsheet: /Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninmspatients.csv 
+Summary of request to Victoria @ DAC:
+---
+9/2/2020
+
+DAC Request
+Non-funded IRB Approved Research  (enter IRB number): 843669
+Criteria	Display?	Description / Exclusions / Limitations / Filters
+MRN	Y	Unique identifier requested, but can be masked MRN
+Visit ID	Y	
+Patient Class(es)
+Please select only which class(es) you will need.		x  Inpatient
+ X   Outpatient
+x  Emergency
+Age or DOB ranges	Y	
+Gender	Y	
+Race	Y	
+Department(s)
+Provide department numbers not just names.	N	
+Provider(s)
+Provide ID’s not just names.	N	
+Date(s)
+Include in the specific range and date types (eg, admit, order, result)	1/1/2010-
+12/31/20	All scans based on date of first treatment with glatiramer acetate
+Procedure
+Please include the specific procedure codes.  (ICD9/ICD10 is preferred for inpatient)	Y	88.91 (Magnetic Resonance Imaging of Brain)
+
+Diagnosis
+Please include the specific ICD-9/ICD-10 codes including all decimal points. Do not simply include ranges or wildcards.	Y	Multiple sclerosis (ICD-9: 340; ICD-10: G35), Depressive disorders (ICD-9: 296.99, 296.21, 296.22, 296.23, 296.24, 296.25, 296.26, 296.20, 296.31, 296.32, 296.33, 296.34, 296.35, 296.26, 296.30, 300.4, 293.83, 311, ICD-10: F32.0, F32.1, F32.2, F32.3, F32.4, F32.5, F32.6, F33.0, F33.1, F33.2, F33.41, F33.42, F33.9, F34.1, F06.31, F06.32, F06.34, F32.8, F32.9, major depressive disorder, persistent depressive disorder, depressive disorder due to another medical condition, other specified depressive disorder, unspecified depressive disorder)
+Orders	N	
+Medication
+Please list as it is ordered within the UPHS EMR’s – medication id’s preferred	Y	Glatiramer Acetate (Copaxone)
+Lab Result
+Please list the lab as it is ordered within the UPHS EMR’s.	Y	
+Other	Y	EDSS scores (if present)
+Other	Y	All medications patients are receiving
+Other	Y	All PACS accession numbers available
+Other	Y	PHQ-2 and PHQ-9 if present
+---
+9/16/2020:
+Per her note to me: We also specified that we wanted to pull images with ORIG_CPT values of 70551, 70552, 70553, MHDI, IMGMR0128, and we wanted scans with department ID 361, 547, 6004, or 6013. And I may have mentioned this before but the ICD9 and ICD10 codes for MS patients are 340 and G35, respectively
+ 
+*For us, we are additionally interested in ALL ICD9/10 codes, ALL medications they are on at the time of scan, specific labs (as indicated), EDSS , PHQ-9 and 2 scores. The particular reason for this is that we are going to be looking at the relationship of brain imaging to depression in the MS group.
+
+Mock columns: DE_PAT_ID	PAT_ID	EMPI	HUP_MRN	PAT_NM_WMRN	SEX	RACE	ETHNIC_GROUP	ORDER_ID	ORDERING_DTTM	BEGIN_EXAM_DTTM	END_EXAM_DTTM	TECH_USER_ID	TECHNOLOGIST	ACCESSION_NUM	PROC_ID	PROC_NAME	PROC_CODE	ORIG_CPT	PERFORMING_CSN_ID	COVERAGE_ID	FIN_CLASS_NAME	VISIT_EPM_ID	PERFORMING_DEP_ID	DEPARTMENT_NAME	MODALITY	ASSOCIATED_ICD9	ASSOCIATED_ICD10	PAT_AGE_AT_EXAM	MRI_ENC_AGE	CURRENT_AGE	All ICD-9 or 10 codes	All medication codes	wbc	rbc	hemoglobin	csf studies…	phq-9 score (and date)	phq-2 score (and date)	b12	folate 	TSH	RPR Vit D
+
+
+
+---
+ 1/8/2021 email update (me to Victoria Rautman):
+ What we realized is that the best way to define inclusion for the MS group is to focus on people who were seen at some point in neurology clinic.
+ 
+If you’d be so kind, I’d be grateful for *hopefully the last pull. We would use the previous one, but instead of using the ICD 9/10 codes associated with the actual scan, we would use the location of clinic visits, and pull ALL scans, before or after diagnosis.
+
+New updates:
+ -Pull all the scans for patients who have ever been seen by “NEUROLOGY SOUTH PAVILLION” and “NEUROLOGY HUP” departments for clinic. 
+ 
+-Please include provider name associated with these department visits. 
+ 
+-Don’t worry about doing exclusions based on ICD9/10 codes for the scans themselves, please include all and we will sort through it ourselves
+ 
+***Please also include vitamin D levels in addition to other labs***
+ 
+The rest of the query would be the same as the most recent query you sent back.
+---
+
+Radiology sent images to Taki and group 4/2021
+
+This script goes through data that has been returned from the DAC on 1/19 and summarizes it
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+
+```{r summary}
+#preprocessing - because these are sent 
+
+
+#load our df
+
+#from Jan 2021 pull
+data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninmspatients.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"), sep =",")
+
+ms_providers <- c("MARKOWITZ, CLYDE E.", "JACOBS, DINA A.", "WILLIAMSON, ERIC MICHAEL-LEE", "BERGER, JOSEPH ROBERT", "BERGER DO, JOSEPH", "PRUITT, AMY A.", "KOLSON, DENNIS L.", "CHAHIN, SALIM", "NARULA, SONA", "BAR-OR, AMIT")
+
+
+
+data_empi_acc_f_phq <- data[which(data$Provider %in% ms_providers),] #n = 17067
+table(data_empi_acc_f_phq$Provider)
+
+##########################
+### some preprocessing ###
+##########################
+
+#make accession # and lab findings into integer type, contained in row 28:42, Margin=2 to work on columns
+data_empi_acc_f_phq$ACCESSION_NUM <- as.integer(data_empi_acc_f_phq$ACCESSION_NUM)
+data_empi_acc_f_phq[27:29] <- apply(X = data_empi_acc_f_phq[27:29], FUN = as.integer, MARGIN = 2)
+data_empi_acc_f_phq[31:45] <- apply(X = data_empi_acc_f_phq[31:45], FUN = as.integer, MARGIN = 2)
+data_empi_acc_f_phq$sex_binarized <- ifelse(data_empi_acc_f_phq$SEX == "MALE", 1, 2)
+data_empi_acc_f_phq$race_binarized <- ifelse(data_empi_acc_f_phq$RACE == "WHITE", 1, 2)
+
+########################################
+#### Start counting / making subsets ###
+########################################
+
+# number of unique scanners and scans
+print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(unique(data_empi_acc_f_phq$PROC_CODE)))) #n = 11
+print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(unique(data_empi_acc_f_phq$DEPARTMENT_NAME)))) #n = 3
+print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(unique(data_empi_acc_f_phq$MODALITY)))) #n = 11
+print(paste0("Number of unique accession #s n= ", length(unique(data_empi_acc_f_phq$ACCESSION_NUM)))) # n = 17067
+
+
+#### PHQ-2 and PHQ-9 summaries
+#phq-2;
+print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)))) #n = 4701
+
+#phq-9
+print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)))) #n = 274
+
+#both phq2 and 9
+
+num_both_phq2_and_9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & !is.na(data_empi_acc_f_phq$PHQ.9)))
+print(paste0("num people with both phq2 and 9 = ", num_both_phq2_and_9)) #n = 0
+
+#looking at just people with phq-2 and 9
+phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=4701
+phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n=274
+
+#Number of unique EMPIs in phq2/phq9 subsets
+unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=966
+unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=76
+
+#### ICD 9/10 for Depression
+dep_df <- data_empi_acc_f_phq[grep("F3", data_empi_acc_f_phq$ICD10),] #n = 2339
+num_depression <- dim(dep_df)[1]
+unique_empi <- which(unique(data_empi_acc_f_phq$EMPI) %in% data_empi_acc_f_phq$EMPI) #index of the locations of unique empis; n = 3885
+num_unique_EMPI_and_dep <- length(unique(dep_df$EMPI)) #n = 633 
+
+print(paste0("N with ICD 9/10 codes for depression = ", num_depression))
+
+print(paste0("N with ICD 9/10 codes for depression and unique EMPI = ", num_unique_EMPI_and_dep, " out of ", dim(data_empi_acc_f_phq)[1]))
+
+##### PHQ2 or 9 + ICD 9/10 Depression
+num_phq2_and_dep <- length(which(!is.na(dep_df$PHQ.2))) #n = 1049
+print(paste0("N with ICD 9/10 codes for depression and phq2 (ALL SCANS) = ", num_phq2_and_dep, " out of ", dim(dep_df)[1]))
+
+num_phq9_and_dep <- length(which(!is.na(dep_df$PHQ.9))) #n=153
+print(paste0("N with ICD 9/10 codes for depression and phq9 (ALL SCANS) = ", num_phq9_and_dep, " out of ", dim(dep_df)[1]))
+
+#### # unique people with dep dx and phq2/9 -> working on this
+dep_dx_phq2_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.2)])) #n = 266
+print(paste0("N with ICD 9/10 codes for depression and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(dep_df)[1]))
+
+dep_dx_phq9_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.9)])) #n = 51
+print(paste0("N with ICD 9/10 codes for depression and phq9 (unique) = ", dep_dx_phq9_unique, " out of ", dim(dep_df)[1]))
+
+####
+
+
+#demographics and lab historgrams
+#print histogram of phq-2/9s for people
+
+hist(data_empi_acc_f_phq$PHQ.2[which(!is.na(data_empi_acc_f_phq$PHQ.2))], main = paste0("PHQ-2 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
+
+hist(data_empi_acc_f_phq$PHQ.9[which(!is.na(data_empi_acc_f_phq$PHQ.9))], main = paste0("PHQ-9 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+#fcode histos
+hist(dep_df$PHQ.2, main = paste0("PHQ2 and Dep Histo : n = ", num_phq2_and_dep), xlab = paste0("PHQ2"))
+
+hist(dep_df$PHQ.9,main = paste0("PHQ9 and Dep Histo : n = ", num_phq9_and_dep), xlab = paste0("PHQ9"))
+
+###
+
+#age histogram
+hist(data_empi_acc_f_phq$MRI_ENC_AGE[which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE))], main = paste0("Age Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+#tsh
+hist(data_empi_acc_f_phq$TSH[which(!is.na(data_empi_acc_f_phq$TSH))], main = paste0("TSH Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$TSH)))), xlab = "TSH")
+
+#hemoglobin
+hist(data_empi_acc_f_phq$hemoglobin[which(!is.na(data_empi_acc_f_phq$hemoglobin))], main = paste0("Hemoglobin Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$hemoglobin)))), xlab = "hemoglobin")
+
+#folate
+hist(data_empi_acc_f_phq$FOLATE[which(!is.na(data_empi_acc_f_phq$FOLATE))], main = paste0("Folate Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "folate", breaks = 10)
+
+#vitamin D
+hist(data_empi_acc_f_phq$VitD[which(!is.na(data_empi_acc_f_phq$VitD))], main = paste0("Vitamin D Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "Vitamin D", breaks = 10)
+
+
+#sex
+hist(data_empi_acc_f_phq$sex_binarized[which(!is.na(data_empi_acc_f_phq$sex_binarized))], 
+     main = paste0("Sex Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$sex_binarized))), "; M = ", length(which(data_empi_acc_f_phq$sex_binarized == 1)), "; F = ", length(which(data_empi_acc_f_phq$sex_binarized == 2)) ), 
+     xlab = "Male = 1, Female = 2", 
+     breaks = 2)
+
+#race
+hist(data_empi_acc_f_phq$race_binarized[which(!is.na(data_empi_acc_f_phq$race_binarized))], 
+     main = paste0("Race Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$race))), "; White = ", length(which(data_empi_acc_f_phq$race_binarized == 1)), "; NW = ", length(which(data_empi_acc_f_phq$race_binarized == 2))),
+     xlab = "white = 1, other = 2", 
+     breaks = 2)
+
+#f-codes - people usually have BOTH icd9/10 or neither
+
+
+```
+
+
+
+
+
