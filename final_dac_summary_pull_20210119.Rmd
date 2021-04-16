@@ -113,8 +113,11 @@ data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressi
 ms_providers <- c("MARKOWITZ, CLYDE E.", "JACOBS, DINA A.", "WILLIAMSON, ERIC MICHAEL-LEE", "BERGER, JOSEPH ROBERT", "BERGER DO, JOSEPH", "PRUITT, AMY A.", "KOLSON, DENNIS L.", "CHAHIN, SALIM", "NARULA, SONA", "BAR-OR, AMIT")
 
 
-
+#keep people with MS providers 
 data_empi_acc_f_phq <- data[which(data$Provider %in% ms_providers),] #n = 17067
+
+#keep people with ICD10 code G35 (this is the same # as people with IC9 - 340)
+data_empi_acc_f_phq <- data_empi_acc_f_phq[grep("G35", data_empi_acc_f_phq$ICD10),] #n = 16830
 table(data_empi_acc_f_phq$Provider)
 
 ##########################
@@ -133,18 +136,17 @@ data_empi_acc_f_phq$race_binarized <- ifelse(data_empi_acc_f_phq$RACE == "WHITE"
 ########################################
 
 # number of unique scanners and scans
-print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(unique(data_empi_acc_f_phq$PROC_CODE)))) #n = 11
+print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(unique(data_empi_acc_f_phq$PROC_CODE)))) #n = 10
 print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(unique(data_empi_acc_f_phq$DEPARTMENT_NAME)))) #n = 3
 print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(unique(data_empi_acc_f_phq$MODALITY)))) #n = 11
-print(paste0("Number of unique accession #s n= ", length(unique(data_empi_acc_f_phq$ACCESSION_NUM)))) # n = 17067
-
+print(paste0("Number of unique accession #s n= ", length(unique(data_empi_acc_f_phq$ACCESSION_NUM)))) # n = 16830
 
 #### PHQ-2 and PHQ-9 summaries
 #phq-2;
-print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)))) #n = 4701
+print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)))) #n = 4606
 
 #phq-9
-print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)))) #n = 274
+print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)))) #n = 261
 
 #both phq2 and 9
 
@@ -160,27 +162,27 @@ unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=966
 unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=76
 
 #### ICD 9/10 for Depression
-dep_df <- data_empi_acc_f_phq[grep("F3", data_empi_acc_f_phq$ICD10),] #n = 2339
+dep_df <- data_empi_acc_f_phq[grep("F3", data_empi_acc_f_phq$ICD10),] #n = 2123
 num_depression <- dim(dep_df)[1]
 unique_empi <- which(unique(data_empi_acc_f_phq$EMPI) %in% data_empi_acc_f_phq$EMPI) #index of the locations of unique empis; n = 3885
-num_unique_EMPI_and_dep <- length(unique(dep_df$EMPI)) #n = 633 
+num_unique_EMPI_and_dep <- length(unique(dep_df$EMPI)) #n = 493
 
 print(paste0("N with ICD 9/10 codes for depression = ", num_depression))
 
 print(paste0("N with ICD 9/10 codes for depression and unique EMPI = ", num_unique_EMPI_and_dep, " out of ", dim(data_empi_acc_f_phq)[1]))
 
 ##### PHQ2 or 9 + ICD 9/10 Depression
-num_phq2_and_dep <- length(which(!is.na(dep_df$PHQ.2))) #n = 1049
+num_phq2_and_dep <- length(which(!is.na(dep_df$PHQ.2))) #n = 960
 print(paste0("N with ICD 9/10 codes for depression and phq2 (ALL SCANS) = ", num_phq2_and_dep, " out of ", dim(dep_df)[1]))
 
-num_phq9_and_dep <- length(which(!is.na(dep_df$PHQ.9))) #n=153
+num_phq9_and_dep <- length(which(!is.na(dep_df$PHQ.9))) #n=140
 print(paste0("N with ICD 9/10 codes for depression and phq9 (ALL SCANS) = ", num_phq9_and_dep, " out of ", dim(dep_df)[1]))
 
 #### # unique people with dep dx and phq2/9 -> working on this
-dep_dx_phq2_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.2)])) #n = 266
+dep_dx_phq2_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.2)])) #n = 201
 print(paste0("N with ICD 9/10 codes for depression and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(dep_df)[1]))
 
-dep_dx_phq9_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.9)])) #n = 51
+dep_dx_phq9_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.9)])) #n = 43
 print(paste0("N with ICD 9/10 codes for depression and phq9 (unique) = ", dep_dx_phq9_unique, " out of ", dim(dep_df)[1]))
 
 ####
