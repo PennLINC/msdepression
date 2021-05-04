@@ -140,26 +140,45 @@ print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI
 print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(unique(data_empi_acc_f_phq$DEPARTMENT_NAME)))) #n = 3
 print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(unique(data_empi_acc_f_phq$MODALITY)))) #n = 11
 print(paste0("Number of unique accession #s n= ", length(unique(data_empi_acc_f_phq$ACCESSION_NUM)))) # n = 16830
+print(paste0("Number of unique EMPIS n = ", length(unique(data_empi_acc_f_phq$EMPI)))) #n = 3737
 
 #### PHQ-2 and PHQ-9 summaries
+
+#looking at just people with phq-2 and 9
+phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=4606
+
+phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n= 261
+
 #phq-2;
-print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)))) #n = 4606
+print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)), "; n = ", length(which(phq2_subset$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
 
 #phq-9
-print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)))) #n = 261
+print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(phq9_subset$PHQ.9 < 5)), "/",
+             length(which(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)), "/",
+             length(which(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)), "/",
+             length(which(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)), "/",
+             length(which(phq9_subset$PHQ.9 >= 20)))) #n = 261
 
 #both phq2 and 9
 
 num_both_phq2_and_9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & !is.na(data_empi_acc_f_phq$PHQ.9)))
 print(paste0("num people with both phq2 and 9 = ", num_both_phq2_and_9)) #n = 0
 
-#looking at just people with phq-2 and 9
-phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=4701
-phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n=274
+
 
 #Number of unique EMPIs in phq2/phq9 subsets
 unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=966
+print(paste0("N with phq2 (Unique EMPI) n = ", unique_phq2_empis, " out of ", dim(phq2_subset)[1], "; n - ", length(unique(phq2_subset$EMPI[phq2_subset$PHQ.2 >= 3])), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
 unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=76
+print(paste0("N with phq9 (Unique EMPI) n = ", unique_phq9_empis, " out of ", dim(phq9_subset)[1], "; noDep/mild/mod/mod-severe/severe = ", 
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 < 5])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)])), "/",
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 >= 20]))))
+
 
 #### ICD 9/10 for Depression
 dep_df <- data_empi_acc_f_phq[grep("F3", data_empi_acc_f_phq$ICD10),] #n = 2123
@@ -178,6 +197,18 @@ print(paste0("N with ICD 9/10 codes for depression and phq2 (ALL SCANS) = ", num
 num_phq9_and_dep <- length(which(!is.na(dep_df$PHQ.9))) #n=140
 print(paste0("N with ICD 9/10 codes for depression and phq9 (ALL SCANS) = ", num_phq9_and_dep, " out of ", dim(dep_df)[1]))
 
+#phq-2;
+print(paste0("N dep + PHQ-2 = ", sum(!is.na(dep_df$PHQ.2)), "; n = ", length(which(dep_df$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+#phq-9
+print(paste0("N dep + PHQ-9 = ", sum(!is.na(dep_df$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(dep_df$PHQ.9 < 5)), "/",
+             length(which(dep_df$PHQ.9 >= 5 & dep_df$PHQ.9 < 10)), "/",
+             length(which(dep_df$PHQ.9 >= 10 & dep_df$PHQ.9 < 15)), "/",
+             length(which(dep_df$PHQ.9 >= 15 & dep_df$PHQ.9 < 20)), "/",
+             length(which(dep_df$PHQ.9 >= 20)))) #n = 261
+
+
 #### # unique people with dep dx and phq2/9 -> working on this
 dep_dx_phq2_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.2)])) #n = 201
 print(paste0("N with ICD 9/10 codes for depression and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(dep_df)[1]))
@@ -187,6 +218,45 @@ print(paste0("N with ICD 9/10 codes for depression and phq9 (unique) = ", dep_dx
 
 ####
 
+
+#### ICD 9/10 for Healthy Group
+healthy_df <- data_empi_acc_f_phq[(-grep("F3", data_empi_acc_f_phq$ICD10)),] #n = 14707
+num_healthy <- dim(healthy_df)[1]
+unique_empi <- which(unique(healthy_df$EMPI) %in% healthy_df$EMPI) #index of the locations of unique empis; n = 3244
+num_unique_EMPI_and_healthy <- length(unique(healthy_df$EMPI)) #n = 3244
+
+print(paste0("N without Depression/ICD 9/10 codes for healthy = ", num_healthy))
+
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and unique EMPI = ", num_unique_EMPI_and_healthy, " out of ", dim(healthy_df)[1]))
+
+##### PHQ2 or 9 + No Depression ICD9/10
+num_phq2_and_healthy <- length(which(!is.na(healthy_df$PHQ.2))) #n = 3646
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq2 (ALL SCANS) = ", num_phq2_and_healthy, " out of ", dim(healthy_df)[1]))
+
+#phq-2;
+print(paste0("N healthy w/PHQ-2 = ", sum(!is.na(healthy_df$PHQ.2)), "; n = ", length(which(healthy_df$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 47
+
+num_phq9_and_healthy <- length(which(!is.na(healthy_df$PHQ.9))) #n=121
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq9 (ALL SCANS) = ", num_phq9_and_healthy, " out of ", dim(healthy_df)[1]))
+
+
+#phq-9
+print(paste0("N healthy w/PHQ-9 = ", sum(!is.na(healthy_df$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(healthy_df$PHQ.9 < 5)), "/",
+             length(which(healthy_df$PHQ.9 >= 5 & healthy_df$PHQ.9 < 10)), "/",
+             length(which(healthy_df$PHQ.9 >= 10 & healthy_df$PHQ.9 < 15)), "/",
+             length(which(healthy_df$PHQ.9 >= 15 & healthy_df$PHQ.9 < 20)), "/",
+             length(which(healthy_df$PHQ.9 >= 20)))) #n = 55/34/21/1/10
+
+
+#### # unique people without dep dx and phq2/9 
+dep_dx_phq2_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.2)])) #n = 201
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(healthy_df)[1]))
+
+dep_dx_phq9_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.9)])) #n = 43
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq9 (unique) = ", dep_dx_phq9_unique, " out of ", dim(healthy_df)[1]))
+
+####
 
 #demographics and lab historgrams
 #print histogram of phq-2/9s for people
@@ -211,11 +281,14 @@ hist(data_empi_acc_f_phq$TSH[which(!is.na(data_empi_acc_f_phq$TSH))], main = pas
 #hemoglobin
 hist(data_empi_acc_f_phq$hemoglobin[which(!is.na(data_empi_acc_f_phq$hemoglobin))], main = paste0("Hemoglobin Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$hemoglobin)))), xlab = "hemoglobin")
 
+#wbc
+hist(data_empi_acc_f_phq$WBC[which(!is.na(data_empi_acc_f_phq$WBC))], main = paste0("WBC Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$WBC)))), xlab = "WBC")
+
 #folate
 hist(data_empi_acc_f_phq$FOLATE[which(!is.na(data_empi_acc_f_phq$FOLATE))], main = paste0("Folate Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "folate", breaks = 10)
 
 #vitamin D
-hist(data_empi_acc_f_phq$VitD[which(!is.na(data_empi_acc_f_phq$VitD))], main = paste0("Vitamin D Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "Vitamin D", breaks = 10)
+hist(data_empi_acc_f_phq$VitD[which(!is.na(data_empi_acc_f_phq$VitD))], main = paste0("Vitamin D Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$VitD)))), xlab = "Vitamin D", breaks = 10)
 
 
 #sex
@@ -234,6 +307,460 @@ hist(data_empi_acc_f_phq$race_binarized[which(!is.na(data_empi_acc_f_phq$race_bi
 
 
 ```
+```{r frequencies_of_dep_in_phq2_vs_9}
+num_dep_phq2 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & (data_empi_acc_f_phq$PHQ.2 >= 3))) #n = 130
+num_dep_phq9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.9) & (data_empi_acc_f_phq$PHQ.9 >= 5))) #n = 184; https://www.sciencedirect.com/science/article/pii/B9780128179338000293 recommends using cut point of 11
+num_total_phq2 <-length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))
+num_total_phq9 <-length(which(!is.na(data_empi_acc_f_phq$PHQ.9))) 
+dep_total_phq_table <- data.frame(matrix(data = c(num_dep_phq2, num_dep_phq9, num_total_phq2, num_total_phq9), nrow = 2, ncol = 2))
+names(dep_total_phq_table) <- c("dep", "healthy")
+row.names(dep_total_phq_table) <- c("phq2", "phq9")
+chisq_dep_phq2_v_phq9 <- chisq.test(dep_total_phq_table)
+chisq_dep_phq2_v_phq9
+print("observed")
+chisq_dep_phq2_v_phq9$observed
+print("expected")
+chisq_dep_phq2_v_phq9$expected
+print("residuals")
+chisq_dep_phq2_v_phq9$residuals
+```
+
+```{r sex_differences_regressions}
+
+
+### looking at anyone with phq2s or 9s
+males.phq2 <- phq2_subset[which(phq2_subset$SEX == "MALE"),] #n = 951, mean = 0.20
+females.phq2 <- phq2_subset[which(phq2_subset$SEX == "FEMALE"),] #n = 3655, mean = 0.26
+m_v_f_phq2 <- t.test(males.phq2$PHQ.2, females.phq2$PHQ.2) #p = 0.03 ***
+
+males.phq9 <- phq9_subset[which(phq9_subset$SEX == "MALE"),] #n = 80, mean = 8.63
+females.phq9 <- phq9_subset[which(phq9_subset$SEX == "FEMALE"),] #n = 181, mean = 9.13
+m_v_f_phq9 <- t.test(males.phq9$PHQ.9, females.phq9$PHQ.9)
+
+#### Looking at depressed group
+## interstingly, not the 2:1 ratio we usually see in general world
+## phq2 means suggest people are not depressed 
+## phq2 means suggest people meet criteria for mild depression
+
+males_dep <- dep_df[(which(dep_df$SEX == "MALE")),] #n = 419/total(4087; 10%) F; mean PHQ2 = 0.61, mean PHQ9 = 13.05
+females_dep <- dep_df[(which(dep_df$SEX == "FEMALE")),] #n = 1704/total(12743; 13%)total F; mean = 0.56; mean PHQ9 = 10.61
+m_v_f_dep_phq2 <- t.test(males_dep$PHQ.2, females_dep$PHQ.2) #p = 0.66
+m_v_f_dep_phq9 <- t.test(males_dep$PHQ.9, females_dep$PHQ.9) #p = 0.24
+
+#chi sq comparing # of pts dx with depression in males vs females; col 1- male dep n, female dep n; col 2- male total n, female total n
+### fascinating - only 12% of people even gave a dx of depression in their charts. More likely to have it if female than male; also phq2 mean only slightly higher in females. 
+num_dep_m <- dim(males_dep)[1] #n = 419
+num_dep_f <-  dim(females_dep)[1]#n = 1704
+num_total_m <- length(which(data_empi_acc_f_phq$SEX == "MALE")) #n = 4087
+num_total_f <- length(which(data_empi_acc_f_phq$SEX == "FEMALE")) #n = 
+m_v_f_table <- data.frame(matrix(data = c(num_dep_m, num_dep_f, num_total_m, num_total_f), nrow = 2, ncol = 2))
+names(m_v_f_table) <- c("dep", "total")
+row.names(m_v_f_table) <- c("male", "female")
+chisq_m_v_f_dist <- chisq.test(m_v_f_table) #p = 4 x 10^-6
+chisq_m_v_f_dist
+print("observed")
+chisq_m_v_f_dist$observed
+print("expected")
+chisq_m_v_f_dist$expected
+print("residuals")
+chisq_m_v_f_dist$residuals
+#chisq comparing # of 
+
+```
+
+
+
+
+
+```{r summary_psychosis}
+#preprocessing - because these are sent 
+
+
+#load our df
+
+#from Jan 2021 pull
+data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/investigatingdepressioninmspatients.csv", header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"), sep =",")
+
+ms_providers <- c("MARKOWITZ, CLYDE E.", "JACOBS, DINA A.", "WILLIAMSON, ERIC MICHAEL-LEE", "BERGER, JOSEPH ROBERT", "BERGER DO, JOSEPH", "PRUITT, AMY A.", "KOLSON, DENNIS L.", "CHAHIN, SALIM", "NARULA, SONA", "BAR-OR, AMIT")
+
+
+#keep people with MS providers 
+data_empi_acc_f_phq <- data[which(data$Provider %in% ms_providers),] #n = 17067
+
+#keep people with ICD10 code G35 (this is the same # as people with IC9 - 340)
+data_empi_acc_f_phq <- data_empi_acc_f_phq[grep("G35", data_empi_acc_f_phq$ICD10),] #n = 16830
+table(data_empi_acc_f_phq$Provider)
+
+##########################
+### some preprocessing ###
+##########################
+
+#make accession # and lab findings into integer type, contained in row 28:42, Margin=2 to work on columns
+data_empi_acc_f_phq$ACCESSION_NUM <- as.integer(data_empi_acc_f_phq$ACCESSION_NUM)
+data_empi_acc_f_phq[27:29] <- apply(X = data_empi_acc_f_phq[27:29], FUN = as.integer, MARGIN = 2)
+data_empi_acc_f_phq[31:45] <- apply(X = data_empi_acc_f_phq[31:45], FUN = as.integer, MARGIN = 2)
+data_empi_acc_f_phq$sex_binarized <- ifelse(data_empi_acc_f_phq$SEX == "MALE", 1, 2)
+data_empi_acc_f_phq$race_binarized <- ifelse(data_empi_acc_f_phq$RACE == "WHITE", 1, 2)
+
+########################################
+#### Start counting / making subsets ###
+########################################
+
+# number of unique scanners and scans
+print(paste0("Number of unique procedure names (ie. MRI Head w/out contrast; MRI Source Images): ",  length(unique(data_empi_acc_f_phq$PROC_CODE)))) #n = 10
+print(paste0("Number of unique department names (ie. RAD HUP PCAM Ground): ",  length(unique(data_empi_acc_f_phq$DEPARTMENT_NAME)))) #n = 3
+print(paste0("Number of unique modalities (ie. HUP PCAM GR MR4 3T; MR6 3T): ",  length(unique(data_empi_acc_f_phq$MODALITY)))) #n = 11
+print(paste0("Number of unique accession #s n= ", length(unique(data_empi_acc_f_phq$ACCESSION_NUM)))) # n = 16830
+print(paste0("Number of unique EMPIS n = ", length(unique(data_empi_acc_f_phq$EMPI)))) #n = 3737
+
+#### PHQ-2 and PHQ-9 summaries
+
+#looking at just people with phq-2 and 9
+phq2_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.2)),] #n=4606
+
+phq9_subset <- data_empi_acc_f_phq[which(!is.na(data_empi_acc_f_phq$PHQ.9)),] #n= 261
+
+#phq-2;
+print(paste0("N PHQ-2 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.2)), "; n = ", length(which(phq2_subset$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+#phq-9
+print(paste0("N PHQ-9 = ", sum(!is.na(data_empi_acc_f_phq$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(phq9_subset$PHQ.9 < 5)), "/",
+             length(which(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)), "/",
+             length(which(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)), "/",
+             length(which(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)), "/",
+             length(which(phq9_subset$PHQ.9 >= 20)))) #n = 261
+
+#both phq2 and 9
+
+num_both_phq2_and_9 <- length(which(!is.na(data_empi_acc_f_phq$PHQ.2) & !is.na(data_empi_acc_f_phq$PHQ.9)))
+print(paste0("num people with both phq2 and 9 = ", num_both_phq2_and_9)) #n = 0
+
+
+
+#Number of unique EMPIs in phq2/phq9 subsets
+unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=966
+print(paste0("N with phq2 (Unique EMPI) n = ", unique_phq2_empis, " out of ", dim(phq2_subset)[1], "; n - ", length(unique(phq2_subset$EMPI[phq2_subset$PHQ.2 >= 3])), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=76
+print(paste0("N with phq9 (Unique EMPI) n = ", unique_phq9_empis, " out of ", dim(phq9_subset)[1], "; noDep/mild/mod/mod-severe/severe = ", 
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 < 5])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)])), "/",
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 >= 20]))))
+
+
+#### ICD 9/10 for Psychosis
+psychosis_df <- data_empi_acc_f_phq[grep("F2", data_empi_acc_f_phq$ICD10),] #n = 2123
+num_psychosis <- dim(psychosis_df)[1]
+unique_empi <- which(unique(data_empi_acc_f_phq$EMPI) %in% data_empi_acc_f_phq$EMPI) #index of the locations of unique empis; n = 3885
+num_unique_EMPI_and_psychosis <- length(unique(psychosis_df$EMPI)) #n = 493
+
+print(paste0("N with ICD 9/10 codes for psychosis = ", num_psychosis))
+
+print(paste0("N with ICD 9/10 codes for psychosis and unique EMPI = ", num_unique_EMPI_and_psychosis, " out of ", dim(data_empi_acc_f_phq)[1]))
+
+##### PHQ2 or 9 + ICD 9/10 psychosis
+num_phq2_and_psychosis <- length(which(!is.na(psychosis_df$PHQ.2))) #n = 960
+print(paste0("N with ICD 9/10 codes for psychosis and phq2 (ALL SCANS) = ", num_phq2_and_psychosis, " out of ", dim(psychosis_df)[1]))
+
+num_phq9_and_psychosis <- length(which(!is.na(psychosis_df$PHQ.9))) #n=140
+print(paste0("N with ICD 9/10 codes for psychosis and phq9 (ALL SCANS) = ", num_phq9_and_psychosis, " out of ", dim(psychosis_df)[1]))
+
+#phq-2;
+print(paste0("N psychosis + PHQ-2 = ", sum(!is.na(psychosis_df$PHQ.2)), "; n = ", length(which(psychosis_df$PHQ.2 >= 3)), " meeting criteria for psychosis (PHQ2) >= 3")) #n = 4606
+
+#phq-9
+print(paste0("N psychosis + PHQ-9 = ", sum(!is.na(psychosis_df$PHQ.9)), "; nopsychosis/mild/mod/mod-severe/severe = ", 
+             length(which(psychosis_df$PHQ.9 < 5)), "/",
+             length(which(psychosis_df$PHQ.9 >= 5 & psychosis_df$PHQ.9 < 10)), "/",
+             length(which(psychosis_df$PHQ.9 >= 10 & psychosis_df$PHQ.9 < 15)), "/",
+             length(which(psychosis_df$PHQ.9 >= 15 & psychosis_df$PHQ.9 < 20)), "/",
+             length(which(psychosis_df$PHQ.9 >= 20)))) #n = 261
+
+
+#### # unique people with psychosis dx and phq2/9 -> working on this
+psychosis_dx_phq2_unique <- length(unique(psychosis_df$EMPI[!is.na(psychosis_df$PHQ.2)])) #n = 201
+print(paste0("N with ICD 9/10 codes for psychosis and phq2 (unique) = ", psychosis_dx_phq2_unique, " out of ", dim(psychosis_df)[1]))
+
+psychosis_dx_phq9_unique <- length(unique(psychosis_df$EMPI[!is.na(psychosis_df$PHQ.9)])) #n = 43
+print(paste0("N with ICD 9/10 codes for psychosis and phq9 (unique) = ", psychosis_dx_phq9_unique, " out of ", dim(psychosis_df)[1]))
+
+####
+
+
+#### ICD 9/10 for Healthy Group
+healthy_df <- data_empi_acc_f_phq[(-grep("F3", data_empi_acc_f_phq$ICD10)),] #n = 14707
+num_healthy <- dim(healthy_df)[1]
+unique_empi <- which(unique(healthy_df$EMPI) %in% healthy_df$EMPI) #index of the locations of unique empis; n = 3244
+num_unique_EMPI_and_healthy <- length(unique(healthy_df$EMPI)) #n = 3244
+
+print(paste0("N without psychosis/ICD 9/10 codes for healthy = ", num_healthy))
+
+print(paste0("N without psychosis/ ICD 9/10 codes for healthy and unique EMPI = ", num_unique_EMPI_and_healthy, " out of ", dim(healthy_df)[1]))
+
+##### PHQ2 or 9 + No psychosis ICD9/10
+num_phq2_and_healthy <- length(which(!is.na(healthy_df$PHQ.2))) #n = 3646
+print(paste0("N without psychosis/ ICD 9/10 codes for healthy and phq2 (ALL SCANS) = ", num_phq2_and_healthy, " out of ", dim(healthy_df)[1]))
+
+#phq-2;
+print(paste0("N healthy w/PHQ-2 = ", sum(!is.na(healthy_df$PHQ.2)), "; n = ", length(which(healthy_df$PHQ.2 >= 3)), " meeting criteria for psychosis (PHQ2) >= 3")) #n = 47
+
+num_phq9_and_healthy <- length(which(!is.na(healthy_df$PHQ.9))) #n=121
+print(paste0("N without psychosis/ ICD 9/10 codes for healthy and phq9 (ALL SCANS) = ", num_phq9_and_healthy, " out of ", dim(healthy_df)[1]))
+
+
+#phq-9
+print(paste0("N healthy w/PHQ-9 = ", sum(!is.na(healthy_df$PHQ.9)), "; nopsychosis/mild/mod/mod-severe/severe = ", 
+             length(which(healthy_df$PHQ.9 < 5)), "/",
+             length(which(healthy_df$PHQ.9 >= 5 & healthy_df$PHQ.9 < 10)), "/",
+             length(which(healthy_df$PHQ.9 >= 10 & healthy_df$PHQ.9 < 15)), "/",
+             length(which(healthy_df$PHQ.9 >= 15 & healthy_df$PHQ.9 < 20)), "/",
+             length(which(healthy_df$PHQ.9 >= 20)))) #n = 55/34/21/1/10
+
+
+#### # unique people without psychosis dx and phq2/9 
+psychosis_dx_phq2_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.2)])) #n = 201
+print(paste0("N without psychosis/ ICD 9/10 codes for healthy and phq2 (unique) = ", psychosis_dx_phq2_unique, " out of ", dim(healthy_df)[1]))
+
+psychosis_dx_phq9_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.9)])) #n = 43
+print(paste0("N without psychosis/ ICD 9/10 codes for healthy and phq9 (unique) = ", psychosis_dx_phq9_unique, " out of ", dim(healthy_df)[1]))
+
+####
+
+#demographics and lab historgrams
+#print histogram of phq-2/9s for people
+
+hist(data_empi_acc_f_phq$PHQ.2[which(!is.na(data_empi_acc_f_phq$PHQ.2))], main = paste0("PHQ-2 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
+
+hist(data_empi_acc_f_phq$PHQ.9[which(!is.na(data_empi_acc_f_phq$PHQ.9))], main = paste0("PHQ-9 Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+#fcode histos - no one with it at this time. 
+#hist(psychosis_df$PHQ.2, main = paste0("PHQ2 and psychosis Histo : n = ", num_phq2_and_psychosis), xlab = paste0("PHQ2"))
+
+#hist(psychosis_df$PHQ.9,main = paste0("PHQ9 and psychosis Histo : n = ", num_phq9_and_psychosis), xlab = paste0("PHQ9"))
+
+###
+
+#age histogram
+hist(data_empi_acc_f_phq$MRI_ENC_AGE[which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE))], main = paste0("Age Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+#tsh
+hist(data_empi_acc_f_phq$TSH[which(!is.na(data_empi_acc_f_phq$TSH))], main = paste0("TSH Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$TSH)))), xlab = "TSH")
+
+#hemoglobin
+hist(data_empi_acc_f_phq$hemoglobin[which(!is.na(data_empi_acc_f_phq$hemoglobin))], main = paste0("Hemoglobin Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$hemoglobin)))), xlab = "hemoglobin")
+
+#wbc
+hist(data_empi_acc_f_phq$WBC[which(!is.na(data_empi_acc_f_phq$WBC))], main = paste0("WBC Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$WBC)))), xlab = "WBC")
+
+#folate
+hist(data_empi_acc_f_phq$FOLATE[which(!is.na(data_empi_acc_f_phq$FOLATE))], main = paste0("Folate Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$FOLATE)))), xlab = "folate", breaks = 10)
+
+#vitamin D
+hist(data_empi_acc_f_phq$VitD[which(!is.na(data_empi_acc_f_phq$VitD))], main = paste0("Vitamin D Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$VitD)))), xlab = "Vitamin D", breaks = 10)
+
+
+#sex
+hist(data_empi_acc_f_phq$sex_binarized[which(!is.na(data_empi_acc_f_phq$sex_binarized))], 
+     main = paste0("Sex Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$sex_binarized))), "; M = ", length(which(data_empi_acc_f_phq$sex_binarized == 1)), "; F = ", length(which(data_empi_acc_f_phq$sex_binarized == 2)) ), 
+     xlab = "Male = 1, Female = 2", 
+     breaks = 2)
+
+#race
+hist(data_empi_acc_f_phq$race_binarized[which(!is.na(data_empi_acc_f_phq$race_binarized))], 
+     main = paste0("Race Histo : n = ", length(which(!is.na(data_empi_acc_f_phq$race))), "; White = ", length(which(data_empi_acc_f_phq$race_binarized == 1)), "; NW = ", length(which(data_empi_acc_f_phq$race_binarized == 2))),
+     xlab = "white = 1, other = 2", 
+     breaks = 2)
+
+#f-codes - people usually have BOTH icd9/10 or neither
+
+
+```
+```{r comparing_out_group_with_Tim_group}
+##### checking to see whether we have clinical data for patients who have already been segmented as of 5/4/2021
+### had to do some parsing of tim's spreadsheet: /Users/eballer/BBL/msdepression/data/insurance_images_for_depression.csv
+### used the following commands to extract the empi and the date -> in tim's they are in the format sub-***** and ses-YYYYMMDD
+
+## more insurance_images_for_depression.csv | cut -f1 -d ','| perl -pe 's/sub-(.*)/$1/' > tim_empi
+## more insurance_images_for_depression.csv | cut -f2 -d ','| perl -pe 's/ses-(....)(..)(..)/$2\/$3\/$1/' > tim_dates
+## more tim_dates | perl -pe 's/(.*)20(..)/$1$2/' | perl -pe 's/(0)(.)\/(.*)\/(.*)/$2\/$3\/$4/' | perl -pe 's/(.*)\/(0)(.*)\/(.*)/$1\/$3\/$4/' > tim_dates_no_zero_pad
+
+segmented <- read.csv("/Users/eballer/BBL/msdepression/data/insurance_images_for_depression_with_accession.csv", header = F, sep = ",") #n = 4468
+names(segmented) <- c("EMPI", "EXAM_DATE", "SES", "ACCESSION_NUM")
+
+
+#look at the overlap of EMPIs. Won't be able to actually check the matching of scan to person without either accession #s or changing the format of the date. 
+number_of_people_in_tims_group_that_are_also_in_mine <- length(which(segmented$ACCESSION_NUM %in% data_empi_acc_f_phq$ACCESSION_NUM)) #2919
+overlap_group <- data_empi_acc_f_phq[which(data_empi_acc_f_phq$ACCESSION_NUM %in% segmented$ACCESSION_NUM),]
+
+#### PHQ-2 and PHQ-9 summaries
+
+#looking at just people with phq-2 and 9
+phq2_subset <- overlap_group[which(!is.na(overlap_group$PHQ.2)),] #n=4606
+
+phq9_subset <- overlap_group[which(!is.na(overlap_group$PHQ.9)),] #n= 261
+
+#phq-2;
+print(paste0("N PHQ-2 = ", sum(!is.na(overlap_group$PHQ.2)), "; n = ", length(which(phq2_subset$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+#phq-9
+print(paste0("N PHQ-9 = ", sum(!is.na(overlap_group$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(phq9_subset$PHQ.9 < 5)), "/",
+             length(which(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)), "/",
+             length(which(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)), "/",
+             length(which(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)), "/",
+             length(which(phq9_subset$PHQ.9 >= 20)))) #n = 261
+
+#both phq2 and 9
+
+num_both_phq2_and_9 <- length(which(!is.na(overlap_group$PHQ.2) & !is.na(overlap_group$PHQ.9)))
+print(paste0("num people with both phq2 and 9 = ", num_both_phq2_and_9)) #n = 0
+
+
+
+#Number of unique EMPIs in phq2/phq9 subsets
+unique_phq2_empis <- length(unique(phq2_subset$EMPI)) #n=966
+print(paste0("N with phq2 (Unique EMPI) n = ", unique_phq2_empis, " out of ", dim(phq2_subset)[1], "; n - ", length(unique(phq2_subset$EMPI[phq2_subset$PHQ.2 >= 3])), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+unique_phq9_empis <- length(unique(phq9_subset$EMPI)) #n=76
+print(paste0("N with phq9 (Unique EMPI) n = ", unique_phq9_empis, " out of ", dim(phq9_subset)[1], "; noDep/mild/mod/mod-severe/severe = ", 
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 < 5])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 5 & phq9_subset$PHQ.9 < 10)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 10 & phq9_subset$PHQ.9 < 15)])), "/",
+             length(unique(phq9_subset$EMPI[(phq9_subset$PHQ.9 >= 15 & phq9_subset$PHQ.9 < 20)])), "/",
+             length(unique(phq9_subset$EMPI[phq9_subset$PHQ.9 >= 20]))))
+
+
+#### ICD 9/10 for Depression
+dep_df <- overlap_group[grep("F3", overlap_group$ICD10),] #n = 2123
+num_depression <- dim(dep_df)[1]
+unique_empi <- which(unique(overlap_group$EMPI) %in% overlap_group$EMPI) #index of the locations of unique empis; n = 3885
+num_unique_EMPI_and_dep <- length(unique(dep_df$EMPI)) #n = 493
+
+print(paste0("N with ICD 9/10 codes for depression = ", num_depression))
+
+print(paste0("N with ICD 9/10 codes for depression and unique EMPI = ", num_unique_EMPI_and_dep, " out of ", dim(overlap_group)[1]))
+
+##### PHQ2 or 9 + ICD 9/10 Depression
+num_phq2_and_dep <- length(which(!is.na(dep_df$PHQ.2))) #n = 960
+print(paste0("N with ICD 9/10 codes for depression and phq2 (ALL SCANS) = ", num_phq2_and_dep, " out of ", dim(dep_df)[1]))
+
+num_phq9_and_dep <- length(which(!is.na(dep_df$PHQ.9))) #n=140
+print(paste0("N with ICD 9/10 codes for depression and phq9 (ALL SCANS) = ", num_phq9_and_dep, " out of ", dim(dep_df)[1]))
+
+#phq-2;
+print(paste0("N dep + PHQ-2 = ", sum(!is.na(dep_df$PHQ.2)), "; n = ", length(which(dep_df$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 4606
+
+#phq-9
+print(paste0("N dep + PHQ-9 = ", sum(!is.na(dep_df$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(dep_df$PHQ.9 < 5)), "/",
+             length(which(dep_df$PHQ.9 >= 5 & dep_df$PHQ.9 < 10)), "/",
+             length(which(dep_df$PHQ.9 >= 10 & dep_df$PHQ.9 < 15)), "/",
+             length(which(dep_df$PHQ.9 >= 15 & dep_df$PHQ.9 < 20)), "/",
+             length(which(dep_df$PHQ.9 >= 20)))) #n = 261
+
+
+#### # unique people with dep dx and phq2/9 -> working on this
+dep_dx_phq2_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.2)])) #n = 201
+print(paste0("N with ICD 9/10 codes for depression and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(dep_df)[1]))
+
+dep_dx_phq9_unique <- length(unique(dep_df$EMPI[!is.na(dep_df$PHQ.9)])) #n = 43
+print(paste0("N with ICD 9/10 codes for depression and phq9 (unique) = ", dep_dx_phq9_unique, " out of ", dim(dep_df)[1]))
+
+####
+
+
+#### ICD 9/10 for Healthy Group
+healthy_df <- overlap_group[(-grep("F3", overlap_group$ICD10)),] #n = 14707
+num_healthy <- dim(healthy_df)[1]
+unique_empi <- which(unique(healthy_df$EMPI) %in% healthy_df$EMPI) #index of the locations of unique empis; n = 3244
+num_unique_EMPI_and_healthy <- length(unique(healthy_df$EMPI)) #n = 3244
+
+print(paste0("N without Depression/ICD 9/10 codes for healthy = ", num_healthy))
+
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and unique EMPI = ", num_unique_EMPI_and_healthy, " out of ", dim(healthy_df)[1]))
+
+##### PHQ2 or 9 + No Depression ICD9/10
+num_phq2_and_healthy <- length(which(!is.na(healthy_df$PHQ.2))) #n = 3646
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq2 (ALL SCANS) = ", num_phq2_and_healthy, " out of ", dim(healthy_df)[1]))
+
+#phq-2;
+print(paste0("N healthy w/PHQ-2 = ", sum(!is.na(healthy_df$PHQ.2)), "; n = ", length(which(healthy_df$PHQ.2 >= 3)), " meeting criteria for depression (PHQ2) >= 3")) #n = 47
+
+num_phq9_and_healthy <- length(which(!is.na(healthy_df$PHQ.9))) #n=121
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq9 (ALL SCANS) = ", num_phq9_and_healthy, " out of ", dim(healthy_df)[1]))
+
+
+#phq-9
+print(paste0("N healthy w/PHQ-9 = ", sum(!is.na(healthy_df$PHQ.9)), "; noDep/mild/mod/mod-severe/severe = ", 
+             length(which(healthy_df$PHQ.9 < 5)), "/",
+             length(which(healthy_df$PHQ.9 >= 5 & healthy_df$PHQ.9 < 10)), "/",
+             length(which(healthy_df$PHQ.9 >= 10 & healthy_df$PHQ.9 < 15)), "/",
+             length(which(healthy_df$PHQ.9 >= 15 & healthy_df$PHQ.9 < 20)), "/",
+             length(which(healthy_df$PHQ.9 >= 20)))) #n = 55/34/21/1/10
+
+
+#### # unique people without dep dx and phq2/9 
+dep_dx_phq2_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.2)])) #n = 201
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq2 (unique) = ", dep_dx_phq2_unique, " out of ", dim(healthy_df)[1]))
+
+dep_dx_phq9_unique <- length(unique(healthy_df$EMPI[!is.na(healthy_df$PHQ.9)])) #n = 43
+print(paste0("N without Depression/ ICD 9/10 codes for healthy and phq9 (unique) = ", dep_dx_phq9_unique, " out of ", dim(healthy_df)[1]))
+
+####
+
+#demographics and lab historgrams
+#print histogram of phq-2/9s for people
+
+hist(overlap_group$PHQ.2[which(!is.na(overlap_group$PHQ.2))], main = paste0("PHQ-2 Histo : n = ", length(which(!is.na(overlap_group$PHQ.2)))), xlab = "PHQ-2", breaks = 8)
+
+hist(overlap_group$PHQ.9[which(!is.na(overlap_group$PHQ.9))], main = paste0("PHQ-9 Histo : n = ", length(which(!is.na(overlap_group$PHQ.9)))), xlab = "PHQ-9", breaks = 30)
+
+#fcode histos
+hist(dep_df$PHQ.2, main = paste0("PHQ2 and Dep Histo : n = ", num_phq2_and_dep), xlab = paste0("PHQ2"))
+
+hist(dep_df$PHQ.9,main = paste0("PHQ9 and Dep Histo : n = ", num_phq9_and_dep), xlab = paste0("PHQ9"))
+
+###
+
+#age histogram
+hist(overlap_group$MRI_ENC_AGE[which(!is.na(overlap_group$MRI_ENC_AGE))], main = paste0("Age Histo : n = ", length(which(!is.na(overlap_group$MRI_ENC_AGE)))), xlab = "AGE AT MRI ENCOUNTER")
+
+#tsh
+hist(overlap_group$TSH[which(!is.na(overlap_group$TSH))], main = paste0("TSH Histo : n = ", length(which(!is.na(overlap_group$TSH)))), xlab = "TSH")
+
+#hemoglobin
+hist(overlap_group$hemoglobin[which(!is.na(overlap_group$hemoglobin))], main = paste0("Hemoglobin Histo : n = ", length(which(!is.na(overlap_group$hemoglobin)))), xlab = "hemoglobin")
+
+#wbc
+hist(overlap_group$WBC[which(!is.na(overlap_group$WBC))], main = paste0("WBC Histo : n = ", length(which(!is.na(overlap_group$WBC)))), xlab = "WBC")
+
+#folate
+hist(overlap_group$FOLATE[which(!is.na(overlap_group$FOLATE))], main = paste0("Folate Histo : n = ", length(which(!is.na(overlap_group$FOLATE)))), xlab = "folate", breaks = 10)
+
+#vitamin D
+hist(overlap_group$VitD[which(!is.na(overlap_group$VitD))], main = paste0("Vitamin D Histo : n = ", length(which(!is.na(overlap_group$VitD)))), xlab = "Vitamin D", breaks = 10)
+
+
+#sex
+hist(overlap_group$sex_binarized[which(!is.na(overlap_group$sex_binarized))], 
+     main = paste0("Sex Histo : n = ", length(which(!is.na(overlap_group$sex_binarized))), "; M = ", length(which(overlap_group$sex_binarized == 1)), "; F = ", length(which(overlap_group$sex_binarized == 2)) ), 
+     xlab = "Male = 1, Female = 2", 
+     breaks = 2)
+
+#race
+hist(overlap_group$race_binarized[which(!is.na(overlap_group$race_binarized))], 
+     main = paste0("Race Histo : n = ", length(which(!is.na(overlap_group$race))), "; White = ", length(which(overlap_group$race_binarized == 1)), "; NW = ", length(which(overlap_group$race_binarized == 2))),
+     xlab = "white = 1, other = 2", 
+     breaks = 2)
+
+#f-codes - people usually have BOTH icd9/10 or neither
+
+
+```
+
 
 
 
