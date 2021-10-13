@@ -30,4 +30,4 @@ mni_hcp_path=mni_icbm152_t1_tal_nlin_asym_09axbrainmask.nii #template
 affine_mat=ms_t1_to_mni_icbm1520GenericAffine.mat #affine output from last step
 ms2mni_warp=ms_t1_to_mni_icbm1521Warp.nii.gz #warp from last step. There are a few, Warp, Warped InverseWarp, InverseWarped. I picked the one that matched my pnc output the closes
 
-antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${mni_hcp_path} -t ${ms2mni_warp} -t ${affine_mat} -n GenericLabel
+antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${mni_hcp_path} -t ${ms2mni_warp} -t ${affine_mat} -n MultiLabel
