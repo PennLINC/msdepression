@@ -318,7 +318,7 @@ done
 
 
 20211012
- [] Working on getting a sample MS mimosa output into HCP space
+ [x] Working on getting a sample MS mimosa output into HCP space
  
     - Perfect subject in MS group
         - T1w: 
@@ -469,7 +469,7 @@ antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${m
 20211013
   [x] made a copy of the pmacs stuff and put it locally for ease of making pictures
  [x] take the new lesion file, put it in dsi studio, and run the tractography to get the track loss. 
- [] please please please git this
+ [x] please please please git this
  [x] can also try to run with script from command line WORKS!
  [x] checked R/L orientation - cooking with gas
 
@@ -484,7 +484,7 @@ antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${m
   
 ```{bash ants_transform_code.sh}
 export PATH=${ANTSPATH}:$PATH
-mimosaa_path=mimosa_binary_mask_0.25.nii.gz #this is from mimosa output
+mimosa_path=mimosa_binary_mask_0.25.nii.gz #this is from mimosa output
 mimosa_mni_hcp_path=mimosa_binary_mask_0.25_mni_hcp_gl.nii.gz #output file prefix
 mni_hcp_path=mni_icbm152_t1_tal_nlin_asym_09axbrainmask.nii #template
 affine_mat=ms_t1_to_mni_icbm1520GenericAffine.mat #affine output from last step
