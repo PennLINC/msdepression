@@ -81,7 +81,7 @@ for directory in $directories; do
 
         	#now actually do the transform${brain
        
-       	 	antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${mni_t1_target} -t ${ms2mni_warp} -t ${affine_mat} -n MultiLabel
+       	 	antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${mni_t1_target} -t ${ms2mni_warp} -t ${affine_mat} -n GenericLabel
         
 	cd ${base_dir}
 done
