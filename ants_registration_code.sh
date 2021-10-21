@@ -54,22 +54,29 @@ brain_mask_dilated="${brain_mask_root}_d${mask_dilation}.nii.gz"
 directories=$(cat $qc_file_path)
 
 #multiply with mni t1 to get appropriate coverage. Have to do it locally b/c afni
-cd ${mni_t1_direc}
+if [ -f "${mni_t1_direc}/${mni_t1_target}" ]; then
+	echo "${mni_t1_direc}/${mni_t1_target} already exists"
+else
+	
+	echo "making ${mni_t1_direc}/${mni_t1_target}"
+	cd ${mni_t1_direc}
 	3dcalc -a ${mni_t1_root}.nii -b ${mni_t1_root}_mask.nii -expr 'a*b' -prefix ${mni_t1_target}
-cd $base_dir
+	cd $base_dir
+fi
 
 #extract name of directory and create shadow directory in out own data directory, with appropriate file names
 for directory in $directories; do
         sub_sess_run=$(echo ${directory} | perl -pe 's/.*(sub.*)/$1/') #grab sub/sess/run
         echo $sub_sess_run
-        echo "making dir" ${out_data_path}/${sub_sess_run}
+        echo "##### Seeing if I need to make dir" ${out_data_path}/${sub_sess_run}
 
 	#remove directory if it already exists
-	if [ -d ${out_data_path}/${sub_sess_run} ] 
-	then
+	if [ -d "${out_data_path}/${sub_sess_run}" ]; then 
+		echo "${out_data_path}/${sub_sess_run} already exists. Removing contents"
 		rm ${out_data_path}/${sub_sess_run}/*
 	else
 		#make new directory
+		echo "${out_data_path}/${sub_sess_run} does not exist. Making it."
         	mkdir -p ${out_data_path}/${sub_sess_run}
 	fi
 	
