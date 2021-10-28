@@ -4,12 +4,17 @@
 ### Pre: Must have a file with full paths to the lesioned data 
 ### Post: Within each directory specified by the lesioned data, will have a directory that has all tractography (ROA, ROI, Full)
 ### Uses: For use in MS depression - take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
-#dependencies: Using dsi studio downloaded 9/2021
-module load singularity
-export PATH=${PATH}:/Applications/dsi_studio.app/Contents/MacOS/
+#dependencies: Using dsi studio from docker, sif created by Tim 10/26/2021
+#export PATH=${PATH}:/Applications/dsi_studio.app/Contents/MacOS/
+set -euf -o pipefail
+
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$LSB_DJOB_NUMPROC
+num_cores=1
+
+#set default paths 
 template='/project/msdepression/templates/dti/HCP1065.1mm.fib.gz'
-default='/project/msdepression/data/melissa_martin_files/csv/erica_mimosa_100_and_75_paths'
 default='/project/msdepression/data/melissa_martin_files/csv/mimosa_binary_masks_hcp_space_20211026_n2336'
+#default='/project/msdepression/data/melissa_martin_files/csv/erica_mini_mimosa_paths_n3'
 fascicle_directory='/project/msdepression/templates/dti/HCP_YA1065_tractography/'
 
 if [ $# == 0 ]
@@ -24,36 +29,10 @@ echo "... Starting to make lesions ..."
 
 lesion_paths=$(cat $lesion_file)
 
+# loop through each mimosa lesion map; lesion paths contain full paths to mimosa files in hcp space
+job_count=1
 for lesion in ${lesion_paths}; do
-    echo "Working on file" $lesion
-    # make directory within parent directory for tracts
-    parent_dir=$(echo $lesion | perl -pe s'/(.*)\/.*/$1/g')
-    mask_prefix=$(echo $lesion | perl -pe s'/(.*)\/(.*).nii.gz/$2/g')
-    if [ ! -d $parent_dir/fiber_tracking_maps ] 
-    then
-        mkdir $parent_dir/fiber_tracking_maps
-    fi
-
-    fiber_bundle_type_list=(
-        "association"
-        "cerebellum"
-        "cranial_nerve"
-        "projection"
-        "commissural")
-    for fiber_bundle_type in "${fiber_bundle_type_list[@]}"; do
-        echo "Fiber bundle type is " $fiber_bundle_type
-        echo "making directory" $parent_dir/fiber_tracking_maps/$fiber_bundle_type
-        mkdir $parent_dir/fiber_tracking_maps/$fiber_bundle_type
-        fascicles=$(ls ${fascicle_directory}/${fiber_bundle_type}/*.tt.gz)
-        for fascicle in ${fascicles}; do
-            echo "Fascicle is  " $fascicle
-            fascicle_root_name=$(echo $fascicle | perl -pe s'/(.*)\/(.*).tt.gz/$2/g') 
-            singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roa=$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROA.tt.gz
-            singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roi=$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROI.tt.gz
-            singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_full.tt.gz
-        done
-        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --roa=/Users/eballer/BBL/msdepression/templates/perfect_ms_subject/run-001/mimosa_binary_mask_0.25.nii.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_lesioned_ROA.nii.gz
-        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --roi=/Users/eballer/BBL/msdepression/templates/perfect_ms_subject/run-001/mimosa_binary_mask_0.25.nii.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_lesioned_ROI.nii.gz
-        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_full_ROI.nii.gz
-    done
+	echo "working on ${lesion} ..."  
+	bsub -J "job_${job_count}" -n ${num_cores} -o /project/msdepression/scripts/logfiles/out_roa_${job_count}.out /project/msdepression/scripts/indiv_mimosa_lesion_dsi_studio_script.sh $lesion
+   	((job_count+=1))
 done
