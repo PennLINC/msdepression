@@ -30,17 +30,32 @@ else
     	echo "$parent_dir"
 	mask_prefix=$(echo ${lesion} | perl -pe s'/(.*)\/(.*).nii.gz/$2/g')
     	echo $mask_prefix
-	if [ ! -d $parent_dir/fiber_tracking_maps ] 
-    	then
-        	mkdir $parent_dir/fiber_tracking_maps
-    	fi
+
+	#if directory exists, delete it
+
+	#if [ -d $parent_dir/fiber_tracking_maps ] 
+    	#then
+	
+	# delete fiber tracking maps directory
+
+	echo "Deleting ${parent_dir}/fiber_tracking_maps/"
+	rm -rf ${parent_dir}/fiber_tracking_maps
+#	fi
+
+	#make new fiber tracking maps directory
+	echo "Making new ${parent_dir}/fiber_tracking_maps"
+        mkdir ${parent_dir}/fiber_tracking_maps
+ 		
 
     #make sub directories for each bundle type, so within fiber_tracking_maps, there will be subdirectories for each type of map
 	fiber_bundle_type_list="association cerebellum cranial_nerve projection commissural"	
     	for fiber_bundle_type in ${fiber_bundle_type_list}; do
         	echo "Fiber bundle type is " $fiber_bundle_type
         	echo "making directory" $parent_dir/fiber_tracking_maps/$fiber_bundle_type
-        	mkdir $parent_dir/fiber_tracking_maps/$fiber_bundle_type
+
+		
+		#make new directory
+		mkdir $parent_dir/fiber_tracking_maps/$fiber_bundle_type
         	fascicles=$(ls ${fascicle_directory}/${fiber_bundle_type}/*.tt.gz)
     
 
