@@ -676,11 +676,468 @@ for directory in $directories; do
         	#now actually do the transform${brain
        
        	 	antsApplyTransforms -e 3 -d 3 -i ${mimosa_path} -o ${mimosa_mni_hcp_path} -r ${mni_t1_target} -t ${ms2mni_wa
-rp} -t ${affine_mat} -n MultiLabel
+rp} -t ${affine_mat} -n GenericLabel
         
 	cd ${base_dir}
 done
 
 ```
+
+20211019
+Still having issues with transform, running slow, realizing that I had multilable instead of generic label. Will try that. Still worried I will have trouble getting it to work.
+
+Got it to run by putting a bsub inside the script!
+
+20211026
+- Now trying to get dsi studio to run on pmacs. 
+- scp -r /Users/eballer/msdepression/templates/dti to /project/msdepression/templates
+
+Made a list of the paths to all the mimosa masks
+ls /project/msdepression/data/subj_directories/*/*//*/mimosa*mn* > mimosa_binary_masks_hcp_space_20211026_n2336
+
+Then moved to melissa's data directory
+cp mimosa_binary_masks_hcp_space_20211026_n2336 ../melissa_martin_files/csv/.
+
+20211027
+ - fixing dsi studio. Goal today is to figure out how to bsub it because it takes a long time. steps
+ 
+```{bash}
+ssh -Y eballer@scisub.pmacs.upenn.edu
+cd /project/msdepression/scripts
+xbash
+
+```
+ 
+ 
+ Also needed to generate a list of niftis (i.e. tracts is voxel space). Did this locally and scp'ed to templates/dti
+ 
+```{bash}
+#!/bin/bash
+
+#### Welcome to the Region_making party #########
+### Pre: Must have a file with full paths to the lesioned data 
+### Post: Within each directory specified by the lesioned data, will have a directory that has all tractography (ROA, ROI, Full)
+### Uses: For use in MS depression - take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+#dependencies: Using dsi studio downloaded 9/2021
+
+export PATH=${PATH}:/Applications/dsi_studio.app/Contents/MacOS/
+template='/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz'
+default='/Users/eballer/BBL/msdepression/data/mimosa_file_paths'
+fascicle_directory='/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/'
+
+if [ $# == 0 ]
+then
+    echo "We will use the default mimosa path file" $default
+    lesion_file=$default
+else  
+    lesion_file=$1
+fi
+echo "File being read is "$lesion_file
+echo "... Starting to make lesions ..."
+
+lesion_paths=$(cat $lesion_file)
+
+for lesion in ${lesion_paths}; do
+    echo "Working on file" $lesion
+    # make directory within parent directory for tracts
+    #parent_dir=$(echo $lesion | perl -pe s'/(.*)\/.*/$1/g')
+    mask_prefix=$(echo $lesion | perl -pe s'/(.*)\/(.*).nii.gz/$2/g')
+    if [ ! -d $parent_dir/fiber_tracking_maps ] 
+    then
+        mkdir $parent_dir/fiber_tracking_maps
+    fi
+
+    fiber_bundle_type_list=(
+        "association"
+        "cerebellum"
+        "cranial_nerve"
+        "projection"
+        "commissural")
+    for fiber_bundle_type in "${fiber_bundle_type_list[@]}"; do
+        echo "Fiber bundle type is " $fiber_bundle_type
+        echo "making directory" $parent_dir/fiber_tracking_maps/$fiber_bundle_type
+        #mkdir $parent_dir/fiber_tracking_maps/$fiber_bundle_type
+        fascicles=$(ls ${fascicle_directory}/${fiber_bundle_type}/*.tt.gz)
+        for fascicle in ${fascicles}; do
+            echo "Fascicle is  " $fascicle
+            fascicle_root_name=$(echo $fascicle | perl -pe s'/(.*)\/(.*).tt.gz/$2/g') 
+          #  dsi_studio --action=ana --source=$template --tract=$fascicle --roa=$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROA.tt.gz
+          #  dsi_studio --action=ana --source=$template --tract=$fascicle --roi=$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROI.tt.gz
+           # dsi_studio --action=ana --source=$template --tract=$fascicle --output=${fascicle_directory}/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_full.tt.gz
+            dsi_studio --action=ana --source=$template --tract=$fascicle --output=${fascicle_directory}/${fiber_bundle_type}/${fascicle_root_name}.nii.gz
+        done
+        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --roa=/Users/eballer/BBL/msdepression/templates/perfect_ms_subject/run-001/mimosa_binary_mask_0.25.nii.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_lesioned_ROA.nii.gz
+        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --roi=/Users/eballer/BBL/msdepression/templates/perfect_ms_subject/run-001/mimosa_binary_mask_0.25.nii.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_lesioned_ROI.nii.gz
+        # $path/dsi_studio --action=ana --source=/Users/eballer/BBL/msdepression/templates/dti/HCP1065.1mm.fib.gz --tract=/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/association/SLF2_R.tt.gz --output=/Users/eballer/BBL/msdepression/templates/roi_files_for_testing/SLF2R_full_ROI.nii.gz
+    done
+done
+```
+ 20211028 
+ 
+ Big moves! Currently running these two scripts and they have been git'ed
+```{bash dsi_studio_bash.sh}
+#!/bin/bash
+
+#### Welcome to the Region_making party #########
+### Pre: Must have a file with full paths to the lesioned data 
+### Post: Within each directory specified by the lesioned data, will have a directory that has all tractography (ROA, ROI, Full)
+### Uses: For use in MS depression - take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+#dependencies: Using dsi studio from docker, sif created by Tim 10/26/2021
+#export PATH=${PATH}:/Applications/dsi_studio.app/Contents/MacOS/
+set -euf -o pipefail
+
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$LSB_DJOB_NUMPROC
+num_cores=1
+
+#set default paths 
+template='/project/msdepression/templates/dti/HCP1065.1mm.fib.gz'
+default='/project/msdepression/data/melissa_martin_files/csv/mimosa_binary_masks_hcp_space_20211026_n2336'
+#default='/project/msdepression/data/melissa_martin_files/csv/erica_mini_mimosa_paths_n3'
+fascicle_directory='/project/msdepression/templates/dti/HCP_YA1065_tractography/'
+
+if [ $# == 0 ]
+then
+    echo "We will use the default mimosa path file" $default
+    lesion_file=$default
+else  
+    lesion_file=$1
+fi
+echo "File being read is "$lesion_file
+echo "... Starting to make lesions ..."
+
+lesion_paths=$(cat $lesion_file)
+
+# loop through each mimosa lesion map; lesion paths contain full paths to mimosa files in hcp space
+job_count=1
+for lesion in ${lesion_paths}; do
+	echo "working on ${lesion} ..."  
+	bsub -J "job_${job_count}" -n ${num_cores} -o /project/msdepression/scripts/logfiles/out_roa_${job_count}.out /project/msdepression/scripts/indiv_mimosa_lesion_dsi_s
+tudio_script.sh $lesion
+   	((job_count+=1))
+done
+
+```
+ 
+and this calls 
+```{bash indiv_mimosa_lesion_dsi_studio_script.sh}
+
+### The Inner Script... Doing all the dsi studio action for each individual mimosa brain ###
+
+### Pre: path to an individual's mimosa lesion in HCP/MNI space
+### Post: Filtered tracts; ROA and ROI voxel maps/niftis that can be used for data analysis
+### Uses: In trying to find a way to speed everything along, it made the most sense to separate this piece of the script out. 
+#          - it takes a subject's mimosa path, and makes a fiber_tracking_map directory as well as sub directories for each bundle type
+#          - it then runs ROA/ROI filtration and makes output maps. 
+
+#set -euf -o pipefail
+module load singularity
+export PATH=${PATH}:/Applications/dsi_studio.app/Contents/MacOS/
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$LSB_DJOB_NUMPROC
+num_cores=1
+
+#set default directory/templates. This will change when we use local, personal dwi
+template='/project/msdepression/templates/dti/HCP1065.1mm.fib.gz'
+fascicle_directory='/project/msdepression/templates/dti/HCP_YA1065_tractography/'
+
+if [ $# == 0 ]
+then
+    echo "You did not enter a file. Make sure your call makes sense"
+else  
+    lesion=$1
+
+	echo "File being read is "$lesion
+	echo "... Starting to make tracts"
+# make directory within parent directory for tracts
+    	parent_dir=$(echo ${lesion} | perl -pe s'/(.*)\/.*/$1/g')
+    	echo "$parent_dir"
+	mask_prefix=$(echo ${lesion} | perl -pe s'/(.*)\/(.*).nii.gz/$2/g')
+    	echo $mask_prefix
+	if [ ! -d $parent_dir/fiber_tracking_maps ] 
+    	then
+        	mkdir $parent_dir/fiber_tracking_maps
+    	fi
+
+    #make sub directories for each bundle type, so within fiber_tracking_maps, there will be subdirectories for each type of map
+	fiber_bundle_type_list="association cerebellum cranial_nerve projection commissural"	
+    	for fiber_bundle_type in ${fiber_bundle_type_list}; do
+        	echo "Fiber bundle type is " $fiber_bundle_type
+        	echo "making directory" $parent_dir/fiber_tracking_maps/$fiber_bundle_type
+        	mkdir $parent_dir/fiber_tracking_maps/$fiber_bundle_type
+        	fascicles=$(ls ${fascicle_directory}/${fiber_bundle_type}/*.tt.gz)
+    
+
+	# set a job counter to be used to name the jobs
+		job_count=1
+		for fascicle in ${fascicles}; do
+            		echo "Fascicle is  " $fascicle
+            		fascicle_root_name=$(echo $fascicle | perl -pe s'/(.*)\/(.*).tt.gz/$2/g') 
+   			echo  "Fascicle root name is ${fascicle_root_name}" 
+    	    		singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roa=
+$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROA.tt.gz
+            		singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roi=
+$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROI.tt.gz
+           
+     			singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roa=
+$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROA.nii.gz
+           		singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --roi=
+$lesion --output=$parent_dir/fiber_tracking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_lesioned_ROI.nii.gz
+ 
+		# I have removed this line to save space. All hcp fibers are in the directory: /project/msdepression/templates/dti/HCP_YA1065_tractography/ . Can uncomment t
+his if at some point I need to make them for each individual, like when we have their personal DWI
+#singularity exec --bind /project /project/singularity_images/dsistudio_latest.sif dsi_studio --action=ana --source=$template --tract=$fascicle --output=$parent_dir/fiber_tr
+acking_maps/${fiber_bundle_type}/${fascicle_root_name}_${mask_prefix}_full.tt.gz
+			((job_count+=1))
+		done
+    	done
+fi
+```
+
+20211029
+[x] 3dmaskave, get the # of voxels into csvs
+
+scripts are made, just have no more space on pmacs, so waiting for them to make space for me and then I can do this.
+
+20211103
+[x] start working on getting these files into r, MAKE SURE TO ADD A ZERO in the read in line = NA -> 0!!!
+
+20211104
+[x] ton of weird errors that are inconsistent with afni. Need to figure out if they are real or fake.
+
+Here is how I figured out the failed subj/session #
+```{bash}
+more 3dmaskav_*.out | grep "ERROR" | perl -pe 's/.*\/project.*\/(sub-.*\/ses-.*)\/run.*/$1/' | sort -u > failed_3dmaskave_n243_20211103
+```
+
+Have identified the people who failed, it looks like their lesions are empty for these
+```{bash}
+more failed_3dmaskave_n243_20211103 | perl -pe 's/(.*)/\/project\/msdepression\/data\/subj_directories\/$1\/run-001\/mimosa_binary_mask_0.25_mni_hcp.nii.gz/' > failed_full_mimosa_paths_n243
+```
+
+[x]Going to try rerunning these specifically from the dsi_studio command, using these files instead of what is already there
+
+Have to make a file that contains all the full volumes of each of the fascicles
+
+```{bash make_streamline_volumes_for_template.sh}
+### Make streamline volumes ###
+
+### Pre: All template streamlines must have been made in dsi studio (these are the nii files)
+### Post: fiber_volume_values.csv that contains the name of the fiber bundle and its volume
+### Uses: Will be getting the volumes of the streamlines for use in later density analyses
+### Dependencies: This script requires afni to be installed.
+
+module load afni_openmp/20.1
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$LSB_DJOB_NUMPROC
+num_cores=1
+
+directory='/project/msdepression/templates/dti/HCP_YA1065_tractography/'
+outfile=${directory}/fiber_volume_values.csv
+
+#remove outfile if it exists
+rm -f ${outfile}
+
+#make the file again
+touch ${outfile}
+echo "fascicle,volume" >> ${outfile}
    
-  
+#go through each fiber, get volume, and store it in csv
+fiber_bundle_type_list="association cerebellum cranial_nerve projection commissural"	
+for fiber_bundle_type in ${fiber_bundle_type_list}; do
+	echo "Fiber bundle type is " $fiber_bundle_type
+fascicle_volumes=$(ls ${directory}/${fiber_bundle_type}/*.nii*)
+        for fascicle in ${fascicle_volumes}; do
+            fascicle_prefix=$(echo $fascicle | perl -pe 's/.*\/(.*).nii.*/$1/g')
+            volume=$(3dmaskave -quiet -mask SELF -sum ${fascicle})
+            echo "${fascicle_prefix},$volume" >> ${outfile}
+        done
+done
+```
+
+
+output of the above script
+```{bash}
+fascicle,volume
+AF_L,35716
+AF_R,15249
+C_FPH_L,2569
+C_FPH_R,2760
+C_FP_L,14457
+C_FP_R,21386
+C_PH_L,3171
+C_PHP_L,1900
+C_PHP_R,4612
+C_PH_R,2593
+C_R_L,2666
+C_R_R,5181
+EMC_L,7344
+EMC_R,5641
+FAT_L,27142
+FAT_R,15510
+IFOF_L,30311
+IFOF_R,34880
+ILF_L,27401
+ILF_R,36327
+MdLF_L,7637
+MdLF_R,5744
+PAT_L,10921
+PAT_R,13976
+SLF1_L,9836
+SLF1_R,13482
+SLF2_L,26947
+SLF2_R,37091
+SLF3_L,10053
+SLF3_R,15526
+UF_L,7607
+UF_R,7744
+VOF_L,5681
+VOF_R,4079
+CB_L,45470
+CB_R,43251
+ICP_L,4963
+ICP_R,4449
+MCP,16514
+SCP,4315
+V,11299
+CNIII_L,563
+CNIII_R,486
+CNII_L,1097
+CNII_R,1415
+CNVIII_L,1034
+CNVIII_R,968
+CNVII_L,298
+CNVII_R,276
+CNV_L,817
+CNV_R,995
+AR_L,3082
+AR_R,1935
+CBT_L,4609
+CBT_R,6146
+CPT_F_L,18693
+CPT_F_R,34955
+CPT_O_L,9022
+CPT_O_R,7015
+CPT_P_L,24377
+CPT_P_R,27829
+CS_A_L,26114
+CS_A_R,21542
+CS_P_L,5526
+CS_P_R,6231
+CS_S_L,31034
+CS_S_R,34141
+CST_L,20476
+CST_R,16388
+DRTT_L,14986
+DRTT_R,17163
+F_L,5175
+F_R,8018
+ML_L,10871
+ML_R,9139
+OR_L,6876
+OR_R,5510
+RST_L,14766
+RST_R,11890
+TR_A_L,20628
+TR_A_R,14840
+TR_P_L,4402
+TR_P_R,4748
+TR_S_L,39767
+TR_S_R,37036
+AC,26517
+CC,390601
+```
+
+2021104
+[x] need to see if total number of fibers in a bundle = ROA + ROI - NO
+[] if all these work, our first analyses will be depressed vs non total , total fiber volume lost in lesions, then specificity. WOuld look at ratios ROI/total
+
+To initialize Rstudio on pmacs
+```{bash}
+source  /project/bbl_projects/apps/default_modules.sh
+conda activate rstudio
+xbash
+rstudio
+### OR ###
+cd /project/msdepression/scripts
+source load_rstudio
+```
+
+To make list of all roi files
+```{bash}
+cd /project/msdepression/data/melissa_martin_files/csv/
+more mimosa_binary_masks_hcp_space_20211026_n2336 | perl -pe 's/(.*)mimosa_bin.*/$1fiber_tracking_maps\/fiber_volume_values_roi\.csv/' > roi_fiber_volumes_n2336
+```
+
+Rscript to make df with lesions
+
+```{r Roi_ratio_regressions}
+### ROA Ratio Regressions ###
+
+#####
+## Pre: /project/msdepression/data/melissa_martin_files/csv/roi_fiber_volumes_n2336, which contains full paths to the ROI files, can be ammended to do ro
+## Post: Analysis
+## Uses: 1) reads in the ROIs, puts them in a data frame (columns are accession num/date/each fascicle), one row per subjected per date
+#        2) Performers univariate analyses, depression diagnosis versus not
+## Dependencies: R 3.6.3
+
+#include packages
+library(dbplyr)
+
+#set directories
+homedir<-'/project/msdepression/'
+
+#analysis type
+region_type="roi"
+
+#read in template fascicle volumes
+template_full_volumes <- read.csv(paste0(homedir, '/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv'), header = T)
+fascicle_names <- template_full_volumes$fascicle
+
+### Read in file with all full paths to region volumes
+region_volume_csv <- read.table(paste0(homedir, '/data/melissa_martin_files/csv/', region_type, '_fiber_volumes_n2336'), header = F, stringsAsFactors = F)
+region_volume_csv$V1 <- as.character(region_volume_csv$V1)
+
+#outfile, named for number of subjects
+outfile <- paste0(homedir, "/results/fascicle_volumes_all_subjects_", region_type, "_n", dim(region_volume_csv)[1], ".csv")
+
+#make data frame, 1 row per subject, num rows = num rows in region_volume_csv
+volumes_df <- data.frame(matrix(nrow = dim(region_volume_csv)[1], ncol = 89))
+names(volumes_df) <- c("ACCESSION_NUM", "EXAM_DATE", as.character(fascicle_names))
+#loop through region_volume_csv, read in df corresponding to each row of region_volume_csv, extract accession num and date,
+## and transpose fiber volumes from column to rows. append accession num/date/region_volumes row into big matrix
+
+for (subj in 1:dim(region_volume_csv)[1]) {
+  file_path <- region_volume_csv$V1[subj]
+  region_volume_data <- read.csv(file_path, header = T, sep = ",")
+  accession_num<- region_volume_data[1,1]
+  date <- region_volume_data[1,2]
+  volumes <- t(region_volume_data[,4])
+  volumes[is.na(volumes)] <- 0
+  volumes <- volumes/template_full_volumes$volume
+  row_to_add <- cbind(accession_num, date, volumes)
+  volumes_df[subj,]<- row_to_add
+}
+
+write.csv(file=outfile, volumes_df, quote = FALSE, row.names = FALSE)
+
+
+
+```
+
+
+To see the frequencies of the lesions
+```{bash MC plot}
+library(reshape2)
+library(ggplot2)
+df <- read.csv("fascicle_volumes_all_subjects_roi_n2336.csv", header=TRUE)
+
+m.df <- melt(df, id.vars = c("ACCESSION_NUM", "EXAM_DATE"))
+lesioned <- subset(m.df, value > 0)
+
+ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+```
+
+
+
+20211107
+[] need to change the date format in my regular dac pull
+[] need to divide the ROIs by the total volume 
+[] need to get total # of lesions - this will be tough, need taki's code. Not to do right now - sydney to look into
