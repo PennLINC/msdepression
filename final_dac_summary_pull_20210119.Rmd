@@ -102,6 +102,7 @@ library(dplyr)
 library(visreg)
 library(lme4)
 library(lmerTest)
+library(ggplot2)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -1218,7 +1219,7 @@ filter(EMPI %in% empis_for_healthy_group)
 data_empi_acc_f_phq$depGroupVar = 0
 data_empi_acc_f_phq$depGroupVar[which(data_empi_acc_f_phq$EMPI %in% empis_for_depressed_group)] = 1
 data_empi_acc_f_phq$depGroupVar[which(data_empi_acc_f_phq$EMPI %in% empis_for_healthy_group)] = -1
-data_empi_acc_f_phq$depGroupVar = ordered(data_empi_acc_f_phq$depGroupVar)
+data_empi_acc_f_phq$depGroupVar = as.factor(data_empi_acc_f_phq$depGroupVar)
 
 
 
@@ -1258,8 +1259,13 @@ hist(df_demo_and_fascicles$PHQ.9[which(!is.na(df_demo_and_fascicles$PHQ.9) & (df
 
 
 ##########################################################
-#   Step 8 - Regressions in dep/non dep                  #
+#                Step 8 - Regressions                    #
 ##########################################################
+
+```
+
+```{r dep_vs_healthy_regressions}
+
 #isolate out only the depressed group and healthy group
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthy = 713, total n = 1106
 
@@ -1284,8 +1290,9 @@ print(fascicle_anova_fdr_association)
 
 
 #visreg
-#sapply(fascicle_lm, visreg)
+sapply(fascicle_lm, visreg)
 ```
+
 
 ```{r phq2_correlation_fascicles}
 #isolate out only the depressed group and healthy group
@@ -1321,6 +1328,40 @@ print(fascicle_anova_p05_unc)
 #visreg
 #sapply(fascicle_lm, visreg)
 ```
+```{r phq2_correlation_fascicles_dep}
+#isolate out only the depressed group and healthy group
+dep_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar == 1,] #n depressed = 393, healthy = 713, total n = 1106
+
+#filter those with phq2
+with_phq2_dep <- dep_groups_for_ICD_analysis %>% filter(!is.na(PHQ.2) & PHQ.2 != 0) %>% filter(depGroupVar == 1)
+
+#lm
+fascicle_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PHQ.2, list(i = as.name(x))), data = with_phq2_dep)
+})
+names(fascicle_lm) <- fascicle_names
+
+#anova
+fascicle_anova <- lapply(fascicle_lm, anova)
+
+#fdr corrected
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+print(fascicle_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
+fascicle_anova_p05_unc <- as.data.frame(fascicle_anova_p[fascicle_anova_p < 0.05])
+print(fascicle_anova_p05_unc)
+
+#visreg
+#sapply(fascicle_lm, visreg)
+```
 
 ```{r phq9_correlation_fascicles}
 #isolate out only the depressed group and healthy group
@@ -1333,6 +1374,40 @@ with_phq9 <- dep_and_healthy_groups_for_ICD_analysis %>% filter(!is.na(PHQ.9))
 fascicle_lm <- lapply(fascicle_names, function(x) 
 {
   lm(substitute(i ~ PHQ.9, list(i = as.name(x))), data = with_phq9)
+})
+names(fascicle_lm) <- fascicle_names
+
+#anova
+fascicle_anova <- lapply(fascicle_lm, anova)
+
+#fdr corrected
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+print(fascicle_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
+fascicle_anova_p05_unc <- as.data.frame(fascicle_anova_p[fascicle_anova_p < 0.05])
+print(fascicle_anova_p05_unc)
+
+#visreg
+#sapply(fascicle_lm, visreg)
+```
+```{r phq9_correlation_fascicles_dep}
+#isolate out only the depressed group and healthy group
+dep_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar == 1,] #n depressed = 393, healthy = 713, total n = 1106
+
+#filter those with phq2
+with_phq9_dep <- dep_groups_for_ICD_analysis %>% filter(!is.na(PHQ.9) & PHQ.9 != 0) 
+
+#lm
+fascicle_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PHQ.9, list(i = as.name(x))), data = with_phq9_dep)
 })
 names(fascicle_lm) <- fascicle_names
 
@@ -1424,7 +1499,11 @@ print(fascicle_anova_mm_p05_unc)
 ########### age effect whole group
 
 #isolate out only the depressed group and healthy group
-dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthhy = 713, total n = 1106
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthy = 713, total n = 1106
+
+#### age histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(dep_and_healthy_groups_for_ICD_analysis)[1]), xlab = "Age", breaks = 10)
 
 #lm
 fascicle_age_lm <- lapply(fascicle_names, function(x) 
@@ -1444,6 +1523,9 @@ print(fascicle_age_anova_fdr)
 fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_age_lm,visreg)
 ```
 
 ```{r sex_effects_fascicles}
@@ -1451,6 +1533,10 @@ print(fascicle_anova_fdr_association)
 
 #isolate out only the depressed group and healthy group
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthhy = 713, total n = 1106
+
+#### sex histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1), "/", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
 
 #lm
 fascicle_sex_lm <- lapply(fascicle_names, function(x) 
@@ -1470,6 +1556,9 @@ print(fascicle_sex_anova_fdr)
 fascicle_anova_w_fiber_mapping <- fascicle_sex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_sex_lm,visreg)
 ```
 
 ```{r sex_by_depression_fascicles}
@@ -1493,6 +1582,31 @@ print(fascicle_sexdep_anova_fdr)
 
 #fdr corrected only association cortex
 fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+```
+```{r age_by_depression_fascicles}
+#sex by depression
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthhy = 713, total n = 1106
+
+#lm
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PAT_AGE_AT_EXAM*depGroupVar, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
+#fdr corrected
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
 print(fascicle_anova_fdr_association)
 
