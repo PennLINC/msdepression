@@ -103,6 +103,7 @@ library(visreg)
 library(lme4)
 library(lmerTest)
 library(ggplot2)
+library(reshape2)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -1221,7 +1222,16 @@ data_empi_acc_f_phq$depGroupVar[which(data_empi_acc_f_phq$EMPI %in% empis_for_de
 data_empi_acc_f_phq$depGroupVar[which(data_empi_acc_f_phq$EMPI %in% empis_for_healthy_group)] = -1
 data_empi_acc_f_phq$depGroupVar = as.factor(data_empi_acc_f_phq$depGroupVar)
 
+#------ Group for Tim to check quality issues ----------
+write.csv(data_empi_acc_f_phq, "/Users/eballer/BBL/msdepression/data/dac/data_empi_acc_f_q.csv", col.names = T, sep = ",")
 
+subset <- subset(data_empi_acc_f_phq, select = c("ACCESSION_NUM","EMPI","EXAM_DATE","depGroupVar"))
+
+melissa_qc_data <- read.csv("/Users/eballer/BBL/msdepression/data/dac/just_empi_date_rating", sep = ",", header = F) #n = 2841
+names(melissa_qc_data) <- c("EMPI", "EXAM_DATE", "rating")
+subset_with_qc <- merge(subset, melissa_qi_data, by = c("EMPI", "EXAM_DATE"))
+
+write.csv(subset_with_qc, "/Users/eballer/BBL/msdepression/data/dac/subset_with_qc_for_tim_20211117.csv", col.names = T)
 
 ##########################################################
 #             Step 5 - Read in Fascicle info             #
@@ -1259,7 +1269,30 @@ hist(df_demo_and_fascicles$PHQ.9[which(!is.na(df_demo_and_fascicles$PHQ.9) & (df
 
 
 ##########################################################
-#                Step 8 - Regressions                    #
+#          Step 8 - Visualize all Tracts                 #
+##########################################################
+just_dep_and_empi <- subset(data_empi_acc_f_phq, select = c("EMPI", "depGroupVar"))
+added_dep_to_fascicles <- merge(just_dep_and_empi, fascicle_proportions, by = c("EMPI"))
+melted_df <- melt(added_dep_to_fascicles, id.vars = c("EMPI", "EXAM_DATE", "depGroupVar"))
+lesioned <- subset(melted_df, value > 0)
+lesioned_dx <- subset(lesioned, depGroupVar != 0)
+healthy <- subset(lesioned, depGroupVar == -1)
+depressed <- subset(lesioned, depGroupVar == 1)
+
+q<-ggplot(lesioned, aes(x=value, fill=depGroupVar)) + geom_histogram() + facet_wrap(~variable)
+r<-ggplot(lesioned_dx, aes(x=value, fill=depGroupVar)) + geom_histogram() + facet_wrap(~variable)
+x<-ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+y<-ggplot(healthy, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+z<-ggplot(depressed, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+print(q)
+print(r)
+print(x)
+print(y)
+print(z)
+
+
+##########################################################
+#                Step 9 - Regressions                    #
 ##########################################################
 
 ```
@@ -1528,6 +1561,79 @@ print(fascicle_anova_fdr_association)
 #sapply(fascicle_age_lm,visreg)
 ```
 
+```{r age_effects_fascicles_unique}
+########### age effect whole group
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+
+#### age histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(dep_and_healthy_groups_for_ICD_analysis)[1]), xlab = "Age", breaks = 10)
+
+#lm
+fascicle_age_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PAT_AGE_AT_EXAM, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_age_lm) <- fascicle_names
+
+#anova
+fascicle_age_anova <- lapply(fascicle_age_lm, anova)
+
+#fdr corrected
+fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
+print(fascicle_age_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_age_lm,visreg)
+```
+
+```{r age_effects_fascicles_mm}
+########### age effect whole group
+
+#isolate out only the depressed group and healthy group
+
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthy = 713, total n = 1106
+
+
+#### age histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(dep_and_healthy_groups_for_ICD_analysis)[1]), xlab = "Age", breaks = 10)
+
+#lm
+fascicle_age_lm <- lapply(fascicle_names, function(x) 
+{
+  lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_age_lm) <- fascicle_names
+
+#anova
+fascicle_age_anova <- lapply(fascicle_age_lm, anova)
+
+#fdr corrected
+fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
+print(fascicle_age_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_age_lm,visreg)
+```
+
 ```{r sex_effects_fascicles}
 ########### sex effect whole group
 
@@ -1542,6 +1648,76 @@ main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(dep_and_healthy_groups
 fascicle_sex_lm <- lapply(fascicle_names, function(x) 
 {
   lm(substitute(i ~ osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_sex_lm) <- fascicle_names
+
+#anova
+fascicle_sex_anova <- lapply(fascicle_sex_lm, anova)
+
+#fdr corrected
+fascicle_sex_anova_fdr <- fdr_anova_generic(fascicle_sex_anova, 1)
+print(fascicle_sex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_sex_lm,visreg)
+```
+
+```{r sex_effects_fascicles_unique}
+########### sex effect whole group
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+#### sex histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1), "/", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_sex_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_sex_lm) <- fascicle_names
+
+#anova
+fascicle_sex_anova <- lapply(fascicle_sex_lm, anova)
+
+#fdr corrected
+fascicle_sex_anova_fdr <- fdr_anova_generic(fascicle_sex_anova, 1)
+print(fascicle_sex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_sex_lm,visreg)
+```
+
+```{r sex_effects_fascicles_mm}
+########### sex effect whole group
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,] #n depressed = 393, healthhy = 713, total n = 1106
+
+#### sex histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1), "/", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_sex_lm <- lapply(fascicle_names, function(x) 
+{
+  lmerTest::lmer(substitute(i ~ osex + (1|EMPI), list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
 })
 names(fascicle_sex_lm) <- fascicle_names
 
