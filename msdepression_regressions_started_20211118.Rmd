@@ -138,7 +138,8 @@ columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","C
    mutate(race_binarized = ifelse(RACE == "WHITE", 1, 2)) %>%
    mutate(orace = ordered(race_binarized,levels = c(1,2), labels = c("White","Non-white"))) %>%
    mutate(EXAM_DATE = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% 
-   mutate(EXAM_DATE = gsub(EXAM_DATE, pattern = "-", replacement = ""))
+   mutate(EXAM_DATE = gsub(EXAM_DATE, pattern = "-", replacement = "")) %>%
+   mutate(EMPI = as.factor(EMPI))
 
 ##########################################################
 #### Step 1- make F3* depressed and healthy groups* ######
@@ -822,7 +823,18 @@ names(fascicle_agedep_lm) <- fascicle_names
 #anova
 fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
 
-#fdr corrected
+
+#fdr corrected - depression alone
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 2)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected - interaction
 fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
 print(fascicle_agedep_anova_fdr)
 
@@ -832,6 +844,158 @@ fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mappi
 print(fascicle_anova_fdr_association)
 
 ```
+
+```{r age_by_depression_unique}
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+#lm
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+   lm(substitute(i ~ PAT_AGE_AT_EXAM*depGroupVar, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+# lm(substitute(i ~ depGroupVar + PAT_AGE_AT_EXAM + osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
+
+#fdr corrected - depression alone
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 2)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected - interaction
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+```
+```{r depression_unique_all_fascicles_together}
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total prop lost)
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  ungroup()
+##
+
+dep_vs_healthy <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
+  geom_point(position = "jitter", show.legend = F) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~EMPI)
+
+#lm
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+   lm(substitute(i ~ PAT_AGE_AT_EXAM*depGroupVar, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+# lm(substitute(i ~ depGroupVar + PAT_AGE_AT_EXAM + osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
+
+#fdr corrected - depression alone
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 2)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected - interaction
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+```
+
+
+```{r depression_mm_all_fascicles_together}
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total prop lost)
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  ungroup()
+##
+
+### thank you Bart! 11/30/2021
+ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
+  geom_point(position = "jitter", show.legend = F) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~depGroupVar)
+
+ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
+  geom_point(position = "jitter", show.legend = F) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~EMPI)
+
+dep_vs_healthy <- lmerTest::lmer(total_fascicle_prop_lost ~ depGroupVar + (1 | EMPI) + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+dep_easy <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+ggplot(data = dep_and_healthy_groups_for_ICD_analysis2, aes(x=`(Intercept)`, y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
+  geom_point(position = "jitter", show.legend = F) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~EMPI)
+
+#lm
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+   lmerTest::lmer(substitute(i ~ depGroupVar + (1|EMPI) + PAT_AGE_AT_EXAM , list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+# lm(substitute(i ~ depGroupVar + PAT_AGE_AT_EXAM + osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
+
+#fdr corrected - depression alone
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 2)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected - interaction
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+```
+
 
 
 ```{r visreg_models}
@@ -844,3 +1008,7 @@ print(fascicle_anova_fdr_association)
 #sapply(fascicle_lm_unique, visreg)
 
 ```
+
+
+
+
