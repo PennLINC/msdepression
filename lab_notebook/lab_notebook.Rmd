@@ -1138,6 +1138,52 @@ ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
 
 
 20211107
-[] need to change the date format in my regular dac pull
-[] need to divide the ROIs by the total volume 
+[x] need to divide the ROIs by the total volume 
+
+20211109
+[x] need to change the date format in my regular dac pull
+ - pulled the results down to my local machine
+```{bash}
+scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/fascicle_volumes_all_subjects_roi_n2336.csv .
+```
+ [x] age
+ [x] sex
+ [x] depression
+ [x] repeated measures
+ [x] exclusions flow chart
+   - compare # good phq2s/9s in the direction of depression
+ [x] meeting with matt taki setup
+ 
+ 20211117
+  making a list of my people with depressed/not depressed with melissa rating
+```{bash}
+#done locally on /Users/eballer/BBL/msdepression/data/dac
+more 1yr_report_address.csv | grep "mimosa" | perl -pe 's/.*sub-(.*)\/ses-(.*)\/run.*gz,.*,(.*),20.*/$1,$2,$3/' > just_empi_date_rating
+
+# to count how many people are unique in our gorup of people with qc, n = 1059
+ more 1yr_report_address.csv | grep "mimosa" | perl -pe 's/.*sub-(.*)\/ses-(.*)\/run.*gz,.*,(.*),20.*\/pro.*/$1,$2,$3/' | cut -f 1 -d ',' | sort -u | wc
+
+
+```
+ 
+ 20211118
+ - my dac summary thing is getting too meaty and I can't find anything anymore. Making a new rmd with analyses.
+ [x] msdepression_regressions_started_20211118.Rmd
+ 
+20211123
+[] make regression function
+
 [] need to get total # of lesions - this will be tough, need taki's code. Not to do right now - sydney to look into
+
+20211201
+[x] trying to figure out why some people completely bottom out with their lesions. Looks like some fail registration, though I'm not really sure why.
+[] make depression mask
+
+plan to calculate depression network overlap:
+
+1) take the depression network map and 3dresample it into the voxel space of any of the fascicle masks
+2) for each fascicle mask, multiply the mask by the resampled depression network. then count the nonzero voxels. The number of nonzero voxels is the volume overlap of that fascicle with the depression network
+3) plot the histogram of depression network overlap volumes. Hopefully there will be a notch in it where we can say anything beneath X mm^3 is not connected to the depression network
+
+20211202
+[] figure out why registration broke
