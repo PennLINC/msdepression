@@ -278,8 +278,29 @@ fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
 
 write.table(fascicle_names,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names.csv", row.names = F, quote = F, col.names = F)
 
-#fascicle_mapping, returns numerical mapping as well as names of tracts
+
+
+########
+#fascicle volumes in depression network
+########
+fascicle_volumes_dep <- read.csv(paste0(homedir, "results/streamline_volume_within_dep_network.csv"), header = T, sep = ",")
+
+#add column to indicate whether does not meet criteria for inclusion in dep mask (0), any overlapping voxels (1), or >10% overlapping voxels (2)
+fascicle_volumes_dep_network <- fascicle_volumes_dep_network %>%
+  replace(is.na(.), 0) %>%
+  mutate(inDepMask=case_when(prop_in_mask == 0 ~ 0, (prop_in_mask > 0 & prop_in_mask < 0.1) ~ 1, prop_in_mask >= 0.1 ~ 2))
+
+write.table(fascicle_volumes_dep_network, paste0(homedir,  "/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_grouping.csv"), sep = ",", col.names=T)#, row.names = F, quote = F, col.names = T)
+
+#fascicle_names_dep_network_all <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 1)]
+#write.table(fascicle_names_dep_network_all,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_all.csv", row.names = F, quote = F, col.names = F)
+
+#fascicle_names_dep_network_10_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 2)]
+#write.table(fascicle_names_dep_network_10_percent,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_10_percent.csv", row.names = F, quote = F, col.names = F)
+ 
+#fascicle_mapping, returns numerical mapping as well as names of tracts, and whether in or out of dep network
 fascicle_bundle_mapping <- get_fascicle_bundle_mapping()
+
 ##########################################################
 #             Step 6 - Merge with data_empi              #
 ##########################################################
@@ -366,9 +387,18 @@ fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$n
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector > 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
 
 #visreg
-sapply(fascicle_lm, visreg)
+#sapply(fascicle_lm, visreg)
 ```
 
 
@@ -395,6 +425,17 @@ print(fascicle_anova_fdr)
 
 #fdr corrected only association cortex
 fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
@@ -429,6 +470,16 @@ print(fascicle_anova_fdr)
 
 #fdr corrected only association cortex
 fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
@@ -467,6 +518,17 @@ fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$n
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
 #uncorrected
 fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
 fascicle_anova_p05_unc <- as.data.frame(fascicle_anova_p[fascicle_anova_p < 0.05])
@@ -500,6 +562,18 @@ print(fascicle_anova_fdr)
 fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
 
 #uncorrected
 fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
@@ -537,15 +611,29 @@ fascicle_anova_w_fiber_mapping <- fascicle_anova_unique[which(fascicle_bundle_ma
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova_unique[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova_unique[which(fascicle_bundle_mapping$inDepNetwork_vector ==2)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+
 #uncorrected
 fascicle_anova_unique_p <- sapply(fascicle_anova_unique, function(v) v$"Pr(>F)"[1])
 fascicle_anova_unique_p05_unc <- as.data.frame(fascicle_anova_unique_p[fascicle_anova_unique_p < 0.05])
 print(fascicle_anova_unique_p05_unc)
 
 ```
+
+
 ```{r depression_main_effect_mixed_model}
 ##### repeat above analysis but use only the first instance of each EMPI, sorted by date
-df_mm <-df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]
+df_mm <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]
 
 #lm
 fascicle_lm_mm <- lapply(fascicle_names, function(x) 
@@ -563,6 +651,16 @@ print(fascicle_anova_mm_fdr)#anova values < 0.05, uncorrected
 
 #fdr corrected only association cortex
 fascicle_anova_w_fiber_mapping <- fascicle_anova_mm[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova_mm[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network 10%
+fascicle_anova_w_fiber_mapping <- fascicle_anova_mm[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
 
@@ -903,6 +1001,7 @@ ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=t
   geom_line(show.legend = F) + 
   facet_wrap(~EMPI)
 
+
 #lm
 fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
 {
@@ -939,10 +1038,16 @@ print(fascicle_anova_fdr_association)
 ```{r depression_mm_all_fascicles_together}
 
 #isolate out only the depressed group and healthy group, make a column that sums up the total prop lost)
+#also make columns for the mean across the full depression network, and the 10% cutoff depression network
+#remove rows where the total_fascicle_prop_lost is 0 - this was usually a failure of normalization
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
   mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_10_percent =
+           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
+  filter(total_fascicle_prop_lost > 0) %>%
   ungroup()
-##
+
 
 ### thank you Bart! 11/30/2021
 ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
@@ -958,6 +1063,14 @@ ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=t
 dep_vs_healthy <- lmerTest::lmer(total_fascicle_prop_lost ~ depGroupVar + (1 | EMPI) + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
 
 dep_easy <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+dep_vs_healthy_net <- lmerTest::lmer(total_fascicle_prop_lost_indepnet ~ depGroupVar + (1 | EMPI) + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+dep_easy_dep_net <- lm(total_fascicle_prop_lost_indepnet ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+dep_vs_healthy_net_10_percent <- lmerTest::lmer(total_fascicle_prop_lost_indepnet_10_percent ~ depGroupVar + (1 | EMPI) + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+dep_easy_dep_net_10_percent <- lm(total_fascicle_prop_lost_indepnet_10_percent ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
 
 ggplot(data = dep_and_healthy_groups_for_ICD_analysis2, aes(x=`(Intercept)`, y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
   geom_point(position = "jitter", show.legend = F) + 
@@ -985,14 +1098,58 @@ fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_ma
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
 print(fascicle_anova_fdr_association)
 
+#fdr corrected nondep, number of fascicles is total, 40, 5 correct - C_PHP_L, SLF1_L, UF_L, R, DRTT_L
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected dep, number of fascicles is total = 47, num correct =30
+#take home - areas of worsening disease over age much more likely to be in depression network
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector > 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+
 
 #fdr corrected - interaction
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+   lmerTest::lmer(substitute(i ~ depGroupVar*PAT_AGE_AT_EXAM + (1|EMPI) , list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+# lm(substitute(i ~ depGroupVar + PAT_AGE_AT_EXAM + osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
 fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
 print(fascicle_agedep_anova_fdr)
 
 #fdr corrected only association cortex
 fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector > 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep 10%
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected nondep, number of fascicles is total, 40, 4 correct - C_PHP_L, UF_L, R, DRTT_L
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected dep, number of fascicles is total = 47, num correct = 29
+#take home - areas of worsening disease over age much more likely to be in depression network
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector > 0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
 print(fascicle_anova_fdr_association)
 ```
 
