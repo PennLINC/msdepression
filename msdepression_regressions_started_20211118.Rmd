@@ -292,10 +292,12 @@ fascicle_volumes_dep_network <- fascicle_volumes_dep_network %>%
 
 write.table(fascicle_volumes_dep_network, paste0(homedir,  "/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_grouping.csv"), sep = ",", col.names=T)#, row.names = F, quote = F, col.names = T)
 
-#fascicle_names_dep_network_all <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 1)]
+fascicle_names_nondep_network<- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 0)]
+
+fascicle_names_dep_network_all <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 1)]
 #write.table(fascicle_names_dep_network_all,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_all.csv", row.names = F, quote = F, col.names = F)
 
-#fascicle_names_dep_network_10_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 2)]
+fascicle_names_dep_network_10_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 2)]
 #write.table(fascicle_names_dep_network_10_percent,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_10_percent.csv", row.names = F, quote = F, col.names = F)
  
 #fascicle_mapping, returns numerical mapping as well as names of tracts, and whether in or out of dep network
@@ -1153,6 +1155,57 @@ fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mappi
 print(fascicle_anova_fdr_association)
 ```
 
+```{r testing_whether_ms_disease_more_likely_in_depression_mask}
+### tests whether there is higher proportion of vertices lost in depression network versus not
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_10_percent =
+           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
+  mutate(total_fascicle_prop_lost_nondep_network =
+           rowMeans(across(fascicle_names_nondep_network))) %>%
+  filter(total_fascicle_prop_lost > 0) %>%
+  #group_by(EMPI) %>% 
+  #arrange(EXAM_DATE) %>% 
+  #slice(1) %>% 
+  ungroup()
+
+volume_lost_dep_vs_nondep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+
+volume_lost_dep10_vs_nondep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_10_percent,
+dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+
+#unique
+### tests whether there is higher proportion of vertices lost in depression network versus not, ends up being n=298; healthy = 184, depressed = 114 
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_10_percent =
+           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
+  mutate(total_fascicle_prop_lost_nondep_network =
+           rowMeans(across(fascicle_names_nondep_network))) %>%
+  filter(total_fascicle_prop_lost > 0) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+volume_lost_dep_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+
+volume_lost_dep10_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_10_percent,
+dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+
+
+###### Depression network x depression group interaction - not quite there. 
+#I want to ask whether depressed MS patients are more likely to have more damage in depression networks than none. So I know MS preferentially affects depression networks. Maybe I answered this already
+depression_network_and_dx_subgroup <- data.frame(subset(dep_and_healthy_groups_for_ICD_analysis, select = c("EMPI", "EXAM_DATE", "depGroupVar","total_fascicle_prop_lost_nondep_network", "total_fascicle_prop_lost_indepnet","total_fascicle_prop_lost_indepnet_10_percent")))
+#melted_df <- melt(depression_network_and_dx_subgroup, id.vars = c("EMPI", "EXAM_DATE", "depGroupVar"))
+ 
+#loss doesn't seem to be different between those with depression and those without
+loss_in_dep_network <- lm(total_fascicle_prop_lost_indepnet~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
+loss_in_dep_network_10_percent <- lm(total_fascicle_prop_lost_indepnet_10_percent~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
+loss_in_nondep_network <- lm(total_fascicle_prop_lost_nondep_network~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
+```
 
 
 ```{r visreg_models}
