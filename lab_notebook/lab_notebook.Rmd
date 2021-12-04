@@ -1270,5 +1270,8 @@ scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/streamline_vo
 ```
 
 get volume in dep network per fascicle
+
+20211203
+So something cool is happening here, but unexpected. The areas in the brain that have the most significant disease are much more likely to be in the depression network versus outside of it. p<1*10^-15. Doesn't matter whether or not you are depressed, they seem to share the same network. Also, areas that tend to worsen with age also are more likely to be in the same network. Will be interesting to figure out why some people don't get depressed, if people all have disease there. Also, why is there overlap? Interesting that inflammatory attack of WM happens to be in the depression network - is this why inflammation makes depression? Is there something structurally that happens along these white matter tracts? Weaker BBB? Different energetic characteristics? Is the same inflammation/depression network overlap seen in other inflammatory white matter diseases with a high burden of depression, or just MS? Will higher numbers allow the individual fascicle difference prediction to come up? Or is this really just a case where HYDRA will identify subtypes (which I imagine might be the case)
 20211202
-[] figure out why registration broke
+[] figure out why registration broke - not sure
