@@ -13,7 +13,7 @@
 # Set up paths
 module load ANTs/2.3.5
 export ANTSPATH=/appl/ANTs-2.3.5/bin
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=8
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$LSB_DJOB_NUMPROC
 #######if it doesn't work, fix this ###
 #export PATH=${ANTSPATH}:$PATH
 
@@ -26,7 +26,8 @@ base_dir='/project/msdepression/scripts'
 
 #Primary directorie - CHANGE THESE IF ANYTHING EVER CHANGES, IT WILL UPDATE FILE NAMES BELOW
 
-qc_file_path='/project/msdepression/data/melissa_martin_files/csv/minimelissa_list_for_testing_n3'
+qc_file_path='/project/msdepression/data/melissa_martin_files/csv/minimelissa_list_n1'
+#qc_file_path='/project/msdepression/data/melissa_martin_files/csv/melissa_mimosa_100_and_75_paths'
 mni_t1_root='mni_icbm152_t1_tal_nlin_asym_09a'
 mask_dilation=3
 brain_mask_root="t1_n4_brainmask"
@@ -104,10 +105,10 @@ for directory in $directories; do
 
          
 	#### Run registration
-        antsRegistrationSyN.sh -d 3 -f ${out_data_path}/${sub_sess_run}/${mni_t1_target} -m ${out_data_path}/${sub_sess_run}/${t1} -o ${out_data_path}/${sub_sess_run}/${outfile_prefix} -x ${out_data_path}/${sub_sess_run}/${brain_mask_dilated}
+        bsub -J "job_${sub_sess_run}" -n $LSB_DJOB_NUMPROC -o /project/msdepression/scripts/logfiles/"out_reg${sub_sess_run}" antsRegistrationSyN.sh -d 3 -f ${out_data_path}/${sub_sess_run}/${mni_t1_target} -m ${out_data_path}/${sub_sess_run}/${t1} -o ${out_data_path}/${sub_sess_run}/${outfile_prefix} -x ${out_data_path}/${sub_sess_run}/${brain_mask_dilated}
 
         #now actually do the transform${brain
        
-       	 antsApplyTransforms -e 3 -d 3 -i ${out_data_path}/${sub_sess_run}/${mimosa_path} -o ${out_data_path}/${sub_sess_run}/${mimosa_mni_hcp_path} -r ${out_data_path}/${sub_sess_run}/${mni_t1_target} -t ${out_data_path}/${sub_sess_run}/${ms2mni_warp} -t ${out_data_path}/${sub_sess_run}/${affine_mat} -n GenericLabel
+       	 bsub -w "done(job_${sub_sess_run})" -n $LSB_DJOB_NUMPROC -o /project/msdepression/scripts/logfiles/"out_transf${sub_sess_run}" antsApplyTransforms -e 3 -d 3 -i ${out_data_path}/${sub_sess_run}/${mimosa_path} -o ${out_data_path}/${sub_sess_run}/${mimosa_mni_hcp_path} -r ${out_data_path}/${sub_sess_run}/${mni_t1_target} -t ${out_data_path}/${sub_sess_run}/${ms2mni_warp} -t ${out_data_path}/${sub_sess_run}/${affine_mat} -n GenericLabel
 
 done
