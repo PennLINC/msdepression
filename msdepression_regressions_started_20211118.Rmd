@@ -118,6 +118,9 @@ homedir <- "/Users/eballer/BBL/msdepression/"
 #from Jan 2021 pull
 data <- read.csv(paste0(homedir,"/data/dac/investigatingdepressioninmspatients_dates_right_format.csv"), header = TRUE, stringsAsFactors = FALSE, na.strings = c("NULL"), sep =",")
 
+data_processed_as_of_20220209 <- read.csv(paste0(homedir, "/data/msdepression/data/erica_dac_pull/accession_numbers_tim_updtes_20220209.csv"), header = TRUE, stringsAsFactors = FALSE, sep = ",") #n=2738 new subjects added, 1124 were previously in Melissa's group, 2732 were already in our sample. Total n = 3862. Total accession # = 16,853
+
+
 ms_providers <- c("MARKOWITZ, CLYDE E.", "JACOBS, DINA A.", "WILLIAMSON, ERIC MICHAEL-LEE", "BERGER, JOSEPH ROBERT", "BERGER DO, JOSEPH", "PRUITT, AMY A.", "KOLSON, DENNIS L.", "CHAHIN, SALIM", "NARULA, SONA", "BAR-OR, AMIT")
 
 columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","CURRENT_AGE","hemoglobin", "WBC","RBC","B12","FOLATE", "TSH", "RPR","CSFAPPEAR1","CSFAPPEAR4","CSFCOLOR1",       "CSFCOLOR4","CSFTUBE","CSFTUBE4","VitD","PHQ.2","PHQ.9")
@@ -1036,6 +1039,57 @@ fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mappi
 print(fascicle_anova_fdr_association)
 ```
 
+```{r depression_unique_all_fascicles_together_last_scan}
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total prop lost)
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fascicles$depGroupVar != 0,]  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice_tail(n = 1) %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  ungroup()
+##
+
+dep_vs_healthy <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
+
+ggplot(data = dep_and_healthy_groups_for_ICD_analysis, aes(x=PAT_AGE_AT_EXAM,y=total_fascicle_prop_lost, color = EMPI, group = EMPI)) + 
+  geom_point(position = "jitter", show.legend = F) + 
+  geom_line(show.legend = F) + 
+  facet_wrap(~EMPI)
+
+
+#lm
+fascicle_agedep_lm <- lapply(fascicle_names, function(x) 
+{
+   lm(substitute(i ~ PAT_AGE_AT_EXAM*depGroupVar, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+# lm(substitute(i ~ depGroupVar + PAT_AGE_AT_EXAM + osex, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_agedep_lm) <- fascicle_names
+
+#anova
+fascicle_agedep_anova <- lapply(fascicle_agedep_lm, anova)
+
+
+#fdr corrected - depression alone
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 2)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+
+#fdr corrected - interaction
+fascicle_agedep_anova_fdr <- fdr_anova_generic(fascicle_agedep_anova, 3)
+print(fascicle_agedep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+```
+
 
 ```{r depression_mm_all_fascicles_together}
 
@@ -1105,13 +1159,18 @@ fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_ma
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
 print(fascicle_anova_fdr_association)
 
+
+
 #fdr corrected dep, number of fascicles is total = 47, num correct =30
 #take home - areas of worsening disease over age much more likely to be in depression network
 fascicle_anova_w_fiber_mapping <- fascicle_agedep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector > 0)]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
 print(fascicle_anova_fdr_association)
 
-
+### Chi sq - compare # fdr corrected values in dep network to outside
+table_for_chisq <-data.frame(rbind(c(5,35), c(30,17)), row.names = c("nondep_net", "dep_net"))
+names(table_for_chisq) <- c("fdr05", "NS")
+dep_network_age_effects_chi <- chisq.test(table_for_chisq) #p = 3.374 x 10^-6
 
 
 #fdr corrected - interaction
@@ -1190,11 +1249,26 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles[df_demo_and_fas
   slice(1) %>% 
   ungroup()
 
-volume_lost_dep_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+
+total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == -1]) #mean dep = 28%, mean non_dep = 25%, p = 0.12
+
+volume_lost_dep_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network) #mean dep_net = 35%, mean non_dep_net =  17%, p 2.2 x 10^-16
 
 volume_lost_dep10_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_10_percent,
-dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)
+dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network) #mean dep net = 31%, mean non_dep_net = 17%, p 6.6 * 10^-15
 
+#df for visreg
+df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$EMPI, dep_and_healthy_groups_for_ICD_analysis$EMPI), c(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network), c(rep(1,298), rep(2,298))))
+names(df_for_visreg) <- c("EMPI", "prop_lost", "network")
+df_for_visreg$network <- as.factor(df_for_visreg$network)
+
+plot <- ggplot(df_for_visreg, aes(x=network, y = prop_lost, col=network)) +
+  geom_violin() + 
+  geom_jitter(shape=16, position=position_jitter(0.05)) + 
+  geom_boxplot(width=0.1) + theme_minimal() + 
+  stat_summary(fun.y=median, geom="point", size=2, color="red") + 
+  scale_x_discrete(labels=c("1" = "Dep Network", "2" = "Non Dep Network"))
+  
 
 ###### Depression network x depression group interaction - not quite there. 
 #I want to ask whether depressed MS patients are more likely to have more damage in depression networks than none. So I know MS preferentially affects depression networks. Maybe I answered this already
@@ -1204,7 +1278,7 @@ depression_network_and_dx_subgroup <- data.frame(subset(dep_and_healthy_groups_f
 #loss doesn't seem to be different between those with depression and those without
 loss_in_dep_network <- lm(total_fascicle_prop_lost_indepnet~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
 loss_in_dep_network_10_percent <- lm(total_fascicle_prop_lost_indepnet_10_percent~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
-loss_in_nondep_network <- lm(total_fascicle_prop_lost_nondep_network~depGroupVar, data = depression_network_and_dx_subgroup) #non sig
+loss_in_nondep_network <- lm(total_fascicle_prop_lost_nondep_network~depGroupVar, data = depression_network_and_dx_subgroup) #non sig, trend 0.09, mean dep = 19% loss, healthy 17% loss
 ```
 
 
