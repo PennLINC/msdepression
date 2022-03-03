@@ -198,7 +198,8 @@ Results
           -DRTT_R	0.00695066			
           -ML_R	0.02511932	
     Fascicle loss x PHQ9:
-     - future analysis?
+     - Nothing significant by individual fascicle, within association network, by fascicle within the depression network
+     - similarly, no significant findings looks at means of all fascicle loss, within dep network, 10% and 5% and non-depression network
   
 Limitations/Future directions
  
@@ -681,6 +682,135 @@ total_volume_lost_dep_vs_healthy_unique_in_nondep_network <- t.test(dep_and_heal
 
 ```
 
+```{r phq9_correlation_fascicles}
+
+####### NOTHING SIGNIFICANT!!!! ########3
+#isolate out only the depressed group and healthy group
+with_phq9 <- df_demo_and_fascicles %>%
+  filter(depGroupVar != 0) %>%
+  filter(!is.na(PHQ.9)) %>%
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_10_percent =
+           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_5_percent =
+           rowMeans(across(fascicle_names_dep_network_5_percent))) %>%
+  mutate(total_fascicle_prop_lost_nondep_network =
+           rowMeans(across(fascicle_names_nondep_network))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+#lm
+fascicle_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PHQ.9, list(i = as.name(x))), data = with_phq9)
+})
+names(fascicle_lm) <- fascicle_names
+
+#anova
+fascicle_anova <- lapply(fascicle_lm, anova)
+
+#fdr corrected
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+print(fascicle_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr<- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr)
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr)
+
+#uncorrected
+fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
+fascicle_anova_p05_unc <- fascicle_anova_p[!is.na(fascicle_anova_p) & fascicle_anova_p < 0.05]
+print(fascicle_anova_p05_unc)
+
+
+######### overall fascicle proportion affected - nothing is significant
+overall_prop_affected <- lm(total_fascicle_prop_lost~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet <- lm(total_fascicle_prop_lost_indepnet~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet_10percent <- lm(total_fascicle_prop_lost_indepnet_10_percent~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet_5percent <- lm(total_fascicle_prop_lost_indepnet_5_percent~PHQ.9, data=with_phq9)
+overall_prop_affected_nondep <- lm(total_fascicle_prop_lost_nondep_network~PHQ.9, data=with_phq9)
+```
+
+```{r phq9_regressions_just_dep_group}
+##### NOTHING SIGNIFICANT ########
+##################################
+## Just within depression group ##
+##################################
+#isolate out only the depressed group and healthy group
+with_phq9 <- df_demo_and_fascicles %>%
+  filter(depGroupVar == 2) %>%
+  filter(!is.na(PHQ.9)) %>%
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
+  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_10_percent =
+           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_5_percent =
+           rowMeans(across(fascicle_names_dep_network_5_percent))) %>%
+  mutate(total_fascicle_prop_lost_nondep_network =
+           rowMeans(across(fascicle_names_nondep_network))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+#lm
+fascicle_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PHQ.9, list(i = as.name(x))), data = with_phq9)
+})
+names(fascicle_lm) <- fascicle_names
+
+#anova
+fascicle_anova <- lapply(fascicle_lm, anova)
+
+#fdr corrected
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+print(fascicle_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only dep network
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr<- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr)
+
+
+#fdr corrected only dep 10% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova[which(fascicle_bundle_mapping$inDepNetwork_vector == 2)]
+fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr)
+
+#uncorrected
+fascicle_anova_p <- sapply(fascicle_anova, function(v) v$"Pr(>F)"[1])
+fascicle_anova_p05_unc <- fascicle_anova_p[!is.na(fascicle_anova_p) & fascicle_anova_p < 0.05]
+print(fascicle_anova_p05_unc)
+
+######### overall fascicle proportion affected - nothing is significant
+overall_prop_affected <- lm(total_fascicle_prop_lost~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet <- lm(total_fascicle_prop_lost_indepnet~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet_10percent <- lm(total_fascicle_prop_lost_indepnet_10_percent~PHQ.9, data=with_phq9)
+overall_prop_affected_depnet_5percent <- lm(total_fascicle_prop_lost_indepnet_5_percent~PHQ.9, data=with_phq9)
+overall_prop_affected_nondep <- lm(total_fascicle_prop_lost_nondep_network~PHQ.9, data=with_phq9)
+
+#visreg
+#sapply(fascicle_lm, visreg)
+```
 All the mixed models are below
 ```{r age_effects_indiv_fascicles_mm}
 
