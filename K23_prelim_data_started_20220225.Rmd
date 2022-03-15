@@ -15,6 +15,8 @@ library(lme4)
 library(lmerTest)
 library(ggplot2)
 library(reshape2)
+library(pwr)
+library(mgcv)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -162,7 +164,10 @@ Results
       - In the final good MIMoSA group, there were 64 unique males and 316 unique females, 83% women
       - Individual fascicle results underwhelming, only 3 regions meet P<0.05 (unc), SCP, CPT_O_R, OR_R
       - no association or within dep network findings
-      - no age*sex effects
+      - Sex effects interaction model (fascicle ~ depGroupVar*osex + PAT_AGE_AT_EXAM)
+        - Dep effects - same as above, 12 fascicles (p<0.05 unc)
+        - Sex effects - same as above, with the edition of CNVIII_R (p<0.05 unc)
+        - age*sex interactions - SLF1_L and CNVIII_R (p<0.05 unc)
       - Analyses to consider at a later date
         [] some sort of matching
     
@@ -203,7 +208,24 @@ Results
   
 Limitations/Future directions
  
-  All diagnostic info is obtained from EMR fields, not notes, nor direct chart review. We do not know if patients are relapsing/remiting, nor do we know their active depression status. Through careful review, though patients sometimes have many phq2s listed, they are always identical. 
+  All diagnostic info is obtained from EMR fields, not notes, nor direct chart review. We do not know if patients are relapsing/remiting, nor do we know their active depression status. Through careful review, though patients sometimes have many phq2s listed, they are always identical. It is also possible that people who are on antidepressants are prescribed them not for depression. I tried a sensitivity analysis and removed people on meds from heatlhy group but didn't include them in the depression group. Unique n in depression group went from 232->115 and all findings go away. 
+  
+  In order to do this, you need to change the mutate command:
+
+##------
+#goal is to keep people who were seen by 
+
+#### add this line #####
+   mutate(dep_by_dx_phq_healthy_phq0_no_psych_meds = ifelse(dep_by_dx_phq | true_healthy, 1, 0)) %>%
+   rowwise(ACCESSION_NUM) %>%
+   
+#### remove this line or comment out
+    # mutate(depGroupVar = sum(c(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds,dep_by_dx_phq))) %>%
+    
+#### add this line
+   mutate(depGroupVar = sum(c(dep_by_dx_phq_healthy_phq0_no_psych_meds,dep_by_dx_phq))) %>%
+   ungroup()
+### -----
 
   It would be great if we also had better dimensional scores. The PHQ2s are largely 0s, and the lack of spread makes interpretation really challenging. Though the PHQ9s definitely have better spread, there just aren't many of them. Doing really good cognitive and clinical phenotyping, or even getting a different or better set of measures into the MS clinic would be ideal (Aim 2).
  
@@ -513,11 +535,51 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>%
 
 
 dep_vs_healthy <- lm(total_fascicle_prop_lost ~ depGroupVar, data = dep_and_healthy_groups_for_ICD_analysis)
-summary(dep_vs_healthy) #p=0.494
+summary(dep_vs_healthy) #p=0.494, cohen d = 0.2
 
+
+#power analysis to predict sample required for K, u = num df, v = denom df, f2=0.01 (cohen d = 0.02/2) 
+#prop in each fascicle predicting dep (87), number of predictors (age, sex, ef, ess?) = 4, u = 87-4 = 83
+pwr.f2.test(u=83, f2 = 0.02, sig.level = 0.5, power = 0.8)
 
 #test whether proportion lost overall different between depressed and healthy- yes, p = 0.049
 total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 27%, mean non_dep = 24%, p = 0.049
+
+
+df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$EMPI, dep_and_healthy_groups_for_ICD_analysis$EMPI), c(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]), c(rep(1,298), rep(2,298))))
+names(df_for_visreg) <- c("EMPI", "prop_lost", "Diagnosis")
+df_for_visreg$Diagnosis <- as.factor(df_for_visreg$Diagnosis)
+
+plot <- ggplot(df_for_visreg, aes(x=diagnosis, y = prop_lost, col=diagnosis)) +
+  geom_violin() + 
+  geom_jitter(shape=16, position=position_jitter(0.05)) + 
+  geom_boxplot(width=0.1) + theme_minimal() + 
+  stat_summary(fun.y=median, geom="point", size=2, color="black") + 
+  scale_x_discrete(labels=c("1" = "Depressed", "2" = "Non-Depressed"))
+
+print(plot)
+
+#bar plot
+Diagnosis <- c("Depressed", "Non-Depressed")
+value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]))
+
+sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
+           (sd(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1))))
+
+data <- data.frame(Diagnosis,value, sem)
+#data$Fascicle <- pretty_names
+
+# Grouped
+barplot <- ggplot(data, aes(x=Diagnosis,fill=Diagnosis, y=value)) + 
+  geom_bar(stat="identity", position=position_dodge(0.9)) + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
+  ylab("Proportion of Fascicles Affected") +
+  theme(axis.text = element_text(size = 12, colour = "black"))
+    
+print(barplot)
+
+
 
 #look at within depression network specifically - trend, p = 0.059
 total_volume_lost_dep_vs_healthy_unique_in_dep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 36%, mean non_dep = 32%, p = 0.071
@@ -537,6 +599,12 @@ total_volume_lost_dep_vs_healthy_unique_in_nondep_network <- t.test(dep_and_heal
 ### Age actually makes things worse
 #dep_vs_healthy_w_age <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
 #summary(dep_vs_healthy_w_age)
+
+#df for visreg - actually not using visreg. Just a nice way to see that there is significantly more loss in depression network versus outside depression network
+
+
+
+
 
 ```
 
@@ -591,8 +659,71 @@ fascicle_anova_unique_p <- sapply(fascicle_anova_unique, function(v) v$"Pr(>F)"[
 fascicle_anova_unique_p05_unc <- as.data.frame(fascicle_anova_unique_p[fascicle_anova_unique_p < 0.05])
 print(fascicle_anova_unique_p05_unc)
 
+### plot AF_R 
+
+df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$EMPI, dep_and_healthy_groups_for_ICD_analysis$EMPI), c(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]), c(rep(1,298), rep(2,298))))
+names(df_for_visreg) <- c("EMPI", "prop_lost", "Diagnosis")
+df_for_visreg$Diagnosis <- as.factor(df_for_visreg$Diagnosis)
+
+
+
+plot <- ggplot(df_for_visreg, aes(x=Diagnosis, y = prop_lost, col=Diagnosis)) +
+  ggtitle("Arcuate Fasciculus R") + 
+ # geom_violin() + 
+  geom_jitter(shape=16, position=position_jitter(0.05)) + 
+  geom_boxplot(width=0.1) + theme_minimal() + 
+  stat_summary(fun.y=median, geom="point", size=2, color="black") + 
+  scale_x_discrete(labels=c("1" = "Depressed", "2" = "Non-Depressed")) 
+  
+print(plot)
+
+### Plot OR_R	0.69024050
+df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$EMPI, dep_and_healthy_groups_for_ICD_analysis$EMPI), c(dep_and_healthy_groups_for_ICD_analysis$OR_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$OR_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]), c(rep(1,298), rep(2,298))))
+names(df_for_visreg) <- c("EMPI", "prop_lost", "Diagnosis")
+df_for_visreg$Diagnosis <- as.factor(df_for_visreg$Diagnosis)
+
+
+
+plot <- ggplot(df_for_visreg, aes(x=Diagnosis, y = prop_lost, col=Diagnosis)) +
+  ggtitle("Optic Radiation R") + 
+ # geom_violin() + 
+  geom_jitter(shape=16, position=position_jitter(0.05)) + 
+  geom_boxplot(width=0.1) + theme_minimal() + 
+  stat_summary(fun.y=median, geom="point", size=2, color="black") + 
+  scale_x_discrete(labels=c("1" = "Depressed", "2" = "Non-Depressed")) 
+print(plot)
+
+
+### grouped bar plot
+
+Diagnosis <- c(rep("Depressed" , 2) , rep("Non-Depressed" , 2))
+Fascicle <- rep(c("Arcuate Fasciculus" , "Superior Cerebellar Peduncle"), 2)
+value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]))
+
+sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
+           (sd(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
+           (sd(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1 ))),
+          (sd(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1 ))))
+
+data <- data.frame(Diagnosis,Fascicle,value, sem)
+#data$Fascicle <- pretty_names
+
+# Grouped
+barplot <- ggplot(data, aes(fill=Diagnosis, y=value, x=Fascicle)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
+  ylab("Proportion of Fascicles Affected") +
+  theme(axis.text = element_text(size = 12, colour = "black"), axis.title.x = element_blank())
+    
+print(barplot)
+
+
 
 ```
+
 ```{r testing_whether_ms_disease_more_likely_in_depression_mask_unique}
 ### tests whether there is higher proportion of vertices lost in depression network versus not
 
@@ -633,7 +764,9 @@ plot <- ggplot(df_for_visreg, aes(x=network, y = prop_lost, col=network)) +
   geom_jitter(shape=16, position=position_jitter(0.05)) + 
   geom_boxplot(width=0.1) + theme_minimal() + 
   stat_summary(fun.y=median, geom="point", size=2, color="red") + 
-  scale_x_discrete(labels=c("1" = "Dep Network", "2" = "Non Dep Network"))
+  scale_x_discrete(labels=c("1" = "Depression Network", "2" = "Non-Depression Network")) + 
+  ylab("Proportion of Fascicles Affected") + 
+  theme(axis.text =element_text(size=14), axis.title.x = element_blank())
   
 print(plot)
 ###### Depression network x depression group interaction - It is there, depression always worse. 
@@ -643,44 +776,7 @@ loss_in_dep_network <- lm(total_fascicle_prop_lost_indepnet~depGroupVar, data = 
 loss_in_dep_network_10_percent <- lm(total_fascicle_prop_lost_indepnet_10_percent~depGroupVar, data = dep_and_healthy_groups_for_ICD_analysis) #p = 0.0492
 loss_in_nondep_network <- lm(total_fascicle_prop_lost_nondep_network~depGroupVar, data = dep_and_healthy_groups_for_ICD_analysis) #p=0.037
 ```
-```{r depressionx}
-#isolate out only the depressed group and healthy group, make a column that sums up the total prop lost)
-dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>% 
-  filter(depGroupVar != 0)  %>% 
-  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
-  mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
-  mutate(total_fascicle_prop_lost_indepnet_10_percent =
-           rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
-  mutate(total_fascicle_prop_lost_nondep_network =
-           rowMeans(across(fascicle_names_nondep_network))) %>%
-  group_by(EMPI) %>% 
-  arrange(EXAM_DATE) %>% 
-  slice(1) %>% 
-  ungroup()
 
-
-dep_vs_healthy <- lm(total_fascicle_prop_lost ~ depGroupVar, data = dep_and_healthy_groups_for_ICD_analysis)
-summary(dep_vs_healthy) #p=0.494
-
-
-#test whether proportion lost overall different between depressed and healthy- yes, p = 0.049
-total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 27%, mean non_dep = 24%, p = 0.049
-
-#look at within depression network specifically - trend, p = 0.059
-total_volume_lost_dep_vs_healthy_unique_in_dep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 36%, mean non_dep = 32%, p = 0.071
-
-#look at within depression network in fascicles where at least 10% of the volume of the fascicle was in dep network
-#yes, p = 0.048
-total_volume_lost_dep_vs_healthy_unique_in_dep_network_10percent <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_10_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_10_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 33%, mean non_dep = 27%, p = 0.048
-
-#look at outside depression network, yes p = 0.037
-total_volume_lost_dep_vs_healthy_unique_in_nondep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 18%, mean non_dep = 16%, p = 0.037
-
-### Age actually makes things worse
-#dep_vs_healthy_w_age <- lm(total_fascicle_prop_lost ~ depGroupVar + PAT_AGE_AT_EXAM, data = dep_and_healthy_groups_for_ICD_analysis)
-#summary(dep_vs_healthy_w_age)
-
-```
 
 ```{r phq9_correlation_fascicles}
 
@@ -1060,4 +1156,103 @@ print(fascicle_anova_fdr_association)
 fascicle_anova_p <- sapply(fascicle_sexdep_anova, function(v) v$"Pr(>F)"[3])
 fascicle_anova_p05_unc <- as.data.frame(fascicle_anova_p[fascicle_anova_p < 0.05])
 print(fascicle_anova_p05_unc)
+```
+Interaction models below
+
+```{r sexdep_effects_fascicles_unique}
+
+### Trying to figure out if there are any sex * depression effects, covarying for age given that men tend to get worse over time. dep*sex uncorrected in SLF1_L and CNVIII_R p< 0.05)
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>% filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+#### sex histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1), "/", sum(dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_sexdep_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ depGroupVar*osex + PAT_AGE_AT_EXAM, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_sexdep_lm) <- fascicle_names
+
+#anova
+fascicle_sexdep_anova <- lapply(fascicle_sexdep_lm, anova)
+
+
+##### depGroupVar ####
+### 12 areas, nearly identical to reg model
+
+#fdr corrected
+fascicle_sexdep_anova_fdr <- fdr_anova_generic(fascicle_sexdep_anova, 1)
+print(fascicle_sexdep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_sexdep_anova_p <- sapply(fascicle_sexdep_anova, function(v) v$"Pr(>F)"[1])
+fascicle_sexdep_anova_p05_unc <- as.data.frame(fascicle_sexdep_anova_p[fascicle_sexdep_anova_p < 0.05])
+print(fascicle_sexdep_anova_p05_unc) ### CNVIII p < 0.05
+
+##### sex differences ####
+## same as above, just add in CNVIII_R
+
+#fdr corrected
+fascicle_sexdep_anova_fdr <- fdr_anova_generic(fascicle_sexdep_anova, 2)
+print(fascicle_sexdep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_sexdep_anova_p <- sapply(fascicle_sexdep_anova, function(v) v$"Pr(>F)"[2])
+fascicle_sexdep_anova_p05_unc <- as.data.frame(fascicle_sexdep_anova_p[fascicle_sexdep_anova_p < 0.05])
+print(fascicle_sexdep_anova_p05_unc) ### CNVIII p < 0.05
+
+
+#######interaction ####
+
+### SLF1_L and CNVIII_R
+
+#fdr corrected interaction
+fascicle_sexdep_anova_fdr <- fdr_anova_generic(fascicle_sexdep_anova, 4)
+print(fascicle_sexdep_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,4)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sexdep_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,4)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_sexdep_anova_p <- sapply(fascicle_sexdep_anova, function(v) v$"Pr(>F)"[4])
+fascicle_sexdep_anova_p05_unc <- as.data.frame(fascicle_sexdep_anova_p[fascicle_sexdep_anova_p < 0.05])
+print(fascicle_sexdep_anova_p05_unc) #p uncorrected slf1_L p = 0.0488, CNVIII_R 0.01)
+
+
+
 ```
