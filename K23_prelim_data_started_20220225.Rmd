@@ -464,6 +464,10 @@ print(fascicle_anova_fdr_association)
 
 #visreg
 #sapply(fascicle_age_lm,visreg)
+visreg(fascicle_age_lm$AF_R,ylab = "Proportion of Affected Streamlines", xlab = "Age in Years",
+       line=list(col="red"),
+       points=list(col="black"))
+
 ```
 
 
@@ -550,7 +554,7 @@ df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$E
 names(df_for_visreg) <- c("EMPI", "prop_lost", "Diagnosis")
 df_for_visreg$Diagnosis <- as.factor(df_for_visreg$Diagnosis)
 
-plot <- ggplot(df_for_visreg, aes(x=diagnosis, y = prop_lost, col=diagnosis)) +
+plot <- ggplot(df_for_visreg, aes(x=Diagnosis, y = prop_lost, col=Diagnosis)) +
   geom_violin() + 
   geom_jitter(shape=16, position=position_jitter(0.05)) + 
   geom_boxplot(width=0.1) + theme_minimal() + 
@@ -560,7 +564,7 @@ plot <- ggplot(df_for_visreg, aes(x=diagnosis, y = prop_lost, col=diagnosis)) +
 print(plot)
 
 #bar plot
-Diagnosis <- c("Depressed", "Non-Depressed")
+Diagnosis <- c("MS w/Depression", "MS No Depression")
 value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
            mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]))
 
@@ -575,8 +579,23 @@ barplot <- ggplot(data, aes(x=Diagnosis,fill=Diagnosis, y=value)) +
   geom_bar(stat="identity", position=position_dodge(0.9)) + 
     geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
   ylab("Proportion of Fascicles Affected") +
+  ylim(0,0.5) +
   theme(axis.text = element_text(size = 12, colour = "black"))
     
+print(barplot)
+
+# Grouped
+barplot <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diagnosis, y=value)) + 
+  geom_bar(stat="identity", colour="black", width=0.8, size=1.5) + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1.5) +
+  scale_fill_manual(values = c("#cdcdcd", "#FFFFFF")) + #comment out if you want colored graph
+  ylab("Proportion of Fascicles Affected") +
+  theme(axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=20),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        panel.background = element_rect(colour = "white", fill = "white")) + #comment out if you want pretty 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
+
 print(barplot)
 
 
@@ -697,7 +716,7 @@ print(plot)
 ### grouped bar plot
 
 Diagnosis <- c(rep("Depressed" , 2) , rep("Non-Depressed" , 2))
-Fascicle <- rep(c("Arcuate Fasciculus" , "Superior Cerebellar Peduncle"), 2)
+Fascicle <- rep(c("Depression Network (AF)" , "Non-depression network (SCP)"), 2)
 value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
            mean(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
            mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
@@ -720,6 +739,31 @@ barplot <- ggplot(data, aes(fill=Diagnosis, y=value, x=Fascicle)) +
     
 print(barplot)
 
+
+# Grouped
+barplot <- ggplot(data, aes(fill=Diagnosis, y=value, x=Fascicle)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
+  ylab("Proportion of Fascicles Affected") +
+  theme(axis.text = element_text(size = 12, colour = "black"), axis.title.x = element_blank())
+    
+print(barplot)
+
+
+barplot2 <- ggplot(data, aes(fill=Diagnosis, y=value, x=Fascicle)) + 
+    geom_bar(position="dodge", stat="identity", colour = "black", width=0.9,size=1.5) + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1.5) + 
+    scale_fill_manual(values = c("#cdcdcd", "#FFFFFF", "#cdcdcd", "#FFFFFF")) + #comment out if you want colored graph
+ 
+    ylab("Proportion of Fascicles Affected") +
+    theme(axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+          axis.title.y = element_text(size=20),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          panel.background = element_rect(colour = "white", fill = "white")) + #comment out if you want pretty graph
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
+
+
+print(barplot2)
 
 
 ```
@@ -769,6 +813,29 @@ plot <- ggplot(df_for_visreg, aes(x=network, y = prop_lost, col=network)) +
   theme(axis.text =element_text(size=14), axis.title.x = element_blank())
   
 print(plot)
+
+########## Bar plot
+Network <- c("Depression Network","Non-Depression Network")
+value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet),
+           mean(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network))
+
+sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet)/sqrt(dim(dep_and_healthy_groups_for_ICD_analysis)[1])),
+           (sd(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network)/sqrt(dim(dep_and_healthy_groups_for_ICD_analysis)[1])))
+
+data <- data.frame(Network,value,sem)
+#data$Fascicle <- pretty_names
+
+# Grouped
+barplot <- ggplot(data, aes(x=Network,fill=Network, y=value)) + 
+  geom_bar(stat="identity", position=position_dodge(0.9)) + 
+  geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
+  ylab("Proportion of Fascicles Affected") +
+  ylim(0,0.5) +
+  theme(axis.text = element_text(size = 12, colour = "black"))
+    
+print(barplot)
+
+
 ###### Depression network x depression group interaction - It is there, depression always worse. 
 #these lms largely match up with the t.tests above. Sig differences between depressed (more disease) within and outside of mask
 
@@ -1252,6 +1319,46 @@ print(fascicle_anova_fdr_association)
 fascicle_sexdep_anova_p <- sapply(fascicle_sexdep_anova, function(v) v$"Pr(>F)"[4])
 fascicle_sexdep_anova_p05_unc <- as.data.frame(fascicle_sexdep_anova_p[fascicle_sexdep_anova_p < 0.05])
 print(fascicle_sexdep_anova_p05_unc) #p uncorrected slf1_L p = 0.0488, CNVIII_R 0.01)
+
+
+### grouped bar and line plot
+
+Diagnosis <- c(rep("Depressed" , 2) , rep("Non-Depressed" , 2))
+Sex <- rep(c("Male" , "Female"), 2)
+value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)]))
+
+
+sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)])/sqrt(sum((dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)))),
+         (sd(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)])/sqrt(sum((dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)))),
+         (sd(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)])/sqrt(sum((dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 1)))),
+         (sd(dep_and_healthy_groups_for_ICD_analysis$SLF1_L[(dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)])/sqrt(sum((dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1) & (dep_and_healthy_groups_for_ICD_analysis$sex_binarized == 2)))))
+           
+
+data <- data.frame(Diagnosis,Sex,value, sem)
+#data$Fascicle <- pretty_names
+
+# Grouped
+barplot <- ggplot(data, aes(fill=Sex, y=value, x=Diagnosis)) + 
+    geom_bar(position="dodge", stat="identity") + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
+  ylab("Proportion of SLF Affected") +
+  theme(axis.text = element_text(size = 12, colour = "black"), axis.title.x = element_blank())
+    
+print(barplot)
+
+lineplot <- ggplot(data=data, aes(fill=Sex, y=value, x=Diagnosis, group = Sex)) + 
+
+    geom_line(aes(color=Sex, size=0.9)) +
+    geom_point(aes(color=Sex, size=0.9)) +
+    ylim(0.05,0.30)+
+    ylab("Proportion of SLF Affected") +
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1) + 
+    theme(axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank())
+    
+print(lineplot)
 
 
 
