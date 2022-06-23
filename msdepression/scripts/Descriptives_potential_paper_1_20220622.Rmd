@@ -1,0 +1,640 @@
+---
+title: "Descriptives for potential paper 1 "
+author: "Erica Baller"
+date: "Started 2022 06 22"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(visreg)
+library(lme4)
+library(lmerTest)
+library(ggplot2)
+library(reshape2)
+library(pwr)
+library(mgcv)
+#functions
+source("~/BBL/msdepression/scripts/msdepression_functions.R")
+```
+
+## Descriptives
+[x] Demographics of full group unique
+[x] Fascicles most likely to be hit
+[] Networks most likely to be affected (map Yeo 7 networks to corresponding WM tracts)
+[x] Age regressions (unique)
+  [x] overall 
+  [] networks
+[x] Age regressions (mixed model)
+[] Sex differences
+  [x] overall
+  [] networks
+[] agexsex unique
+  [x] overall
+  [] networks
+[] agexsex mm
+  [x] overall - YAY! Now we have CORRECTED FINDINGS: age corrected (55 fascicles), 1 sex diff (Fornix_R) and 1 agexsex diff (Fornix_R)
+  [] networks
+  
+
+
+
+## Descriptives
+
+Considering doing a paper that just describes the cohort, and the method for lesion fascicle mapping. Would describe the sample, the method, fascicles most likely to be hit, what networks they are a part of. Could also look at age regressions (considering each person once, and then a mixed model that looks at trajectory). Lastly, sex differences (first episode + mixed model). Will also check age x sex interactions. 
+
+The first chunk here is reading in appropriate data frames and preprocessing. Two big data frames are read in. The first is the demographic, drug, lab info for the MS patients (from the DAC pull). The second is the data frame of fascicle proportion affected for people with good mimosa (# volume affected/total volume of fascicle). The most important preprocessing occurs in a series of mutate commands. These essentially add new columns to the data frame that can later be used. The thrust of these mutate commands is to define who has depression and who does not.
+
+
+
+<img width="70%" src="/Users/eballer/BBL/msdepression/data/drugs_data/MS_Patient_Depression_Categorizations.png"/>
+
+
+Inclusion criteria below (not separating out depressed from non, but could do sensitivity analysis I guess):
+
+Inclusion MS Criteria (dataframe read in here has already been filtered down using the exclusions below previously)
+  1) Scanned under MS protocol (42K)
+  2) MS Diagnosis (17K)
+  3) Seen by MS doctor (16K)
+  
+
+Exclusions
+  If you received the MS protocol or had a diagnosis of MS but never actually saw an MS provider, we cannot be sure that the diagnosis of MS is truly valid, as it is hard to diagnose anyway.
+ 
+Imaging exclusion
+  We are currently only using people who had good MIMOSA (75 or 100). That severely limits our numbers, but that is okay! When we re-QC, we will probably get a lot more into this group.
+
+Final N demographics 
+ 
+Networks
+
+  Will use yeo 7 networks.For each network, I will binarized it, and then used it as an ROI and calculate, per fascicle, the proportion of the volume occupied by the fascicle that intersected with the network mask to the whole volume of the fascicle. If overlap, considered in yeo network x, if not, not in it.
+
+Association fascicles:
+ [1] "AF_L"     "AF_R"     "C_FPH_L"  "C_FPH_R"  "C_FP_L"   "C_FP_R"   "C_PH_L"   "C_PHP_L"  "C_PHP_R"  "C_PH_R"  
+[11] "C_R_L"    "C_R_R"    "EMC_L"    "EMC_R"    "FAT_L"    "FAT_R"    "IFOF_L"   "IFOF_R"   "ILF_L"    "ILF_R"   
+[21] "MdLF_L"   "MdLF_R"   "PAT_L"    "PAT_R"    "SLF1_L"   "SLF1_R"   "SLF2_L"   "SLF2_R"   "SLF3_L"   "SLF3_R"  
+[31] "UF_L"     "UF_R"     "VOF_L"    "VOF_R"    
+
+
+Notebook Overview
+
+  I start out with a proof of concept analyses, to demonstrate that our lesion filtering works. I create histograms looking at the proportion of volume lost in each fascicle across subjects. We recapitulate earlier work (will need to cite) and show that higher volume loss with our method reflects regions previously known to have higher disease burden.These findings suggest that the streamline filtering approach could be a reasonable approach for this analysis.
+
+  
+Analyses
+ 
+ 
+  There are two main types of analyses I performed, t.tests (for example, to compare inside versus outside depression network) and linear models (for example, looking at the relationship of depression to each individual fascicle). With respect to T-tests, I assume unequal variance for all. For linear models, I have looked at the first scan (considered Unique for unique empi), the last scan previously (not in this notebook), and mixed models with EMPI as a repeated measure (all at the end of the notebook). I like the unique one the best. The general pattern is to look at the total proportion of volume lost across fascicles, then within depression network, within depression 10% network, and within non depression network. Then, I look at each individual fascicle, as well as separately consider the association fascicles (per DSI studio, these are the ones that connect association cortices).
+
+  I attempted to do FDR correction for all analyses where I looked at each of 87 fascicles separately, or bucketed by association network. If i was not successful, I included uncorrected (P<0.05).
+
+  A note about age. I have tried with and without age in these models. Age is so phenomenally strong as an effect. Given the age of our participants (range from 20s to 80s), there are I imagine at least two big age effects going on 1) progressive disease and 2) natural (or unnatural aging). Gams would probably be better at looking at this relationship and could probably be its own thing. 
+
+
+
+  I have also looked at sex differences in individual fascicles as well as agexsex interactions. All are done using 1st scan alone as well as with mixed model using lmer.
+  
+Results
+  *Demographics
+    total n unique subjects = 783 (F = 609, M = 174) 
+    total scans = 2962 (F = 2270, M = 692)
+    
+  *Age effects (unique):
+      -Age mean 47 (range 20-83). 
+      -Almost everything corrects (59 out of 87 fascicles, 26 in association network)
+      -Take home - as expected, the older you are, the worse white matter fascicle invovlement you have
+   
+  *Age effects (gam unique)
+      - 62 out of 87 fascicles correct, 26 in association network
+      
+  *Age effects (mixed model)
+      - 57 out of 87 correct, 27 in association network
+      
+  *Sex effects (unique):
+      - In the final good MIMoSA group, there were 609 unique females and 174 unique males, 77% women
+      - Individual fascicle results underwhelming, only 3 regions meet P<0.05 (unc), 
+          SCP	0.020859515			
+          CPT_F_R	0.040590173			
+          CPT_O_R	0.049616343			
+          CPT_P_R	0.032079145			
+          DRTT_L	0.047328252			
+          DRTT_R	0.008453751			
+          ML_R	0.033199761			
+          OR_R	0.039151847
+          
+      - Analyses to consider at a later date
+        [] some sort of matching
+        
+  *Sex effects (mixed model):
+      - no action
+      - Individual fascicle results w/ 12 that meet P<0.05 (uncorrected)
+          ICP_L	0.016204905			
+          MCP	0.002505451			
+          SCP	0.005273532			
+          V	0.018452360			
+          CNVIII_L	0.005692622			
+          CPT_F_R	0.047149209			
+          CPT_O_R	0.031170467			
+          CPT_P_R	0.025315969			
+          CST_R	0.039553847			
+          DRTT_L	0.043957171	
+      
+  * Age*sex (unique)
+      - no action
+      
+  * Age * sex (mixed model) 
+  lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM*osex + (1|EMPI), list(i = as.name(x))), data = df_mm)
+      - Action!
+      - Age term: 55/87 correct
+      - Sex Term: 1 (Fornix_R) corrects
+      - Age*Sex intx term: 1 (fornix_R) corrects
+      - Age *sex uncorrected (5):
+          UF_L	0.0114639855			
+          CNVIII_R	0.0163558293			
+          CNVII_R	0.0175275993			
+          CBT_L	0.0260870383			
+          F_R	0.0002210451	
+  
+Limitations/Future directions
+ 
+ 
+
+```{r read_in_df_and_subset}
+homedir <- "/Users/eballer/BBL/msdepression/"
+
+data <- read.csv(paste0(homedir, "/data/drugs_data/parsable_msdepression.csv"), sep = ",", header = TRUE) #n=16830, only has people with MS ICD10 code G35 and seen by MS provider
+
+columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","CURRENT_AGE","hemoglobin", "WBC","RBC","B12","FOLATE", "TSH", "RPR","CSFAPPEAR1","CSFAPPEAR4","CSFCOLOR1",       "CSFCOLOR4","CSFTUBE","CSFTUBE4","VitD","PHQ.2","PHQ.9")
+
+##########################
+### some preprocessing ###
+##########################
+#we need to keep scans from people seen by an MS provider (n = 17067) who have an MS diagnostic code (n=16,830)
+#we make a bunch of columns from character to integer, binarize sex and race, and put date into a nice format YYYYMMDD, the %m%d%y indicates what it started out as
+
+ data_empi_acc_f_phq <- data %>% 
+   mutate(across(.cols = columns_to_make_integer, .fns = as.integer)) %>%
+   mutate(sex_binarized = ifelse(SEX == "MALE", 1, 2)) %>%
+   mutate(osex = ordered(sex_binarized,levels = c(1,2), labels = c("Male","Female"))) %>%
+   mutate(race_binarized = ifelse(RACE == "WHITE", 1, 2)) %>%
+   mutate(orace = ordered(race_binarized,levels = c(1,2), labels = c("White","Non-white"))) %>%
+   mutate(EXAM_DATE = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% 
+   mutate(EXAM_DATE = gsub(EXAM_DATE, pattern = "-", replacement = "")) %>%
+   mutate(EMPI = as.factor(EMPI)) %>%
+   mutate(On.Psych.Meds = ifelse(On.Psych.Meds == "True", 1, 0)) %>%
+   mutate(On.Antidepressants = ifelse(On.Antidepressants == "True", 1, 0)) %>%
+   mutate(Has.PHQ2 = ifelse(Has.PHQ2 == "True", 1, 0)) %>%
+   mutate(Has.PHQ9 = ifelse(Has.PHQ9 == "True", 1, 0)) %>%
+   mutate(Has.depdx = ifelse(grepl("F3", ICD10), 1, 0)) %>%
+   mutate(PHQ.2_modsev_dep_sxs = ifelse((!is.na(PHQ.2) & PHQ.2 >= 3), 1, 0)) %>%
+   mutate(PHQ.9_modsev_dep_sxs = ifelse((!is.na(PHQ.9) & PHQ.9 >= 10), 1, 0)) %>%
+   mutate(PHQ.2_mild_dep_sxs = ifelse((!is.na(PHQ.2) & PHQ.2 > 0 & PHQ.2 < 3), 1, 0)) %>%
+   mutate(PHQ.9_mild_dep_sxs = ifelse((!is.na(PHQ.9) & PHQ.9 > 0 & PHQ.9 < 10), 1, 0)) %>%
+   mutate(PHQ.2_zero = ifelse((!is.na(PHQ.2) & PHQ.2 == 0), 1, 0)) %>%
+   mutate(PHQ.9_zero = ifelse((!is.na(PHQ.9) & PHQ.9 == 0), 1, 0)) %>%
+   mutate(dep_by_dx_phq = ifelse((Has.depdx | PHQ.2_modsev_dep_sxs | PHQ.9_modsev_dep_sxs),1,0)) %>%
+   mutate(dep_by_dx_phq_antidep = ifelse((Has.depdx | On.Antidepressants | PHQ.2_modsev_dep_sxs | PHQ.9_modsev_dep_sxs),1,0)) %>%
+   mutate(true_healthy = ifelse((!Has.depdx & !On.Psych.Meds & (PHQ.2_zero | PHQ.9_zero)), 1, 0)) %>%
+   mutate(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds = ifelse(dep_by_dx_phq_antidep | true_healthy, 1, 0)) %>%
+   rowwise(ACCESSION_NUM) %>%
+   mutate(depGroupVar =
+            sum(c(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds,dep_by_dx_phq_antidep))) %>%#you get an extra point if you are in the depression group, so the end result is dep = 2, healthy = 1, 0 for exclude
+   ungroup()
+
+
+
+##########################################################
+#             Read in Fascicle info             #
+##########################################################
+
+fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
+
+#fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
+fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
+
+write.table(fascicle_names,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names.csv", row.names = F, quote = F, col.names = F)
+
+
+##########################################################
+#             Merge with data_empi              #
+##########################################################
+df_demo_and_fascicles <- merge(data_empi_acc_f_phq, fascicle_proportions, by = c("EMPI", "EXAM_DATE")) #n = 2962
+
+
+##########################################################
+#             Histograms                        #
+##########################################################
+
+
+#all subjects/all scans, n  = 2962
+hist(df_demo_and_fascicles$PAT_AGE_AT_EXAM, main = "Age at Exam, all subjects, multiple scans", xlab = "Age")
+hist(df_demo_and_fascicles$sex_binarized, main = "Sex binarized, all subjects, multiple scans", xlab = "Sex", breaks = 2)
+
+#unique, first scan, n = 783
+df_unique_empi <- df_demo_and_fascicles %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() 
+
+hist(df_unique_empi$PAT_AGE_AT_EXAM, main = "Age at First Exam", xlab = "Age")
+hist(df_unique_empi$sex_binarized, main = "Sex binarized at First Exam", xlab = "Sex", breaks = 2)
+
+```
+
+
+
+    
+```{r demographics}
+
+#this will display a demographics table comparing age, race, sex between healthy and depressed groups, using the first presentation to treatment
+
+make_demographics_table_all_subjs(data_frame = df_demo_and_fascicles, binarized_race = 1) #simple race 1 = just binarized, otherwise it will give you the full distribution of race
+make_demographics_table_all_subjs(data_frame = df_unique_empi, binarized_race = 1)
+
+
+```
+
+
+```{r proof_of_concept}
+
+#this section creates histograms looking at the proportion of volume lost in each fascicle across subjects
+#we recapitulate earlier work and show that higher volume loss with our method reflects regions previously known to have higher volume loss
+#These findings suggest that the streamline filtering approach could be a reasonable approach for this analysis
+
+#have to pull out just the pieces I'm interested in; this is for ALL subjects
+just_empi <- subset(df_demo_and_fascicles, select = c("EMPI"))
+added_to_fascicles <- merge(just_empi, fascicle_proportions, by = c("EMPI"))
+melted_df <- melt(added_to_fascicles, id.vars = c("EMPI", "EXAM_DATE"))
+
+#exclude regions where there was no lesion at all
+lesioned <- subset(melted_df, value > 0)
+
+histogram_plot_most_affected_fascicles<-ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+
+print(histogram_plot_most_affected_fascicles)
+
+
+#have to pull out just the pieces I'm interested in; this is for unique subjects
+just_empi <- subset(df_unique_empi, select = c("EMPI"))
+added_to_fascicles <- merge(just_empi, fascicle_proportions, by = c("EMPI"))
+melted_df <- melt(added_to_fascicles, id.vars = c("EMPI", "EXAM_DATE"))
+
+#exclude regions where there was no lesion at all
+lesioned <- subset(melted_df, value > 0)
+
+histogram_plot_most_affected_fascicles_unique<-ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
+
+print(histogram_plot_most_affected_fascicles_unique)
+
+
+```
+
+```{r age_effects_fascicles_unique}
+########### age effect whole group
+
+
+#### age histo ###
+hist(df_unique_empi$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(df_unique_empi)[1]), xlab = "Age", breaks = 10)
+
+#lm
+fascicle_age_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PAT_AGE_AT_EXAM, list(i = as.name(x))), data = df_unique_empi)
+})
+names(fascicle_age_lm) <- fascicle_names
+
+#anova
+fascicle_age_anova <- lapply(fascicle_age_lm, anova)
+
+#fdr corrected
+fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
+print(fascicle_age_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_age_lm,visreg)
+#visreg(fascicle_age_lm$AF_R,ylab = "Proportion of Affected Streamlines", xlab = "Age in Years",
+#       line=list(col="red"),
+ #      points=list(col="black"))
+
+```
+```{r age_effects_fascicles_unique_gam}
+########### age effect whole group
+
+
+#### age histo ###
+hist(df_unique_empi$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(df_unique_empi)[1]), xlab = "Age", breaks = 10)
+
+#lm
+fascicle_age_gam <- lapply(fascicle_names, function(x) 
+{
+  gam(substitute(i ~ s(PAT_AGE_AT_EXAM), list(i = as.name(x))), data = df_unique_empi)
+})
+names(fascicle_age_gam) <- fascicle_names
+
+#anova
+fascicle_age_anova <- lapply(fascicle_age_gam, anova)
+
+fascicle_age_anova_smooth_p <- sapply(fascicle_age_anova, function(x)
+{
+  x$s.pv
+})
+
+
+#fdr corrected
+fascicle_age_anova_fdr <- fdr_anova_generic_p_already_extracted(fascicle_age_anova_smooth_p)
+print(fascicle_age_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_age_anova_smooth_p[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic_p_already_extracted(fascicle_anova_w_fiber_mapping)
+print(fascicle_anova_fdr_association)
+
+
+```
+
+
+```{r sex_effects_fascicles_unique}
+
+#### no sig differences, but uncorrected Men usually worse disease than women
+#### sex histo ###
+hist(df_unique_empi$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(df_unique_empi$sex_binarized == 1), "/", sum(df_unique_empi$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_sex_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ osex, list(i = as.name(x))), data = df_unique_empi)
+})
+names(fascicle_sex_lm) <- fascicle_names
+
+#anova
+fascicle_sex_anova <- lapply(fascicle_sex_lm, anova)
+
+#fdr corrected
+fascicle_sex_anova_fdr <- fdr_anova_generic(fascicle_sex_anova, 1)
+print(fascicle_sex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_sex_anova_p <- sapply(fascicle_sex_anova, function(v) v$"Pr(>F)"[1])
+fascicle_sex_anova_p05_unc <- as.data.frame(fascicle_sex_anova_p[fascicle_sex_anova_p < 0.05])
+print(fascicle_sex_anova_p05_unc)
+
+#sapply(fascicle_sex_lm,visreg)
+#visreg(fascicle_age_lm$AF_R,ylab = "Proportion of Affected Streamlines", xlab = "Age in Years",
+       #line=list(col="red"),
+       #points=list(col="black"))
+```
+
+All the mixed models are below
+```{r age_effects_indiv_fascicles_mm}
+
+### This subscript compares proportion of fascicles lost across age for each fascicle of the 80+. Looks lonly at the people in the depressed versus healthy group. Importantly, I ran this looking at everyone, at the results are the same.
+### Separately considers findings just within the association cortex
+
+#isolate out only the depressed group and healthy group
+df_mm <- df_demo_and_fascicles
+#n depressed = 859, healthy = 604, total n = 1463
+
+
+#lm
+fascicle_lm_mm <- lapply(fascicle_names, function(x) 
+{
+  lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM + (1 | EMPI), list(i = as.name(x))), data = df_mm)
+})
+names(fascicle_lm_mm) <- fascicle_names
+
+#anova
+fascicle_anova_mm <- lapply(fascicle_lm_mm, anova)
+
+#fdr corrected
+fascicle_anova_mm_fdr <- fdr_anova_generic(fascicle_anova_mm, 1)
+print(fascicle_anova_mm_fdr)#anova values < 0.05, uncorrected
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_anova_mm[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_anova_mm_p <- sapply(fascicle_anova_mm, function(v) v$"Pr(>F)"[1])
+fascicle_anova_mm_p05_unc <- as.data.frame(fascicle_anova_mm_p[fascicle_anova_mm_p < 0.05])
+print(fascicle_anova_mm_p05_unc)
+
+
+```
+
+```{r sex_effects_fascicles_mm}
+########### sex effect whole group
+
+#isolate out only the depressed group and healthy group
+df_mm <- df_demo_and_fascicles 
+#healthhy = 713, total n = 1106
+
+#### sex histo ###
+hist(df_mm$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(df_mm$sex_binarized == 1), "/", sum(df_mm$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_sex_lm <- lapply(fascicle_names, function(x) 
+{
+  lmerTest::lmer(substitute(i ~ osex + (1|EMPI), list(i = as.name(x))), data = df_mm)
+})
+names(fascicle_sex_lm) <- fascicle_names
+
+#anova
+fascicle_sex_anova <- lapply(fascicle_sex_lm, anova)
+
+#fdr corrected
+fascicle_sex_anova_fdr <- fdr_anova_generic(fascicle_sex_anova, 1)
+print(fascicle_sex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_sex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_sex_anova_p <- sapply(fascicle_sex_anova, function(v) v$"Pr(>F)"[1])
+fascicle_sex_anova_p05_unc <- as.data.frame(fascicle_sex_anova_p[fascicle_sex_anova_p < 0.05])
+print(fascicle_sex_anova_p05_unc)
+#visreg
+#sapply(fascicle_sex_lm,visreg)
+```
+
+Interaction models below
+
+```{r agesex_effects_fascicles_unique}
+
+### Trying to figure out if there are any sex * depression effects, covarying for age given that men tend to get worse over time. dep*sex uncorrected in SLF1_L and CNVIII_R p< 0.05)
+
+
+
+
+hist(df_unique_empi$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(df_unique_empi$sex_binarized == 1), "/", sum(df_unique_empi$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_agesex_lm <- lapply(fascicle_names, function(x) 
+{
+  lm(substitute(i ~ PAT_AGE_AT_EXAM*osex, list(i = as.name(x))), data = df_unique_empi)
+})
+names(fascicle_agesex_lm) <- fascicle_names
+
+#anova
+fascicle_agesex_anova <- lapply(fascicle_agesex_lm, anova)
+
+
+### age term
+
+#fdr corrected
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 1)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[1])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) ### CNVIII p < 0.05
+
+##### sex term ####
+
+
+#fdr corrected
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 2)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[2])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) ### CNVIII p < 0.05
+
+
+#######interaction age*sex term ####
+
+#fdr corrected interaction
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 3)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$inDepNetwork_vector >0)]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[3])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) 
+
+```
+
+```{r agesex_effects_fascicles_mm}
+
+### Trying to figure out if there are any age x sex interactions w/ a mixed model. Yes!!
+
+### age restults still robust, but now 1 sex diff (Fornix_R) & one agexsex diff (Fornix_R). Still 55 areas that age correct
+
+
+df_mm <- df_demo_and_fascicles
+
+hist(df_unique_empi$sex_binarized,
+main = paste0("Sex In Good Mimosa Group : n (M/F)= ", sum(df_unique_empi$sex_binarized == 1), "/", sum(df_unique_empi$sex_binarized == 2)),  xlab = "Sex", breaks = 2)
+
+#lm
+fascicle_agesex_lm <- lapply(fascicle_names, function(x) 
+{
+  lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM*osex + (1|EMPI), list(i = as.name(x))), data = df_mm)
+})
+names(fascicle_agesex_lm) <- fascicle_names
+
+#anova
+fascicle_agesex_anova <- lapply(fascicle_agesex_lm, anova)
+
+
+### age term
+
+#fdr corrected
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 1)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[1])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) ### CNVIII p < 0.05
+
+##### sex term ####
+
+
+#fdr corrected
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 2)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,2)
+print(fascicle_anova_fdr_association)
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[2])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) ### 
+
+#######interaction age*sex term ####
+
+#fdr corrected interaction
+fascicle_agesex_anova_fdr <- fdr_anova_generic(fascicle_agesex_anova, 3)
+print(fascicle_agesex_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_agesex_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,3)
+print(fascicle_anova_fdr_association)
+
+
+#uncorrected
+fascicle_agesex_anova_p <- sapply(fascicle_agesex_anova, function(v) v$"Pr(>F)"[3])
+fascicle_agesex_anova_p05_unc <- as.data.frame(fascicle_agesex_anova_p[fascicle_agesex_anova_p < 0.05])
+print(fascicle_agesex_anova_p05_unc) #p uncorrected slf1_L p = 0.0488, CNVIII_R 0.01)
+
+
+```
