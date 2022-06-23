@@ -716,16 +716,16 @@ print(plot)
 ### grouped bar plot
 
 Diagnosis <- c(rep("Depressed" , 2) , rep("Non-Depressed" , 2))
-Fascicle <- rep(c("Depression Network (AF)" , "Non-depression network (SCP)"), 2)
+Fascicle <- rep(c("Depression Network (AF)" , "Region Outside Depression Network (C_PH)"), 2)
 value <- c(mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
-           mean(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+           mean(dep_and_healthy_groups_for_ICD_analysis$C_PH_L[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
            mean(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
-           mean(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]))
+           mean(dep_and_healthy_groups_for_ICD_analysis$C_PH_L[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]))
 
 sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
-           (sd(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
+           (sd(dep_and_healthy_groups_for_ICD_analysis$C_PH_L[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==2))),
            (sd(dep_and_healthy_groups_for_ICD_analysis$AF_R[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1 ))),
-          (sd(dep_and_healthy_groups_for_ICD_analysis$SCP[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1 ))))
+          (sd(dep_and_healthy_groups_for_ICD_analysis$C_PH_L[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1 ))))
 
 data <- data.frame(Diagnosis,Fascicle,value, sem)
 #data$Fascicle <- pretty_names
@@ -752,7 +752,7 @@ print(barplot)
 
 barplot2 <- ggplot(data, aes(fill=Diagnosis, y=value, x=Fascicle)) + 
     geom_bar(position="dodge", stat="identity", colour = "black", width=0.9,size=1.5) + 
-    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1.5) + 
+    geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1) + 
     scale_fill_manual(values = c("#cdcdcd", "#FFFFFF", "#cdcdcd", "#FFFFFF")) + #comment out if you want colored graph
  
     ylab("Proportion of Fascicles Affected") +
@@ -834,6 +834,21 @@ barplot <- ggplot(data, aes(x=Network,fill=Network, y=value)) +
   theme(axis.text = element_text(size = 12, colour = "black"))
     
 print(barplot)
+# Black and white
+barplot <- ggplot(data, aes(x=Network,fill=Network, y=value)) + 
+  geom_bar(stat="identity", colour="black", width=0.8, size=1.5) + 
+  geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1.5) +
+  scale_fill_manual(values = c("#cdcdcd", "#FFFFFF")) + #comment out if you want colored graph
+  ylab("Proportion of Fascicles Affected") +
+  theme(axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=20),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        panel.background = element_rect(colour = "white", fill = "white")) + #comment out if you want pretty 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
+
+
+print(barplot)
+
 
 
 ###### Depression network x depression group interaction - It is there, depression always worse. 
