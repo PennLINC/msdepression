@@ -96,5 +96,5 @@ for network in "${yeo_7_net_list[@]}"; do
 done
 
 #binarize the all_net_overlap_proportions file, takes every value and puts a 0 - this takes the ,, cases and makes them 0s. And then it takes any decimals (meaning some overlap, makes them 1s)
-cat ${all_net_overlap_proportions} | perl -pe 's/,/,0/g' | perl -pe 's/0\.\d+/1/g' > ${all_net_overlap_proportions_binarized}
+cat ${all_net_overlap_proportions} | perl -pe 's/,/,0/g' | perl -pe 's/0\.\d+/1/g' | perl -pe 's/0prop_in_mask_//g' > ${all_net_overlap_proportions_binarized}
 
