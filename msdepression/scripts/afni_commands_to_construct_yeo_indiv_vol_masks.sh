@@ -2,8 +2,8 @@
 
 # pre: Yeo cortical parcellations (7 network) in volumetric space: https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
 # post: 7 individual network maps: VIS, MOT, DA, VA, LIM, FP, DM, labeled yeo_7_vol_[network abbreviation]
-# uses: This script takes the parcellations in volume (Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii) and makes 7 individual maps. In the Yeo2011 volume mask, each network is given a number (1-7), with 1 corresponding to VIS, and 7 corresponding to DM. In order to make individual maps, I need to separate out each network in the map based on intensity. Will try to code in the following way: 1) make a vector where each item is the name of the network 2) make a loop that iterates 1-7, have a second counter that goes in the reverse direction 3) For each iteration, the count corresponds to both the intensity in the mask as well as its position in the name vector 4) To separate out the values with a specific intensity, need to do some weird math (b/c I can't just pull out intensity directly: If my count is 1, I need to pull out only values that are 1 from the map. This is equivalent to ispositive(a-[1-1])+isnegative(a-[1+1]). For 2, ispositive(a-[2-1]+isnegative(a-[2+1]) 
-# dependencies: Afni 
+# uses: This script takes the parcellations in volume (Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii) and makes 7 individual maps. In the Yeo2011 volume mask, each network is given a number (1-7), with 1 corresponding to VIS, and 7 corresponding to DM. In order to make individual maps, I need to separate out each network in the map based on intensity. Will try to code in the following way: 1) make a vector where each item is the name of the network 2) make a loop that counts the networks 3) go through each network and do math to pull out only the network with a particular intensity. It uses the command "amongst", which gives back the voxels where the intensity is equivalent to the counter in a binarized mask
+# dependencies: Afni
 
 #make list of yeo network abbreviations
 yeo_7_net_list=("VIS"
@@ -44,7 +44,9 @@ echo "Making individual network maps"
 #have to write out yeo_7_net_list because bash can't handle too many extractions. Prob because I'm not referencing an object but a name when pointing network list to yeo_7_net_list
 for network in "${yeo_7_net_list[@]}"; do
 	echo "making ${network} mask, counter = ${network_counter}"
-	afni_command=("3dcalc -a ${network_path}/${volume_mask} -expr 'ispositive(a-(${network_counter}-1))+isnegative(a-(${network_counter}+1))' -prefix ${network_path}/${network_prefix}_${network}.nii")
+	
+#make binary masks of each level of the masks; amongst just takes only the values given in the next segment, which can be 1 or more
+	afni_command=("3dcalc -a ${network_path}/${volume_mask} -expr 'amongst(a,${network_counter})' -prefix ${network_path}/${network_prefix}_${network}.nii")
 	echo $afni_command
 	eval $afni_command
 	((network_counter++))
