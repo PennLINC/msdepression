@@ -1,14 +1,14 @@
-#### calculate volume of fascicles within the depression network ####
+#### calculate volume of fascicles within the depression network, thresholded at 3.09 ####
 ### Pre: All streamlines must have been made in dsi studio (these are the nii files)
 ### Post: A depression mask resampled to template space, file <streamline_volume_within_dep_network>, containing each fascicle and its corresponding % within depression network
 ### Uses: Trying to figure out which fascicles are in the depression network for dimensionality reduction for use in later regressions (i.e. decrease # comparisons by only looking at fascicles within depression network)
 ### Dependencies: This script requires afni to be installed (currently using 20.1)
 
 #set outfile
-outfile="/project/msdepression/results/streamline_volume_within_dep_network.csv"
+outfile="/project/msdepression/results/streamline_volume_within_dep_network_3_09.csv"
 
 #set template directories, will be making our resampled mask from within this
-template="Depression_Clust_mask_roi_binarized.nii.gz"
+template="Dep_clust_T_3_09_binarized.nii"
 template_dir="/project/msdepression/templates/harvard_depression"
 resampled_filename="resampled_${template}"
 template_fullpath="/project/msdepression/templates/harvard_depression/${template}"
@@ -26,7 +26,7 @@ rm -f $outfile
 touch $outfile
 echo "fascicle,num_voxels_total,non_zero_voxels_in_dep_map,prop_in_mask" >> $outfile
 
-#resample Depression_Clust_mask_roi_binarized.nii.gz to match sample fascicle - AF_L.nii.gz
+#resample Depression mask to match sample fascicle - AF_L.nii.gz
 if [ -f "${template_dir}/${resampled_filename}" ]; then
 	rm -f ${template_dir}/${resampled_filename}
 fi
