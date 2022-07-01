@@ -3,8 +3,8 @@ title: "Descriptives for potential paper 1 "
 author: "Erica Baller"
 date: "Started 2022 06 22"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -99,24 +99,30 @@ Analyses
   I have also looked at sex differences in individual fascicles as well as agexsex interactions. All are done using 1st scan alone as well as with mixed model using lmer.
   
 Results
-  *Demographics
+
+  *Demographics*
+   
     total n unique subjects = 783 (F = 609, M = 174) 
     total scans = 2962 (F = 2270, M = 692)
     
-  *Age effects (unique):
+  *Age effects (unique): *
+    
       -Age mean 47 (range 20-83). 
       -Almost everything corrects (59 out of 87 fascicles, 26 in association network)
       -Take home - as expected, the older you are, the worse white matter fascicle invovlement you have
    
-  *Age effects (gam unique)
+  *Age effects (gam unique)*
+    
       - 62 out of 87 fascicles correct, 26 in association network
       
-  *Age effects (mixed model)
+  *Age effects (mixed model)*
+  
       - 57 out of 87 correct, 27 in association network
       
-  *Sex effects (unique):
+  *Sex effects (unique):*
+  
       - In the final good MIMoSA group, there were 609 unique females and 174 unique males, 77% women
-      - Individual fascicle results underwhelming, only 3 regions meet P<0.05 (unc), 
+      - Individual fascicle results underwhelming, P<0.05 (unc), 
           SCP	0.020859515			
           CPT_F_R	0.040590173			
           CPT_O_R	0.049616343			
@@ -129,7 +135,8 @@ Results
       - Analyses to consider at a later date
         [] some sort of matching
         
-  *Sex effects (mixed model):
+  *Sex effects (mixed model):*
+  
       - no action
       - Individual fascicle results w/ 12 that meet P<0.05 (uncorrected)
           ICP_L	0.016204905			
@@ -143,10 +150,12 @@ Results
           CST_R	0.039553847			
           DRTT_L	0.043957171	
       
-  * Age*sex (unique)
+  *Agexsex (unique)*
+  
       - no action
       
-  * Age * sex (mixed model) 
+  *Agexsex (mixed model) *
+  
   lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM*osex + (1|EMPI), list(i = as.name(x))), data = df_mm)
       - Action!
       - Age term: 55/87 correct
@@ -317,6 +326,7 @@ fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
 print(fascicle_age_anova_fdr)
 
 #fdr corrected only association cortex
+fascicle_bundle_mapping=get_fascicle_bundle_mapping()
 fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)

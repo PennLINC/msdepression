@@ -862,6 +862,8 @@ get_fascicle_bundle_mapping <- function(){
   # returns vector with association (34 tracts) = 1; cerebellum (7 t) = 2
   # cranial nerves(10) = 3; projection (34) = 4; commissural (2) = 5
   dep_network_grouping <- read.csv(paste0(homedir,"/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_grouping.csv"), header = T, sep = ",")
+  yeo_7_network <- fascicle_volumes_yeo_7_binarized <- read.csv(paste0(homedir, "results/yeo_7_network_overlap_proportions.txt"), header = T, sep = ",")
+  yeo_7_network_binarized <- fascicle_volumes_yeo_7_binarized <- read.csv(paste0(homedir, "results/yeo_7_network_overlap_proportions_binarized.txt"), header = T, sep = ",")
   numerical_vector <- c(rep(1,34), rep(2,7), rep(3,10), rep(4,34), rep(5,2))
   name_vector <- c(rep("association",34), 
                    rep("cerebellum",7), 
@@ -869,7 +871,90 @@ get_fascicle_bundle_mapping <- function(){
                    rep("projection",34), 
                    rep("commissural",2))
   inDepNetwork_vector <- dep_network_grouping$inDepMask 
-  fascicle_bundle_list <- list(numerical_vector, name_vector, inDepNetwork_vector)
-  names(fascicle_bundle_list) <- c("numerical_vector", "name_vector", "inDepNetwork_vector")
+  fascicle_bundle_list <- list(numerical_vector, 
+                               name_vector, 
+                               inDepNetwork_vector,
+                               yeo_7_network$prop_in_mask_VIS, 
+                               yeo_7_network$prop_in_mask_MOT, 
+                               yeo_7_network$prop_in_mask_DA, 
+                               yeo_7_network$prop_in_mask_VA,
+                               yeo_7_network$prop_in_mask_LIM,
+                               yeo_7_network$prop_in_mask_FP,
+                               yeo_7_network$prop_in_mask_DM,
+                               yeo_7_network_binarized$VIS, 
+                               yeo_7_network_binarized$MOT, 
+                               yeo_7_network_binarized$DA, 
+                               yeo_7_network_binarized$VA,
+                               yeo_7_network_binarized$LIM,
+                               yeo_7_network_binarized$FP,
+                               yeo_7_network_binarized$DM)
+  names(fascicle_bundle_list) <- c("numerical_vector", 
+                                   "name_vector", 
+                                   "inDepNetwork_vector", 
+                                   "prop_VIS",
+                                   "prop_MOT",
+                                   "prop_DA",
+                                   "prop_VA",
+                                   "prop_LIM",
+                                   "prop_FP",
+                                   "prop_DM",
+                                   "VIS",
+                                   "MOT",
+                                   "DA",
+                                   "VA",
+                                   "LIM",
+                                   "FP",
+                                   "DM")
+  return(fascicle_bundle_list)
+}
+
+get_fascicle_bundle_mapping_generic_dep_mask <- function(dep_network_grouping_file){
+  # returns vector with association (34 tracts) = 1; cerebellum (7 t) = 2
+  # cranial nerves(10) = 3; projection (34) = 4; commissural (2) = 5
+  # allows for generic depression mask to be added
+  dep_network_grouping <- read.csv(file = dep_network_grouping_file, header = T, sep = ",")
+  yeo_7_network <- fascicle_volumes_yeo_7_binarized <- read.csv(paste0(homedir, "results/yeo_7_network_overlap_proportions.txt"), header = T, sep = ",")
+  yeo_7_network_binarized <- fascicle_volumes_yeo_7_binarized <- read.csv(paste0(homedir, "results/yeo_7_network_overlap_proportions_binarized.txt"), header = T, sep = ",")
+  numerical_vector <- c(rep(1,34), rep(2,7), rep(3,10), rep(4,34), rep(5,2))
+  name_vector <- c(rep("association",34), 
+                   rep("cerebellum",7), 
+                   rep("cranial_nerve",10), 
+                   rep("projection",34), 
+                   rep("commissural",2))
+  inDepNetwork_vector <- dep_network_grouping$inDepMask 
+  fascicle_bundle_list <- list(numerical_vector, 
+                               name_vector, 
+                               inDepNetwork_vector,
+                               yeo_7_network$prop_in_mask_VIS, 
+                               yeo_7_network$prop_in_mask_MOT, 
+                               yeo_7_network$prop_in_mask_DA, 
+                               yeo_7_network$prop_in_mask_VA,
+                               yeo_7_network$prop_in_mask_LIM,
+                               yeo_7_network$prop_in_mask_FP,
+                               yeo_7_network$prop_in_mask_DM,
+                               yeo_7_network_binarized$VIS, 
+                               yeo_7_network_binarized$MOT, 
+                               yeo_7_network_binarized$DA, 
+                               yeo_7_network_binarized$VA,
+                               yeo_7_network_binarized$LIM,
+                               yeo_7_network_binarized$FP,
+                               yeo_7_network_binarized$DM)
+  names(fascicle_bundle_list) <- c("numerical_vector", 
+                                   "name_vector", 
+                                   "inDepNetwork_vector", 
+                                   "prop_VIS",
+                                   "prop_MOT",
+                                   "prop_DA",
+                                   "prop_VA",
+                                   "prop_LIM",
+                                   "prop_FP",
+                                   "prop_DM",
+                                   "VIS",
+                                   "MOT",
+                                   "DA",
+                                   "VA",
+                                   "LIM",
+                                   "FP",
+                                   "DM")
   return(fascicle_bundle_list)
 }
