@@ -277,7 +277,7 @@ make_demographics_table_all_subjs(data_frame = df_unique_empi, binarized_race = 
 
 #have to pull out just the pieces I'm interested in; this is for ALL subjects
 just_empi <- subset(df_demo_and_fascicles, select = c("EMPI"))
-added_to_fascicles <- merge(just_empi, fascicle_proportions, by = c("EMPI"))
+added_to_fascicles <- unique(merge(just_empi, fascicle_proportions, by = c("EMPI")))
 melted_df <- melt(added_to_fascicles, id.vars = c("EMPI", "EXAM_DATE"))
 
 #exclude regions where there was no lesion at all
@@ -299,6 +299,36 @@ lesioned <- subset(melted_df, value > 0)
 histogram_plot_most_affected_fascicles_unique<-ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
 
 print(histogram_plot_most_affected_fascicles_unique)
+
+#####
+#### look at mean fascicle volume across participants and transpose
+
+# drop exam date and empi, and transpose
+fascicles_alone_df <- t(fascicle_proportions[,!(colnames(fascicle_proportions) %in% c("EMPI", "EXAM_DATE"))])
+fascicle_names <- rownames(fascicles_alone_df)
+
+#take row means
+fascicles_alone_rowMeans <- data.frame(fascicle_names, rowMeans(fascicles_alone_df))
+names(fascicles_alone_rowMeans) <- c("fascicle", "value")
+
+
+#sort based on overlap
+fascicle_values_sorted_by_overlap <- fascicles_alone_rowMeans
+
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)])
+
+
+
+
+
+######## Histograms/bar graphs
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+sorted_ggplot<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected") + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+sorted_ggplot
 
 
 ```
@@ -648,3 +678,4 @@ print(fascicle_agesex_anova_p05_unc) #p uncorrected slf1_L p = 0.0488, CNVIII_R 
 
 
 ```
+

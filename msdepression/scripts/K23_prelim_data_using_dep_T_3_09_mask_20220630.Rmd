@@ -82,7 +82,7 @@ Final N demographics
   
 Networks
 
-  A note on the "depression network." This network was made by Shan Siddiqi in Michael Fox's group by doing a conglomeration of TMS datasets, stroke datasets, Nature Human Behavior 2021 (https://www.nature.com/articles/s41562-021-01161-1). It is an unthresholded mask (which I think is in Ts per their supplement). To use it, I binarized it, and then used it as an ROI and calculated, per fascicle, the proportion of the volume occupied by the fascicle that intersected with the depression mask to the whole volume of the fascicle. Most fascicles were either entirely overlapping or entirely outside the depression mask. We consider the fascicles that had any intersection with the binary depression mask to be within the depression mask, or "indepnet." 47 out of 87 fascicles are in this network. We have an even tighter mask "indepnet_10percent", which indicates that at least 10% of a fascicle's volume intersected or overlapped with the depression mask. 15 are in this network. "in_nondep_net" refers to brain regios that completely avoided the depression network (i.e. had no shared volume of overlap). 40 are in this network.
+  A note on the "depression network." This network was made by Shan Siddiqi in Michael Fox's group by doing a conglomeration of TMS datasets, stroke datasets, Nature Human Behavior 2021 (https://www.nature.com/articles/s41562-021-01161-1). It is an unthresholded mask (which I think is in Ts per their supplement). To use it, I binarized it, thresholded clusters (3.09) and then used it as an ROI and calculated, per fascicle, the proportion of the volume occupied by the fascicle that intersected with the depression mask to the whole volume of the fascicle. Most fascicles were either entirely overlapping or entirely outside the depression mask. We consider the fascicles that had any intersection with the binary depression mask to be within the depression mask, or "indepnet." 62 out of 87 fascicles are in this network. We have an even tighter mask "indepnet_10percent", which indicates that at least 10% of a fascicle's volume intersected or overlapped with the depression mask. 21 are in this network. "in_nondep_net" refers to brain regios that completely avoided the depression network (i.e. had no shared volume of overlap). 25 are in this network.
 
 Association fascicles:
  [1] "AF_L"     "AF_R"     "C_FPH_L"  "C_FPH_R"  "C_FP_L"   "C_FP_R"   "C_PH_L"   "C_PHP_L"  "C_PHP_R"  "C_PH_R"  
@@ -304,6 +304,8 @@ fascicle_names_dep_network_10_percent <- fascicle_volumes_dep_network$fascicle[w
  
 fascicle_names_dep_network_5_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$prop_in_mask >= 0.05)] #n=24
 
+fascicle_names_dep_network_15_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$prop_in_mask >= 0.15)] #n=13
+
 #fascicle_mapping, returns numerical mapping as well as names of tracts, and whether in or out of dep network
 fascicle_bundle_mapping <- get_fascicle_bundle_mapping_generic_dep_mask(dep_network_grouping_file = fascicle_names_dep_network_grouping)
 
@@ -337,6 +339,102 @@ hist(phq9_and_healthy$PHQ.9, main = paste0("PHQ-9/Healthy In Good Mimosa Group :
 ######## Histograms for depression network
 #this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
 hist(x=fascicle_volumes_dep$prop_in_mask, main = "Histogram Affected Streamlines in Dep Net", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+a<-ggplot(data = fascicle_volumes_dep, aes(x = fascicle, y=prop_in_mask), main = "Proportion of Volume per Fascicle Affected Dep net 3_09") + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(a)
+
+
+#sort based on overlap
+fascicle_values_dep_sorted_by_overlap <- fascicle_volumes_dep
+fascicle_values_dep_sorted_by_overlap$prop_in_mask[is.na(fascicle_values_dep_sorted_by_overlap$prop_in_mask)] = 0
+fascicle_values_dep_sorted_by_overlap$fascicle <- factor(fascicle_values_dep_sorted_by_overlap$fascicle, levels = fascicle_values_dep_sorted_by_overlap$fascicle[order(fascicle_values_dep_sorted_by_overlap$prop_in_mask)])
+
+plot_all_fascicles_r_and_l_sep <-ggplot(data = fascicle_values_dep_sorted_by_overlap, aes(x = fascicle, y=prop_in_mask), main = "Proportion of Volume per Fascicle Affected Dep net 3_09") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.4) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot_all_fascicles_r_and_l_sep)
+
+
+#get top quartile
+quartile <- round((dim(fascicle_values_dep_sorted_by_overlap)[1] / 4),0)
+dep_network_names_top_quartile<- (fascicle_values_dep_sorted_by_overlap[order(fascicle_values_dep_sorted_by_overlap$prop_in_mask, decreasing = TRUE),])$fascicle[1:quartile]
+
+```
+
+```{r mean_R_and_L_dep_network}
+
+#this will make a data frame that contains each of the fascicles with r & l sides, and take a mean. It will then add them to a data frame with the midline structures and make a histogram of them
+
+#some preprocessing because there is one section of the data frame (C_PH_L, C_PHP_L, C_PHP_R and C_PH_R) where the L , L, R, R is out of sync with the rest. 
+fascicle_dep_data_frame_rows_switched <- fascicle_volumes_dep
+
+#make nas into 0
+fascicle_dep_data_frame_rows_switched$prop_in_mask[is.na(fascicle_dep_data_frame_rows_switched$prop_in_mask)] = 0 
+
+#reorder by moving C_PH_R up before C_PHP_L, and shifting the others down
+
+c_ph_r_row <- fascicle_dep_data_frame_rows_switched[10,]
+c_php_rows <- fascicle_dep_data_frame_rows_switched[8:9,]
+
+
+fascicle_dep_data_frame_rows_switched[8,] <- c_ph_r_row
+fascicle_dep_data_frame_rows_switched[9:10,] <- c_php_rows
+
+#get names of fascicles w/r and l
+fascicle_names_w_r_and_l_split <- fascicle_dep_data_frame_rows_switched$fascicle[(grep("_", fascicle_dep_data_frame_rows_switched$fascicle))]
+
+#get names of fascicles that are midline
+fascicle_names_midline <- fascicle_dep_data_frame_rows_switched$fascicle[grep("_", fascicle_dep_data_frame_rows_switched$fascicle, invert=TRUE)]
+
+#separate out right and left, important because for some reason they hae a different order
+fascicle_names_r <- fascicle_names_w_r_and_l_split[(grep("_R$", fascicle_names_w_r_and_l_split))]
+fascicle_names_l <- fascicle_names_w_r_and_l_split[(grep("_L$", fascicle_names_w_r_and_l_split))]
+
+#get the fascicle names of lateral structures, we will use the right side as default
+fascicle_names_of_lateral_structs <- gsub("_R$", "", fascicle_names_r)
+
+#get values of right and left side structs
+fascicle_values_r <- fascicle_dep_data_frame_rows_switched$prop_in_mask[grep("_R$", fascicle_names_w_r_and_l_split)]
+fascicle_values_l <- fascicle_dep_data_frame_rows_switched$prop_in_mask[grep("_L$", fascicle_names_w_r_and_l_split)]
+
+#take mean of r and l side and put in new df
+df_r_and_l_mean <-  (fascicle_values_r + fascicle_values_l)/2
+df_r_and_l <- data.frame(fascicle_names_of_lateral_structs, df_r_and_l_mean)
+names(df_r_and_l) <- c("fascicle", "prop_in_mask")
+
+#pull out midline names and values
+fascicle_values_midline <- fascicle_dep_data_frame_rows_switched$prop_in_mask[grep("_", fascicle_dep_data_frame_rows_switched$fascicle, invert=TRUE)]
+df_midline<- data.frame(fascicle_names_midline, fascicle_values_midline)
+names(df_midline) <- c("fascicle", "prop_in_mask")
+
+#combine data frames
+fascicle_values_dep_not_lateralized <- data.frame(rbind(df_r_and_l, df_midline))
+
+#sort based on overlap
+fascicle_values_dep_sorted_by_overlap <- fascicle_values_dep_not_lateralized
+fascicle_values_dep_sorted_by_overlap$fascicle <- factor(fascicle_values_dep_sorted_by_overlap$fascicle, levels = fascicle_values_dep_sorted_by_overlap$fascicle[order(fascicle_values_dep_sorted_by_overlap$prop_in_mask)])
+
+
+#fascicle_values_dep_sorted_by_overlap <- fascicle_values_dep_not_lateralized[order(fascicle_values_dep_not_lateralized$prop_in_mask),]
+
+
+
+######## Histograms for depression network
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines in Dep Net, not lateralized", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+sorted_ggplot<-ggplot(data = fascicle_values_dep_sorted_by_overlap, aes(x = fascicle, y=prop_in_mask), main = "Proportion of Volume per Fascicle Affected Dep net 3_09") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.4) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot)
+
+##new depression network, top quartile of the 46 -> top 12. This step makes a new df after ordering the previous data frame in reverse order, highest numbers at top, and then takes the top quartile)
+quartile <- round((dim(fascicle_values_dep_sorted_by_overlap)[1] / 4),0)
+dep_network_names_top_quartile_r_and_l_meaned<- (fascicle_values_dep_sorted_by_overlap[order(fascicle_values_dep_sorted_by_overlap$prop_in_mask, decreasing = TRUE),])$fascicle[1:quartile]
 
 ```
 
@@ -384,7 +482,8 @@ make_demographics_table_ms(data_frame = df_good_mimosa_unique)
 
 #have to pull out just the pieces I'm interested in
 just_dep_and_empi <- subset(data_empi_acc_f_phq, select = c("EMPI", "depGroupVar"))
-added_dep_to_fascicles <- merge(just_dep_and_empi, fascicle_proportions, by = c("EMPI"))
+added_dep_to_fascicles <- unique(merge(just_dep_and_empi, fascicle_proportions, by = c("EMPI")))
+
 melted_df <- melt(added_dep_to_fascicles, id.vars = c("EMPI", "EXAM_DATE", "depGroupVar"))
 
 #exclude regions where there was no lesion at all
@@ -410,6 +509,117 @@ print(r_color)
 #print(x)
 #print(y)
 #print(z)
+
+###########################################################################################################
+##### Looking at distribution of disease across fascicles across group and within healthy and depressed ###
+###########################################################################################################
+
+#### look at mean fascicle volume across participants and transpose
+# drop exam date and empi, and transpose
+fascicles_alone_df <- t(added_dep_to_fascicles[,!(colnames(added_dep_to_fascicles) %in% c("EMPI", "EXAM_DATE", "depGroupVar"))])
+fascicle_names <- rownames(fascicles_alone_df)
+
+#take row means
+fascicles_alone_rowMeans <- data.frame(fascicle_names, rowMeans(fascicles_alone_df))
+names(fascicles_alone_rowMeans) <- c("fascicle", "value")
+
+
+#sort based on overlap
+fascicle_values_sorted_by_overlap <- fascicles_alone_rowMeans
+
+#make this separate in case I want to use this distribution for ranking depressed and healthy networks. 
+order_of_mean_values_overall <- fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)]
+
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)])
+
+
+######## Histograms/bargraphs
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+sorted_ggplot<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.8) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot)
+
+######### 
+#############
+#### look at mean fascicle volume across healthy participants and transpose
+#############
+
+# drop exam date and empi, and transpose
+healthy_group_fascicles <- added_dep_to_fascicles[(added_dep_to_fascicles$depGroupVar == 1),]
+fascicles_alone_df <- t(healthy_group_fascicles[,!(colnames(healthy_group_fascicles) %in% c("EMPI", "EXAM_DATE", "depGroupVar"))])
+fascicle_names <- rownames(fascicles_alone_df)
+
+#take row means
+fascicles_alone_rowMeans <- data.frame(fascicle_names, rowMeans(fascicles_alone_df))
+names(fascicles_alone_rowMeans) <- c("fascicle", "value")
+
+
+#sort based on overlap
+fascicle_values_sorted_by_overlap <- fascicles_alone_rowMeans
+
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)])
+
+
+
+######## Histograms/bargraphs
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines in Non Depressed", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+sorted_ggplot_healthy<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected in Non Depressed") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.8) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot_healthy)
+
+# ordered by mean value overall
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = order_of_mean_values_overall)
+sorted_ggplot_healthy_ordered<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected Ordered by mean values NonDepressed") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.8) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot_healthy_ordered)
+
+###########
+#### look at mean fascicle volume across depressed participants and transpose
+###########
+# drop exam date and empi, and transpose
+depressed_group_fascicles <- added_dep_to_fascicles[(added_dep_to_fascicles$depGroupVar == 2),]
+fascicles_alone_df <- t(depressed_group_fascicles[,!(colnames(depressed_group_fascicles) %in% c("EMPI", "EXAM_DATE", "depGroupVar"))])
+fascicle_names <- rownames(fascicles_alone_df)
+
+#take row means
+fascicles_alone_rowMeans <- data.frame(fascicle_names, rowMeans(fascicles_alone_df))
+names(fascicles_alone_rowMeans) <- c("fascicle", "value")
+
+
+#sort based on overlap
+fascicle_values_sorted_by_overlap <- fascicles_alone_rowMeans
+
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)])
+
+
+
+######## Histograms/bargraphs
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines", xlab = "Proportion Volume per Fascicle Affected Depressed", breaks = 20)
+
+sorted_ggplot_depressed<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected Depressed") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.8) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot_depressed)
+
+# ordered by mean value overall
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = order_of_mean_values_overall)
+sorted_ggplot_depressed_ordered<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected Ordered by mean values Depressed") + 
+  geom_bar(stat="identity") +
+  ylim(0,0.8) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(sorted_ggplot_depressed_ordered)
 ```
 
 ```{r age_effects_fascicles_unique}
@@ -513,10 +723,12 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>%
   mutate(total_fascicle_prop_lost_indepnet = rowMeans(across(fascicle_names_dep_network_all))) %>%
   mutate(total_fascicle_prop_lost_indepnet_10_percent =
            rowMeans(across(fascicle_names_dep_network_10_percent))) %>%
-   mutate(total_fascicle_prop_lost_indepnet_5_percent =
+  mutate(total_fascicle_prop_lost_indepnet_5_percent =
            rowMeans(across(fascicle_names_dep_network_5_percent))) %>%
   mutate(total_fascicle_prop_lost_nondep_network =
            rowMeans(across(fascicle_names_nondep_network))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_15_percent =
+           rowMeans(across(fascicle_names_dep_network_15_percent))) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
@@ -596,6 +808,9 @@ total_volume_lost_dep_vs_healthy_unique_in_dep_network_10percent <- t.test(dep_a
 #yes, p=0.053
 total_volume_lost_dep_vs_healthy_unique_in_dep_network_5percent <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_5_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_5_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 32%, mean non_dep = 27%, p = 0.053
 
+#look at within depression network in fascicles where at least 15% of the volume of the fascicle was in dep network
+#yes, p=0.054, mean dep = 30%, mean nondep = 25%
+total_volume_lost_dep_vs_healthy_unique_in_dep_network_15percent <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_15_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_15_percent[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) 
 
 #look at outside depression network, yes p = 0.042
 total_volume_lost_dep_vs_healthy_unique_in_nondep_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 14%, mean non_dep = 13%, p = 0.042
@@ -676,7 +891,7 @@ barplot <- ggplot(data, aes(x=Diagnosis,fill=Diagnosis, y=value)) +
   geom_bar(stat="identity", position=position_dodge(0.9)) + 
     geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9)) + 
   ylab("Proportion of Fascicles Affected") +
-  ylim(0,0.5) +
+  ylim(0,40) +
   theme(axis.text = element_text(size = 12, colour = "black"))
     
 print(barplot)
@@ -691,7 +906,7 @@ barplot <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diagnosis, y=value
         axis.title.y = element_text(size=20),
         axis.line = element_line(size = 1.5, colour = "black", linetype=1),
         panel.background = element_rect(colour = "white", fill = "white")) + #comment out if you want pretty 
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 40)) #comment out if you want colored graph
 
 print(barplot)
 
@@ -771,6 +986,11 @@ fascicle_anova_w_fiber_mapping <- fascicle_anova_unique[which(fascicle_volumes_d
 fascicle_anova_fdr<- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr)
 
+
+#fdr corrected only dep 15% mask
+fascicle_anova_w_fiber_mapping <- fascicle_anova_unique[which(fascicle_volumes_dep_network$prop_in_mask >= 0.15)]
+fascicle_anova_fdr<- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr)
 
 #uncorrected
 fascicle_anova_unique_p <- sapply(fascicle_anova_unique, function(v) v$"Pr(>F)"[1])
@@ -870,6 +1090,8 @@ print(barplot2)
 ```{r testing_whether_ms_disease_more_likely_in_depression_mask_unique}
 ### tests whether there is higher proportion of vertices lost in depression network versus not
 
+nondep15_net <- fascicle_names[!(fascicle_names %in% fascicle_names_dep_network_15_percent)]
+
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>% 
   filter(depGroupVar != 0)  %>% 
   mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names))) %>%
@@ -880,6 +1102,10 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>%
            rowMeans(across(fascicle_names_dep_network_5_percent))) %>%
   mutate(total_fascicle_prop_lost_nondep_network =
            rowMeans(across(fascicle_names_nondep_network))) %>%
+  mutate(total_fascicle_prop_lost_dep_network_15_percent = 
+           rowMeans(across(fascicle_names_dep_network_15_percent))) %>%
+  mutate(total_fascicle_prop_lost_nondep_network_15_percent = 
+           rowMeans(across(nondep15_net))) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
@@ -896,6 +1122,12 @@ dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network,
 
 volume_lost_dep5_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet_5_percent,
 dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network, var.equal = F) #mean dep net = 30%, mean non_dep_net = 14%, p 2.2 * 10^-16
+
+volume_lost_dep15_vs_nondep_network_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_dep_network_15_percent,
+dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network, var.equal = F) #mean dep net = 28%, mean non_dep_net = 14%, p 2.2 * 10^-16
+
+volume_lost_dep15_vs_nondep_network_15_percent_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_dep_network_15_percent,
+dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network_15_percent, var.equal = F) #mean dep 15 net = 28%, mean all fascicles not in 15% net = 26%, p=0.13
 
 #df for visreg - actually not using visreg. Just a nice way to see that there is significantly more loss in depression network versus outside depression network
 df_for_visreg <- as.data.frame(cbind(c(dep_and_healthy_groups_for_ICD_analysis$EMPI, dep_and_healthy_groups_for_ICD_analysis$EMPI), c(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_indepnet, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost_nondep_network), c(rep(1,298), rep(2,298))))
@@ -1345,7 +1577,7 @@ print(fascicle_anova_p05_unc)
 ```
 Interaction models below
 
-```{r sexdep_effects_fascicles_unique}
+```{r sexdep_effects_fascicles_unique_age_cov}
 
 ### Trying to figure out if there are any sex * depression effects, covarying for age given that men tend to get worse over time. dep*sex uncorrected in SLF1_L and CNVIII_R p< 0.05)
 
@@ -1467,6 +1699,8 @@ barplot <- ggplot(data, aes(fill=Sex, y=value, x=Diagnosis)) +
   theme(axis.text = element_text(size = 12, colour = "black"), axis.title.x = element_blank())
     
 print(barplot)
+
+
 
 lineplot <- ggplot(data=data, aes(fill=Sex, y=value, x=Diagnosis, group = Sex)) + 
 
