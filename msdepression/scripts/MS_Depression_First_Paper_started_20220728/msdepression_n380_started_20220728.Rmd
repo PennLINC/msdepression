@@ -100,7 +100,37 @@ Analyses
 
   
 Results
-  Depression group: 232 with depression, 148 healthy
+  Depression group: 232 with depression, 148 healthy:
+  
+  A) Lesion volume between depressed and controls
+    
+    - P=0.067, NS
+ 
+  B) Depressed vs Controls Proportions
+    
+    - Overall dep vs non-dep, p = 0.050 (NS), Dep = 31%, Non dep = 27%
+    - Dep vs non, top 25%, **p = 0.047**, Dep = 32%, non dep = 26% 
+    - Dep vs non, bottom 75%, no p = 0.057, dep = 30%, non dep = 27%
+    
+  C) Depressed vs Controls Volume
+    
+    - Overall dep vs nondep: **p = 0.045**, Dep = 9382, Non dep = 8260
+    - Dep vs nondep in top 25% yes **p = 0.034**, Dep = 4829, non dep = 3914
+    - Dep vs nondep in bottom 75%, no p = 0.054, dep = 8826, non dep = 7886
+  
+  D) T values in fascicle associated with Overlap in Depression map
+    
+    - T values correlated w/proportion of overlap of fascicle in depression map
+        - p of lm (0.010),
+        - 95%   ( 0.701,  4.553 )
+        - boostrap p calc from CI - **0.008**
+        
+    - T values correlated w/volume of overlap with depression network (i.e. # voxels that fascicle shares w/depression map),
+        - p = 0.031
+        - 95%   ( 1.052,  3.724 )
+        - bootstrap p calc from CI- **0.001**
+        
+I think it works best when sticking with *volumes* rather than proportions
 
 ```{r read_in_df_and_subset}
 homedir <- "/Users/eballer/BBL/msdepression/"
@@ -174,23 +204,6 @@ fascicle_volumes_dep_network <- fascicle_volumes_dep %>%
 fascicle_names_dep_network_grouping <- paste0(homedir,  "/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_grouping_3_09.csv")
 write.table(fascicle_volumes_dep_network, file=fascicle_names_dep_network_grouping, sep = ",", col.names=T)#, row.names = F, quote = F, col.names = T)
 
-#fascicle_names_nondep_network<- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 0)]
-
-
-#fascicle_names_dep_network_all <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask > 0)]
-#fascicle_names_dep_network_all_no_cranial_nerves <- fascicle_names_dep_network_all[grep("CN", fascicle_names_dep_network_all, invert = TRUE)] 
-
-#fascicle_names_dep_network_all <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 1)]
-#write.table(fascicle_names_dep_network_all,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_all_3_09.csv", row.names = F, quote = F, col.names = F)
-
-
-#fascicle_names_dep_network_10_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$inDepMask == 2)] #n=15
-#write.table(fascicle_names_dep_network_10_percent,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_10_percent_3_09.csv", row.names = F, quote = F, col.names = F)
- 
-#fascicle_names_dep_network_5_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$prop_in_mask >= 0.05)] #n=24
-
-#fascicle_names_dep_network_15_percent <- fascicle_volumes_dep_network$fascicle[which(fascicle_volumes_dep_network$prop_in_mask >= 0.15)] #n=13
-
 #fascicle_mapping, returns numerical mapping as well as names of tracts, and whether any overlap with depression network (anything above 1 is overlap), as well as whether the fascicle overlaps, and the proportion of overlap with yeo networks
 fascicle_bundle_mapping <- get_fascicle_bundle_mapping_generic_dep_mask(dep_network_grouping_file = fascicle_names_dep_network_grouping)
 
@@ -205,7 +218,10 @@ lesion_volumes <- read.csv(paste0(homedir, "results/mimosa_binary_masks_hcp_spac
 ##########################################################
 #             Merge with data_empi              #
 ##########################################################
+#merge whole data set with fascicle proportions
 df_demo_and_fascicles <- merge(data_empi_acc_f_phq, fascicle_proportions, by = c("EMPI", "EXAM_DATE")) #n = 2962
+
+#merge with the df that has lesion volumes, 1 per perosn
 df_demo_and_fascicles <- merge(df_demo_and_fascicles, lesion_volumes, by = c("EMPI", "EXAM_DATE")) #n = 2962
 ```
 
@@ -260,7 +276,7 @@ sem <- c((sd(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[de
            (sd(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])/sqrt(sum(dep_and_healthy_groups_for_ICD_analysis$depGroupVar ==1))))
 
 data <- data.frame(Diagnosis,value, sem)
-#data$Fascicle <- pretty_names
+
 
 # Grouped
 barplot_lesion_volume <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diagnosis, y=value)) + 
@@ -275,7 +291,7 @@ barplot_lesion_volume <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diag
         axis.line = element_line(size = 1.5, colour = "black", linetype=1),
         panel.background = element_rect(colour = "white", fill = "white"))# + #comment out if you want pretty 
 #  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
-print(barplot_lesion_volume)
+print(barplot_lesion_volume) #p=0.067
 
 ```
 
@@ -562,6 +578,7 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>%
   slice(1) %>% 
   ungroup()
 
+
 #test whether proportion lost overall different between depressed and healthy- No, p = 0.050, Dep = 31%, Non dep = 27%
 total_prop_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_prop_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 33%, mean non_dep = 28%, p = 0.054
 
@@ -691,7 +708,7 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>%
   slice(1) %>% 
   ungroup()
 
-#test whether volortion lost overall different between depressed and healthy- Yes, p = 0.045, Dep = 9382, Non dep = 8260
+#test whether volume lost overall different between depressed and healthy- Yes, p = 0.045, Dep = 9382, Non dep = 8260
 total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 33%, mean non_dep = 28%, p = 0.054
 
 #look at within depression network using top quartiles, yes p = 0.034, Dep = 4829, non dep = 3914
@@ -1048,7 +1065,7 @@ se=((u-l)/(2*1.96))
 z=est/se
 #3) p=exp(-0.717*z - 0.416*z^2)
 p=exp((-0.717*z) - (0.416*(z*z)))
-print(p)
+print(p) #p=0.008
 
 ##### volume
 # 95% confidence intervals for the correlation
@@ -1074,7 +1091,7 @@ se=((u-l)/(2*1.96))
 z=est/se
 #3) p=exp(-0.717*z - 0.416*z^2)
 p=exp((-0.717*z) - (0.416*(z*z)))
-print(p)
+print(p) # #p=0.001
 
 ```
 
