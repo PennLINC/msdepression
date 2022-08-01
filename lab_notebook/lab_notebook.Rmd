@@ -1271,7 +1271,605 @@ scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/streamline_vo
 
 get volume in dep network per fascicle
 
-20211203
+#### 20211203
 So something cool is happening here, but unexpected. The areas in the brain that have the most significant disease are much more likely to be in the depression network versus outside of it. p<1*10^-15. Doesn't matter whether or not you are depressed, they seem to share the same network. Also, areas that tend to worsen with age also are more likely to be in the same network. Will be interesting to figure out why some people don't get depressed, if people all have disease there. Also, why is there overlap? Interesting that inflammatory attack of WM happens to be in the depression network - is this why inflammation makes depression? Is there something structurally that happens along these white matter tracts? Weaker BBB? Different energetic characteristics? Is the same inflammation/depression network overlap seen in other inflammatory white matter diseases with a high burden of depression, or just MS? Will higher numbers allow the individual fascicle difference prediction to come up? Or is this really just a case where HYDRA will identify subtypes (which I imagine might be the case)
 20211202
 [] figure out why registration broke - not sure
+
+#### 20220621
+Such a long lag! Back to now trying to figure out how to do spin tests with ms data. This was raised to address the observation that people, overall, are more likely to have disease in the depression network, but the depression network is so big that we want to see how specific this finding it. Thus the spin test.
+
+Currently, the idea is as follows:
+
+Surface to volume -> spinning -> volume to surface: 
+
+[x] 1) Take depression voxel mask Depression_Clust_mask_roi_binarized.nii.gz (done locally, /Users/eballer/BBL/msdepression/templates/harvard_depression)
+
+    - of note, Depression_Clust_mask_roi_binarized.nii.gz was generated from a mask made by Matt (Depression_Clust_mask_rois.nii.gz)
+    - command from 3dinfo: 3dclust -1Dformat -nosum -1dindex 0 -1tindex 0 -1noneg -2thresh -0.1317 0.1317 -dxyz=1 -savemask Clust_mask 1.01 20 /Users/mcieslak/Desktop/AllFX_wmean.nii
+    
+```{bash}
+3dcalc -a Depression_Clust_mask_roi_binarized.nii.gz -expr 'ispositive(a)*ispositive(x)' -prefix Depression_Clust_mask_roi_binarized_l.nii
+3dcalc -a Depression_Clust_mask_roi_binarized.nii.gz -expr 'ispositive(a)*isnegative(x)' -prefix Depression_Clust_mask_roi_binarized_r.nii
+```
+    
+    - output: L & R hemisphere volume images
+        - Depression_Clust_mask_roi_binarized_l.nii
+        - Depression_Clust_mask_roi_binarized_r.nii
+          
+[] 2) Project to vertex space using vol2surf from imco, fs5 space
+
+```{bash}
+scp Depression_Clust_mask_roi_binarized_*.nii eballer@transfer.pmacs.upenn.edu:/project/msdepression/templates/harvard_depression/.
+cp /project/imco/from_chead/coupling_test_eb_20200918/code/vol2surf* /project/msdepression/scripts/. 
+cp /project/imco/from_chead/coupling_test_eb_20200918/code/transformMatrix.R /project/msdepression/scripts/.
+```
+    - need to register the volume to some template (hcp) and use that I think
+OLD
+```{bash}
+lta_convert --infsl ${boldDir}/${bblid}_${datexscanid}_seq2struct.mat \
+	--outreg ${targDir}/${bblid}/${datexscanid}/${bblid}_${datexscanid}_seq2struct.dat \
+	--subject ${bblid}/${datexscanid} \
+	--src ${boldDir}/${bblid}_${datexscanid}_referenceVolume.nii.gz \
+	--trg ${boldDir}/${bblid}_${datexscanid}_targetVolume.nii.gz \
+	>> ${targDir}/${bblid}/${datexscanid}/${bblid}_${datexscanid}_projection.log 2>&1
+```
+
+NEW (believe I use diff flags), think about using ants_registration_code.sh on pmacs
+```{bash}
+lta_convert --infsl ${boldDir}/${bblid}_${datexscanid}_seq2struct.mat \
+	--outreg ${targDir}/${bblid}/${datexscanid}/${bblid}_${datexscanid}_seq2struct.dat \
+	--subject ${bblid}/${datexscanid} \
+	--src ${boldDir}/${bblid}_${datexscanid}_referenceVolume.nii.gz \
+	--trg ${boldDir}/${bblid}_${datexscanid}_targetVolume.nii.gz \
+	>> ${targDir}/${bblid}/${datexscanid}/${bblid}_${datexscanid}_projection.log 2>&1
+```
+
+    - output: L & R hemisphere vertex images, all binarized
+[] 3) Spin 1000 times per hemisphere
+    - output 1000 L & R hemisphere surfaces
+[] 4) Surface back to voxel
+    - output 1000 L & R hemisphere volumes
+[] 5) Merge L & R volumes together
+    - output 1000 spun depression network volumes
+
+[] 6) Calculate volume of fascicles within each spun depression mask  
+    - have to wrap script: calc_vol_fascicles_within_dep_mask.sh, which outputs a spreadsheet with last column being proportion of each of 87 fascicles within depression mask
+    - output table (column is proportion of fascicle in dep network, row is fascicle:
+                 Spin 1 prop   Spin 2 prop   Spin 3 prop   Spin 4 prop ... Spin 1000 prop
+    Fascicle 1    0.21
+    Fascicle 2    0
+    Fascicle 3    0.33
+    Fascicle 4    0.1
+    ...
+    Fascicle 87   0
+    
+[] 7) Take above spreadsheet, make binarized
+    - Will assume that if the fascicle has ANY overlap depression network, ie spin prop > 0, will be in dep net
+    - output table (column is proportion of fascicle in dep network, row is fascicle:
+ 
+                 Spin 1 prop   Spin 2 prop   Spin 3 prop   Spin 4 prop ... Spin 1000 prop
+    Fascicle 1    1
+    Fascicle 2    0
+    Fascicle 3    1
+    Fascicle 4    1
+    ...
+    Fascicle 87   0
+    
+[] 8) Enrichment/calculations
+    - Now, for each spin, will be calculating the dep vs nondep enrichment.
+    - Two ways to do this
+        1) Means (i.e calculate mean of depression overlap[proportion] in real data and each spin, and mean of non-dep overlap)
+          - output
+          
+                                 Spin 1    Spin 2    Spin 3    Spin 4 ... Spin 1000
+          Dep Mean % overlap
+          Nondep Mean % overlap
+          
+        2) T tests - two sample T at each spin
+          - output
+                                Spin 1    Spin 2    Spin 3    Spin 4 ... Spin 1000
+          Dep vs nondep T       3.2       1.2       4.5       1.1
+          
+[] 9) Sort, calculate top 5%
+    a) Means: Do separately for depression and non-depression/kinda like an enrichment
+    b) Ts: Just do 1 time, sort 
+    
+    Will try both, put Ts first as more straightforward
+
+-----------
+#### 20220622 
+Put a hold on surface projections above as I need people to come back from HBM. Instead, working on descriptives for potential paper 1
+
+Rmarkdown: /Users/eballer/BBL/msdepression/scripts/Descriptive_potential_paper_1_20220622.Rmd
+
+Redid overall tracts, age, sex, agexsex unique/mixed models.
+
+#### 20220623
+Downloaded Yeo volume masks: https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
+
+Separated out each functional network
+```{bash afni_commands_to_construct_yeo_indiv_vol_masks.sh}
+#!/bin/sh
+
+# pre: Yeo cortical parcellations (7 network) in volumetric space: https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation_Yeo2011
+# post: 7 individual network maps: VIS, MOT, DA, VA, LIM, FP, DM, labeled yeo_7_vol_[network abbreviation]
+# uses: This script takes the parcellations in volume (Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii) and makes 7 individual maps. In the Yeo2011 volume mask, each network is given a number (1-7), with 1 corresponding to VIS, and 7 corresponding to DM. In order to make individual maps, I need to separate out each network in the map based on intensity. Will try to code in the following way: 1) make a vector where each item is the name of the network 2) make a loop that counts the networks 3) go through each network and do math to pull out only the network with a particular intensity. It uses the command "amongst", which gives back the voxels where the intensity is equivalent to the counter, multiplies it times the whole mask (so now every voxel contains the intensity of interest, everything else is 0), and then binarizes. 
+# dependencies: Afni 
+
+#make list of yeo network abbreviations
+yeo_7_net_list=("VIS"
+                "MOT"
+                "DA"
+                "VA"
+                "LIM"
+                "FP"
+                "DM")
+
+#network path
+network_path=/Users/eballer/BBL/msdepression/templates/Yeo_JNeurophysiol11_MNI152/
+
+#current working directory
+cwd=`pwd`
+echo $cwd
+
+#set volume mask [change this if I ever want to use a diff mask
+volume_mask=Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii
+
+#assign generic network_prefix_list variable; this is in case I decide I want to do this for 17 networks
+network_prefix=yeo_7_net
+network_list=$(echo ${network_prefix}_list)
+
+echo "network list = ${network_list}"
+
+#set counter, this will be used in loop
+network_counter=1
+
+echo "Volume mask = ${volume_mask}"
+
+echo "Deleting old masks"
+rm -f ${network_path}/${network_prefix}_*.nii
+
+echo "Making individual network maps"
+#for loop; goes through each network, pulls out the mask that corresponds to that network number, and stores it with the appropriate prefix
+
+#have to write out yeo_7_net_list because bash can't handle too many extractions. Prob because I'm not referencing an object but a name when pointing network list to yeo_7_net_list
+for network in "${yeo_7_net_list[@]}"; do
+        echo "making ${network} mask, counter = ${network_counter}"
+        
+#make binary masks of each level of the masks; amongst just takes only the values given in the next segment, which can be 1 or more
+        afni_command=("3dcalc -a ${network_path}/${volume_mask} -expr 'ispositive(a*amongst(a,${network_counter}))' -prefix ${network_path}/${network_prefix}_${network}.nii")
+        echo $afni_command
+        eval $afni_command
+        ((network_counter++))
+done
+
+#go back to current working directory
+#cd $cwd
+```
+
+#### 20220624
+[x] Move masks from local to pmacs, log onto pmacs, etc
+```{bash}
+scp yeo_7_net_* eballer@transfer.pmacs.upenn.edu:/project/msdepression/templates/Yeo_JNeurophysiol11_MNI152/.
+ssh -Y eballer@scisub.pmacs.upenn.edu
+cd /project/msdepression/scripts
+xbash
+module load afni[tab complete]
+```
+
+[x] Map each of the fascicles to the corresponding functional network (i.e. use as ROI like I did with depression)
+[x] make list of which fascicles go in which network
+```{bash calc_vol_fascicles_within_yeo_7_net.sh}
+#### calculate volume of fascicles within the yeo 7 networks ####
+### Pre: All streamlines must have been made in dsi studio (these are the nii files)
+### Post: Yeo7 network mask resampled to template space, file <streamline_volume_within_${network}_network>, containing each fascicle and its corresponding % within yeo network. Additionally, will have a file that contains all of the overlaps per each network, and another with a binarized (yes/no)
+### Uses: Trying to figure out which fascicles are in the yeo 7 network for dimensionality reduction for use in later regressions (i.e. decrease # comparisons by only looking at fascicles within yeo 7 networks)
+### Dependencies: This script requires afni to be installed (currently using 20.1)
+
+#output directory
+outdir="/project/msdepression/results/"
+
+#assemble yeo 7 networks
+
+yeo_7_net_list=("VIS"
+                "MOT"
+                "DA"
+                "VA"
+                "LIM"
+                "FP"
+                "DM")
+
+#set up output file names
+all_net_overlap_proportions="${outdir}/yeo_7_network_overlap_proportions.txt"
+all_net_overlap_proportions_binarized="${outdir}/yeo_7_network_overlap_proportions_binarized.txt"
+
+#set counter to keep track of whether it is the first iteration (and you need to do a special column add), or just take the last line and pr it
+counter=1
+for network in "${yeo_7_net_list[@]}"; do
+	#set outfile
+	outfile="/project/msdepression/results/streamline_volume_within_${network}_network.csv"
+
+	#set template directories, will be making our resampled mask from within this
+	template="yeo_7_net_${network}.nii"
+	template_dir="/project/msdepression/templates/Yeo_JNeurophysiol11_MNI152/"
+	resampled_filename="resampled_${template}"
+	template_fullpath="${template_dir}/${template}"
+
+	#set fascicle directory
+	fascicle_direc="/project/msdepression/templates/dti/HCP_YA1065_tractography/"
+	fascicle_type="association"
+	fascicle_for_resampling="AF_L.nii.gz"
+
+	#set home directory
+	homedir="/project/msdepression/scripts/"
+
+	#initiate csvs
+	rm -f $outfile
+	touch $outfile
+	echo "fascicle,num_voxels_total,non_zero_voxels_in_${network}_map,prop_in_mask_${network}" >> $outfile
+
+	#resample yeo_7_net_${network}.nii to match sample fascicle - AF_L.nii.gz
+	if [ -f "${template_dir}/${resampled_filename}" ]; then
+		rm -f ${template_dir}/${resampled_filename}
+	fi
+	3dresample -master ${fascicle_direc}/${fascicle_type}/${fascicle_for_resampling} -prefix ${template_dir}/${resampled_filename} -input ${template_fullpath} -rmode NN
+
+	#go through each fiber, get volume, and store it in csv
+	fiber_bundle_type_list="association cerebellum cranial_nerve projection commissural"
+	for fiber_bundle_type in ${fiber_bundle_type_list}; do
+	    echo "Fiber bundle type is " $fiber_bundle_type
+	    fascicle_volumes=$(ls ${fascicle_direc}/${fiber_bundle_type}/*.nii* | grep -v "_mask") #list all files, exclude ones with mask in them
+	    for fascicle in ${fascicle_volumes}; do
+		    fascicle_prefix=$(echo $fascicle | perl -pe 's/.*\/(.*).nii.gz/$1/g')
+		    num_voxels_whole_mask=$(3dmaskave -quiet -mask SELF -sum ${fascicle})
+
+		    #remove previous mask if already made
+		    if [ -f "${fascicle_direc}/${fascicle_type}/${fascicle_prefix}x${network}_mask.nii.gz" ]; then
+			    rm -f ${fascicle_direc}/${fascicle_type}/${fascicle_prefix}x${network}_mask.nii.gz
+		    fi
+
+		    3dcalc -a ${template_dir}/${resampled_filename} -b ${fascicle} -expr 'a*b' -prefix ${fascicle_direc}/${fascicle_type}/${fascicle_prefix}x${network}_mask.nii.gz
+		    num_nonzero_volumes=$(3dmaskave -quiet -mask SELF -sum ${fascicle_direc}/${fascicle_type}/${fascicle_prefix}x${network}_mask.nii.gz)
+		    prop_in_mask=$(echo ${num_nonzero_volumes}/${num_voxels_whole_mask} | bc -l)
+		    echo "num_voxels" $num_voxels_whole_mask "num_nonzero" $num_nonzero "prop_in_mask" $prop_in_mask
+		    echo "${fascicle_prefix},${num_voxels_whole_mask},${num_nonzero_volumes},${prop_in_mask}" >> $outfile
+	    done
+	done
+
+	#add column to output file
+	if [ ${counter} == 1 ]; then
+		#remove the file if it exists
+		rm -rf ${all_net_overlap_proportions}
+		#take the 1st and 4th columns and write new file
+		cat ${outfile} | cut -d ',' -f 1,4 > ${all_net_overlap_proportions} 
+	else
+		#paste the last column into the building table
+		cat $outfile | cut -d ',' -f 4 > to_add.txt
+		pr -mts, ${all_net_overlap_proportions} to_add.txt > temp.txt
+
+		#remove to_add file
+		rm to_add.txt
+
+		#move temp to the file, so everything is up to date
+		mv temp.txt ${all_net_overlap_proportions}
+		
+	fi
+	((counter++))
+done
+
+#binarize the all_net_overlap_proportions file, takes every value and puts a 0 - this takes the ,, cases and makes them 0s. And then it takes any decimals (meaning some overlap, makes them 1s)
+cat ${all_net_overlap_proportions} | perl -pe 's/,/,0/g' | perl -pe 's/0\.\d+/1/g' > ${all_net_overlap_proportions_binarized}
+```
+
+#### 20220628
+[x] run analyses looking at depression, age, sex, within fp
+```{bash}
+sh #doesn't work with zsh
+scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/yeo* /Users/eballer/BBL/msdepression/results/.
+```
+
+check out /Users/eballer/msdepression/scripts/yeo_7_network_analyses_20220628
+
+#### 20220629
+realized that my depression network analyses were using the clusterized, binarized mask that was thresholded (not the general map) that is so big and gross. Will need to ask matt how he picked the range of -0.1317 to 0.1317. From Shan, this range is in R's. With a sample size of 713, the corresponding T value is 3.50 (or p<0.0005 uncorrected)
+
+ Meeting with Ted
+ 
+
+3dclust -1Dformat -nosum -1dindex 0 -1tindex 0 -1noneg -2thresh -0.1317 0.1317 -dxyz=1 -savemask Clust_mask 1.01 20 /Users/mcieslak/Desktop/AllFX_wmean.nii. For my analyses, I used: Depression_Clust_mask_roi_binarized.nii.gz, which is this mask copied. Give an underlay, check if cerebellum . 1) overlap % with binarized dep network (3.09) , which is redo the depression network stuff but use different brain map. 2) average t value for each fascicle  3) average t value for overlap zone of fascicle w/depression mask . 4) Possibly weight it by the % lesion affecting fascicle by depression T (so this is a depression dysconnectome score. this is how much of the fascicle is affected multiplied by the T value of the overlap depression/fascicle area). Brain Smash – Spin test 
+
+- gonna remake the depression mask at T = 3.09 (p <0.001); r = 0.115 (with df 713)
+
+```{bash}
+
+#clusterize and binarize in 1 step
+3dclust -1Dformat -nosum -1dindex 0 -1tindex 0 -1noneg -2thresh  -3.09 3.09 -dxyz=1 -binary -savemask Dep_clust_T_3_09_binarized.nii 1.01 20 /Users/eballer/BBL/msdepression/templates/harvard_depression/DepressionCircuit_t.nii
+
+#nonbinarized
+3dclust -1Dformat -nosum -1dindex 0 -1tindex 0 -1noneg -2thresh  -3.09 3.09 -dxyz=1 -savemask Dep_clust_T_3_09.nii 1.01 20 /Users/eballer/BBL/msdepression/templates/harvard_depression/DepressionCircuit_t.nii
+
+
+#calculate a mask that is the T values within the clusters within the depression mask
+3dcalc -a Dep_clust_T_3_09_binarized.nii -b DepressionCircuit_t.nii -expr 'a*b' -prefix Dep_clust_T_3_09xDep_circuit_T.nii
+
+#copy to pmacs
+scp Dep_clust_T_3_09* eballer@transfer.pmacs.upenn.edu:/project/msdepression/templates/harvard_depression/.
+scp DepressionCircuit_t.nii eballer@transfer.pmacs.upenn.edu:/project/msdepression/templates/harvard_depression/.
+
+#go onto pmacs
+ssh -Y eballer@scisub.pmacs.upenn.edu
+
+#go into scripts directory
+cd /project/msdepression/scripts/
+
+#copy 
+cp calc_vol_fascicles_within_depression_mask.sh calc_vol_fascicles_within_depression_mask_3_09.sh
+
+#change line in calc_vol_fascicles_within_depression_mask_3_09.sh
+vim calc_vol_fascicles_within_depression_mask_3_09.sh
+
+# copy results back local
+scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/streamline_volume_within_dep_network_3_09.csv /Users/eballer/BBL/msdepression/results/.
+```
+
+#### 20220630
+ [x] do analyses with new masks, see how it compares. More values in there, results largely unchanged
+ 
+#### 20220701-20
+Whoops, forgot to record! Trying to address a few questions - we will use the 3.09 mask going forward. There are clearly differential proportions of fascicles within the depression network. So I sorted them by % overlap, it looks generally distributed, plan to take top quartile and consider that to be the depression mask. 
+
+Then the question becomes, what is the "nondepression" mask. Is it anything not in depression mask? Is it areas where there is NO overlap? Either way, there is much higher disease in areas within the depression mask versus outside of it. 
+
+Then the question is, the cranial nerves basically have no overlap. Is this because they are poorly sampled by mimosa/brain scan? 
+If they are well sampled, positives for including them - you can say that disease is more likely in cortical versus cranial nerve tracts. Given that MS affects any part of the CNS, the fact that there is some relative sparing of the cranial nerves could be meaningful
+Cons: If they are not well-sampled, it is useless. Also, if the depression map never went down that far, then it would be hard to say to include them or not. 
+Also, there would be no way for the depression map to include them, since the depression map only includes things with bold signal, and cranial nerves aren't actually connecting brain to brain. 
+
+- of note, cerebellum is in mask, and it is sampling inferiorly enough to grab brainstem (the overlays I have aren't lining up great, but it does look like mask lines up with brainstem)
+
+- had a quick panic attack when I saw that our depression circuit on my local machine didn't line up with anything I had locally. But I double checked. On pmacs, in script: calc_vol_fascicles_within_depression_mask.sh, there is a line where I resample the depression mask to be in the same space as the AF_L.nii, which lines up with MNI152_T1_1mm mask (/Users/eballer/BBL/msdepression/templates/dti/mni_icbm152_t1_nlin_asym_09a/mni_icbm152_t1_tal_nlin_asym_09a.nii). There is some crap outside the brain for this, should disappear when multiplied with mimosa mask. Similarly, the fascicles themselves (i.e. the volume in AF_L look great and line up perfectly). I don't think this harvard depression map is the best, to be honest. Could also be that the resampling would be better not w/NN but something else.
+
+[x] sensitivity analysis looking just at brain regions within cerebrum (i.e. drop cranial nerves)
+
+  Results:
+  
+  When comparing lesion burden in depressed vs healthy
+    1) Overall lesion burden, findings no longer significant
+ 
+    2) Lesion burden within the 25% mask, patients with depression have MORE disease (32%) than healthy patients (27%) within this network (p=0.047)
+    
+    3) Lesion burden within nondep network, depressed patients have more disease 23% vs 20%  p = 0.049
+    
+    4) Lesion burden within bottom 75%, inverse relationship, depressed patients have less disease (23%) than healthies (27%) p = 0.023
+       - could be in line w/the fox work that suggests that disease in non-dep network could be protective
+    
+  When looking at network enrichment
+    1) in the absence of the cranial nerves, more disease in areas than interact w/depression network vs places that never had any overlap  
+      - #mean dep_net = 31%, mean non_dep_net =  22%, p 8.58 x 10^-12
+      
+    2) in the absence of the cranial nerves, more disease in the top 25% than in areas that never intersected with depression map 
+      - #mean dep net = 30%, mean non_dep_net = 22%, p 7.3* 10^-8
+      
+    3) in the absense of cranial nerves, the difference between the top 25% and the bottom 75% is no longer significant
+      - #mean dep net = 30%, mean bottom 3 quartiles = 29, p = 0.52
+
+some notes: If I exclude cranial nerves up front, the "depression" network will have 19 regions (rather than 22)
+[x] message matt about what to do with depression network, inclined to leave it as is right now, but in the future, probably use something else
+
+
+using round- lm (dep vs healthy p 0.049, but t test between two groups doesn't work)
+
+
+
+[x] come up with EXACT verbiage on how to describe depression mask versus lesion masks
+  - 1) First, we have to define what the fascicles are considered to connect the depression mask
+  - We start with a functional mask from harvard. It was generated using lesion network mapping.
+  - 14 datasets were used, including stroke, dbs (parkinson's), and tms datasets
+  - Per article: The location of each lesion or brain stimulation site (Fig. 2a–c, top panels) was mapped to an underlying brain circuit using a large normative connectome database (n=1000) and previously validated methods (Fig. 2a–c, bottom panels)5. The normative connectome was used to estimate connectivity of each lesion or stimulation site to every voxel in the brain. At each voxel, a Pearson r-value was computed for the correlation between depression score and lesion or stimulation site connectivity to that voxel (Fig. 2a–c, right panels), yielding a population-derived “circuit map” for each of the 14 datasets (Supplementary Figure 1). We generated a combined depression circuit map by taking the mean of all 14 circuit maps, weighted by the sample size of each dataset (Fig. 5a). Of note, lesions are expected to positively correlate with symptoms, whereas the inverse of tms sites and was (so connectivity in these areas was inverted)
+  
+  - We take that mask, threshold it at 3.09 (p=0.001, uncorrected), and binarize it. 
+  - We then go through each of the 87 fascicles, and calculate what proportion of each fascicle overlaps with the depression network, scaled by the overall volume of the fascicle
+  - We then rank these fascicles by their overlap
+  - We consider the final fascicle "mask" to be the top 25% of fascicles (i.e. the top quartile according to proportion of fascicle affected)
+  - These fascicles (22 total), are then called the depression "mask"
+  - after this step, the proportion of overlap is no longer integrated into analysis, it is solely used to rank the fascicles to define the network. 
+  
+  -2) Having defined which fascicles are associated with the depression mask, we can now look subject data in individual fascicles, as well as comparing fascicles within the WM depression network versus outside of it.
+  
+#### 20220722
+
+[] make sure graphs have value for y axis 
+
+[] speak with matt 
+  - about mask in general, seems crappy  
+     - it is, but it is what we have
+  [x] email Shan, mni 2009b
+  [x] Yes to exclude cranial nerves
+[o] how about nondep mask looking at 25% low end OR 3.09 in opposite direction?
+ - looking at bottom quartile, no cranial nerves - no overall diffs in depression/healthies, but more disease w/in dep network in depressed, no differences in disease in bottom 75% or bottom quartile
+ - findings of more disease in depression network than outside in MS go away. But honestly, I'm okay with this. I want to use the no cranial nerves mask, can say it is due to poor coverage?
+ {} will instead making 2 graphs, T values per fascicle (bar graph), ranked by overlap with depression map
+ {} plot, x axis overlap w/depression map, y axis t value of group difference
+ 
+[x] another potential avenue, ranking each of the clusters based on their mean t value(essentially don't binarize map), and using that to multiply w/overlap proportion - crap, 
+
+[x] make some pictures of the actual mask coverage. 
+
+[] message bart re: mixed model w/gam
+
+[x] Make a plot of overlap of each tract w/depression network on x axis (so each fiber gets a space, 77 total), y axis is the t value of depression vs control w/in that fascicle. Try to fit a line, see how it looks. Might be an easier way than randomly thresholding.
+ 
+#### 20220726-27
+[x] redid these analyses instead looking at how much volume was affected in each fascicle (not correcting for size of the fascicle). 
+   - Results
+   - Overall fascicle volume affected greater in depressed vs nondep
+   - Driven by more fascicle loss w/in fibers that connect depression network
+   - No differences between diagnostic groups in bottom 25th percentil or bottom 75%
+   - For each fascicle, the higher its overlap w/the depression network, the bigger the the patient > control T test t value is
+   
+#### 20220728
+[x] Going to now just compare overall volume of the lesions (irrespective of fascicles that run through) for each subject
+  - Ideal finding would be that the overall volume of lesions isn't different between groups, but that it is only when you look at streamlines affected that you get the money. 
+  - Alternatively, if the lesion volume also discriminates, that is cool, too. Way to test effect size? Whether they can be viewed together? Wonder how it correlates with symptoms (i.e. fascicle view helps correlate with dimensions of psychopathology)
+ - after making the file, I'll read it in to r, merge with the big spreadsheet, and then just do the patients vs controls analysis
+
+   
+```{bash}
+ssh -Y eballer@scisub.pmacs.upenn.edu
+cd /project/msdepression/scripts
+xbash
+module load afni_openmp/20.1 
+sh get_volume_of_mimosa_lesions.sh 
+#results written to /project/msdepression/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes
+exit pmacs
+cd /Users/eballer/BBL/msdepression/results
+scp eballer@transfer.pmacs.upenn.edu:/project/msdepression/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes .
+```
+
+```{bash get_volume_of_mimosa_lesions.sh }
+#!/bin/bash
+
+#########     Welcome to  get_volume_of_mimosa_lesions.sh !  ##########3
+## The purpose of this script is to extract the overall volume of lesion burden for each mimosa mask. 
+## The goal is to use the output to answer the question: Does overall lesion burden (quantified by volume of le
+sions), irrespective of location, relate to depression diagnosis?
+
+### Pre: File containing full paths to the mimosa binary masks:  /project/msdepression/data/melissa_martin_file
+s/csv/mimosa_binary_masks_hcp_space_20211026_n2336
+### Post: File containing ACCESSION_NUM, EXAM_DATA, volume_of_mimosa_lesions
+### Uses: 	1) Reads in the file with full paths
+###		2) Extracts the accession number and exam date
+###		3) Performs 3dmaskave -quiet -mask SELF -sum ${binary_map} and writes to a file
+### Dependencies: 1) Requires afni, so you need to xbash, and module load afni<tab complete>
+
+### Opening Script: If nothing is entered, let person know we are using default mimosa path file, otherwise use
+ file on command line
+
+echo "Greetings and welcome to the get_volume_of_mimosa_lesions script"
+echo "This script takes a file with full paths to mimosa binary maps, and returns a file that has the accession
+ number, exam data, and overall volume of lesions in that map"
+#set default path
+default_mimosa_path="/project/msdepression/data/melissa_martin_files/csv/mimosa_binary_masks_hcp_space_20211026
+_n2336"
+
+echo "Default mimosa path $default_mimosa_path"
+#set output directory for the volumes file
+output_direc="/project/msdepression/results/"
+
+if [ $# == 0 ]
+then
+    echo "We will use the default mimosa files path" $default_mimosa_path
+    mimosa_files_path=$default_mimosa_path
+else  
+    mimosa_files_path=$1
+fi
+
+echo "Mimosa files path" $mimosa_files_path
+#### initiate new file
+
+#append "_volumes" to the end of the path
+suffix=$(echo ${mimosa_files_path} | perl -pe s'/.*\/(.*)/$1/g')
+output_csv=$output_direc/$suffix"_volumes"
+
+#get rid of old file if it exists, write new one and put in headers
+rm -f $output_csv
+touch $output_csv
+echo "ACCESSION_NUM,EXAM_DATE,volume_of_mimosa_lesions" >> $output_csv
+
+#loop through each file in the mimosa_file_path, extract accession/exam date, calculate volume, write to file
+mimosa_files=$(cat ${mimosa_files_path})
+for mimosa_file in $mimosa_files; do
+    	echo "Mimosa file is" $mimosa_file
+ 
+	#pulls out accession number and date, separated them by a comma
+    	subj_sess=$(echo ${mimosa_file} | perl -pe s'/.*sub-(.*)\/ses-(.*)\/r.*/$1,$2/g')
+    
+	#gets volume of binary mask
+	volume=$(3dmaskave -quiet -mask SELF -sum ${mimosa_file})
+        
+	#writes to output file
+	echo "${subj_sess},$volume" >> $output_csv
+done
+
+
+```
+
+
+```{r bootstrap}
+
+##### proportion
+# 95% confidence intervals for the correlation
+set.seed(1)
+tval <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=d)
+  return(summary(fit)$coefficients[2,3])
+}
+
+data_frame_dep_v_nondep_t_x_prop_dep_mask_overlap <- subset(df_fascicle_dep_mask_overlap_t_value, select = c("depression_mask_overlap","dep_vs_healthy_t"))
+results_prop <- boot(data=data_frame_dep_v_nondep_t_x_prop_dep_mask_overlap, statistic=tval,
+   R=10000, formula=dep_vs_healthy_t~depression_mask_overlap)
+print(results_prop) #actual 2.62, CI 0.701, 4.553)
+plot(results_prop)
+boot_results_prop.ci <- boot.ci(results_prop, conf=0.95, type="bca", index=1)
+print(boot_results_prop.ci)
+
+#manually calculating P from CI, from interwebs
+est=results_prop$t0
+l=boot_results_prop.ci$bca[4]
+u=boot_results_prop.ci$bca[5]
+
+#1) SE=(u-l)/2*1.96
+se=((u-l)/(2*1.96))
+#2) z=Est/SE
+z=est/se
+#3) p=exp(-0.717*z - 0.416*z^2)
+p=exp((-0.717*z) - (0.416*(z*z)))
+print(p) #p=0.008
+
+##### volume
+# 95% confidence intervals for the correlation
+set.seed(1)
+data_frame_dep_v_nondep_t_x_vol_dep_mask <- subset(df_fascicle_dep_mask_volume_t_value, select = c("dep_vs_healthy_t", "volume_in_dep_mask"))
+
+results_vol <- boot(data=data_frame_dep_v_nondep_t_x_vol_dep_mask, statistic=tval,
+   R=10000, formula=dep_vs_healthy_t~volume_in_dep_mask)
+print(results_vol)
+plot(results_vol)
+boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="bca", index=1)
+print(boot_results_vol.ci)
+
+#get p from CI
+#manually calculating P from CI, from interwebs
+est=results_vol$t0
+l=boot_results_vol.ci$bca[4]
+u=boot_results_vol.ci$bca[5]
+
+#1) SE=(u-l)/2*1.96
+se=((u-l)/(2*1.96))
+#2) z=Est/SE
+z=est/se
+#3) p=exp(-0.717*z - 0.416*z^2)
+p=exp((-0.717*z) - (0.416*(z*z)))
+print(p) #p=0.001
+
+```
+    
+    Take home:
+
+Paper figures
+1) Demographics/how samples were calculated
+2) Method
+3) method for calculating depression map
+4) No difference in overall lesion volume between the groups (violin, the figure with SEM makes it look like there is a difference)
+5) Overall lesion breakdown across all groups, then divided by depressed & healthy (maybe, maybe not)
+6) If you look at the volume of the streamlines affected, Depressed have more volume loss than controls
+7) And specifically, that loss difference is driven by loss in depression network (areas with top percentile of overlap with depression network drive it)
+8) The more overlap a fascicle has (in either volume of proportion of streamline) with the depression network, the higher the T value of the diagnostic differences (this could also be two part figure, with 5 above)
+
+[x] taki wants me to do bootstrap to get CIs for the t value ~ overlap with depression network analysis. Boot in R can do this
+    Take data, resample subjects, w/ replacement, refit, do 1000 times or 10,000 times and confidence interval
+    https://machinelearningmastery.com/a-gentle-introduction-to-the-bootstrap-method/
+    https://www.statmethods.net/advstats/bootstrapping.html
+    
