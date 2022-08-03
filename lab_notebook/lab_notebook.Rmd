@@ -1873,3 +1873,50 @@ Paper figures
     https://machinelearningmastery.com/a-gentle-introduction-to-the-bootstrap-method/
     https://www.statmethods.net/advstats/bootstrapping.html
     
+
+#### 20220802
+
+Promis scores
+1) First, clean up the promise scores
+    [x] get rid of text in the fields (good/bad/whatever)
+    [x] change date to be same format as our main spreadsheet
+    
+2) Get a sense of how many people in our sample have promise scores
+  - sort promise scores by empi and date, take unique, merge with existing data set and count
+  
+  https://stackoverflow.com/questions/43472234/fastest-way-to-find-nearest-value-in-vector
+1) First, get a sense of how many people in our sample
+
+n = all promis - 1694 scores, 501 unique subjects. 
+398 in our overall pull (granted this pull went up to 2022, our ms pull was in 2021), 116 unique empis
+depressed promis - 46 unique
+nondepressed promis - 36 unique
+depressed + nondepressed prop - 82 unique
+
+
+Look at distribution
+
+MS lesion age, predict age in a ridge regression. Predict how old someone is how bad their lesions are. Your disease progression is better or worse than espected. 
+#### 20220803
+
+[x] still working on getting pvalue from boot - yes, it works! Needed boot.pval extra package, and switched to perc instead of bca
+  - we originally used bca, but the pval command was breaking for some reason we couldn't quite get (something about being out of range). Per Taki-
+  
+  I took a quick peek and if you're using the method described by Altman it totally makes sense you'll get something slightly different; he made a normal assumption and used that for the interval inversion. This, rather, is totally empirical. As for why it's not working with bca, that's a different question. I'm honestly not sure. We could try to troubleshoot this together, but TBH I think i'd just slide back into using the  percentile bootstrap since it's legit here as well. The bca is considered better, but it's not the kind of thing that keeps me up at night personally. Does that make sense?
+
+
+
+----------
+1,554 analyses total! Nothing significant
+[x] fascicles x promis score in each individual fascicle (both proportion and volume) -NS
+[x] broken up by dx
+[x] within dep net
+[x] outside dep net
+----------
+
+-----------
+66 analysis total, nothing significant
+[x] fascicles x promis score in each network (total, depression 25, non dep 75%, both proportion and volume)
+[x] broken up by dx
+[x] within dep net
+[x] outside dep net
