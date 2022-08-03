@@ -18,6 +18,7 @@ library(reshape2)
 library(pwr)
 library(mgcv)
 library(boot)
+library(boot.pval)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -106,15 +107,15 @@ Results
     
     - P=0.067, NS
  
-  B) Depressed vs Controls Proportions
+  B) Depressed vs Controls Fascicle Affected - Proportions
     
-    - Overall dep vs non-dep, p = 0.050 (NS), Dep = 31%, Non dep = 27%
+    - Dep vs non-dep, total fascicle proportion affected p = 0.050 (NS), Dep = 31%, Non dep = 27%
     - Dep vs non, top 25%, **p = 0.047**, Dep = 32%, non dep = 26% 
     - Dep vs non, bottom 75%, no p = 0.057, dep = 30%, non dep = 27%
     
-  C) Depressed vs Controls Volume
+  C) Depressed vs Controls Fascicle Affected - Volume
     
-    - Overall dep vs nondep: **p = 0.045**, Dep = 9382, Non dep = 8260
+    - Dep vs nondep, total fascicle volume affected: **p = 0.045**, Dep = 9382, Non dep = 8260
     - Dep vs nondep in top 25% yes **p = 0.034**, Dep = 4829, non dep = 3914
     - Dep vs nondep in bottom 75%, no p = 0.054, dep = 8826, non dep = 7886
   
@@ -123,14 +124,123 @@ Results
     - T values correlated w/proportion of overlap of fascicle in depression map
         - p of lm (0.010),
         - 95%   ( 0.701,  4.553 )
-        - boostrap p calc from CI - **0.008**
+        - boostrap p calc from CI - **0.0087**
         
     - T values correlated w/volume of overlap with depression network (i.e. # voxels that fascicle shares w/depression map),
         - p = 0.031
         - 95%   ( 1.052,  3.724 )
-        - bootstrap p calc from CI- **0.001**
+        - bootstrap p calc from CI- **1*10^-16**
         
 I think it works best when sticking with *volumes* rather than proportions
+
+#### Promis data, late edition
+
+We decided to look at some of the promis data (which measures broad functional categories, though not specifically psychiatric diagnosis) to see if a) measures differed by diagnostic groups and b) whether there were dimensional effects. Unfortunately, the PROMIS picked up in 2018, which was also the same year that Melissa ended her pull, so our n's are small. 
+
+Current ns for people with at least 1 promis score= 
+Total n promis scores: 1694 
+Total n unique individuals w/promis scores: 501
+
+Different scores have different # of overall scans
+                        Total                      General_Health                  Quality_of_Life                  Physical_Health 
+                            1694                             1693                             1503                             1503 
+          Mental_Health_and_Mood   Social_Activities_Satisfaction   Carrying_Out_Social_Activities Carrying_Out_Physical_Activities 
+                            1503                             1503                             1501                             1499 
+              Emotional_Problems                  Fatique_Average     PostOp.PROMIS.Physical.Score       PostOp.PROMIS.Mental.Score 
+                            1499                             1499                             1440                             1442 
+
+
+W/good mimosa:
+Total n promis scores : 398
+Total n unique individuals w/promis scores: 116
+Total n unique indivs in nondepressed group = 36
+Total n unique individuals in depressed group = 46
+
+Method:
+To use the promis scores, I cleaned them in a separate script (promis_score_cleaning_2010-2022.Rmd)
+In this script, I link each scan with its most proximal promis score. The challenge here is that there is no time linking. Summary of the time (in days and years) between scanning and a promis (these are absolute values, do not indicate before or after).
+
+Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    1.0   376.8   763.0   873.3  1229.8  2487.0 
+    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+0.002747 1.035027 2.096154 2.399132 3.378434 6.832418 
+
+Next, I looked at overall differences between diagnostic groups on each of the PROMIS measures, correcting for multiple comparisons w/FDR (Q<0.05).
+
+Then, I looked at the relationship between promis scores and fascicle measures (overall, 1620 analyses done):
+
+
+Proportion:
+Proportion within versus outside depression map correlated w/promis scores (33 analyses per group (11 promis domains x 3 networks [total, depression 25%, nondep 75%]))
+    - all participants (116)
+    - Depressed + nondepressed (82)
+    - Non-depressed alone (36)
+    - Depressed alone (46)
+
+Proportion of individual fascicle affected related to promis scores (777 analyses per group (11 promis domains x 77 individual fascicles))
+  - all participants (116)
+  - Depressed + nondepressed (82)
+  - Non-depressed alone (36)
+  - Depressed alone (46)
+  
+
+
+Volume:   
+
+Volume within versus outside depression map correlated w/promis scores (33 analyses per group (11 promis domains x 3 networks [total, depression 25%, nondep 75%]))
+   - all participants (116)
+    - Depressed + nondepressed (82)
+    - Non-depressed alone (36)
+    - Depressed alone (46)
+  
+Volume of individual fascicle affected related to promis scores  (777 analyses per group (11 promis domains x 77 individual fascicles))
+  - all participants (116)
+  - Depressed + nondepressed (82)
+  - Non-depressed alone (36)
+  - Depressed alone (46)
+
+
+Promis results:
+Interestingly, across all 11 scores, with the exception of fatigue, Depressed patients have lower scores (lower = worse functioning), than non-depressed patients. controls. They all fdr correct. What I love about this is fatigue not being different. If fatigue was worse in depressed patients, one could argue that quality of life, health, emotional problems, social activities, etc are all worse because of underlying fatigue. Similarly, as fatigue is a component of the PHQ9 and depression screening, this could be confounding. That they were different in a lot of measures but not fatigue is informative.
+
+Quality_of_Life	0.015199144			
+Physical_Health	0.012579264			
+Mental_Health_and_Mood	0.012579264			
+Social_Activities_Satisfaction	0.001063449			
+Carrying_Out_Social_Activities	0.011375799			
+Carrying_Out_Physical_Activities	0.031616473			
+Emotional_Problems	0.011270683			
+Fatique_Average	0.231497853			
+PostOp.PROMIS.Physical.Score	0.041172446			
+PostOp.PROMIS.Mental.Score	0.001253404	
+
+Proportion
+Proportion within versus outside depression map correlated w/promis scores - NO SIGNIFICANT FINDINGS
+    - all participants (116)
+    - Depressed + nondepressed (82)
+    - Non-depressed alone (36)
+    - Depressed alone (46)
+
+Proportion of individual fascicle affected related to promis scores-  NO SIGNIFICANT FINDINGS
+  - all participants (116)
+  - Depressed + nondepressed (82)
+  - Non-depressed alone (36)
+  - Depressed alone (46)
+  
+Volume     
+Volume within versus outside depression map correlated w/promis scores -  NO SIGNIFICANT FINDINGS
+   - all participants (116)
+    - Depressed + nondepressed (82)
+    - Non-depressed alone (36)
+    - Depressed alone (46)
+   
+Volume of individual fascicle affected related to promis scores-  NO SIGNIFICANT FINDINGS
+  - all participants (116)
+  - Depressed + nondepressed (82)
+  - Non-depressed alone (36)
+  - Depressed alone (46)
+
+
 
 ```{r read_in_df_and_subset}
 homedir <- "/Users/eballer/BBL/msdepression/"
@@ -154,6 +264,7 @@ columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","C
    mutate(orace = ordered(race_binarized,levels = c(1,2), labels = c("White","Non-white"))) %>%
    mutate(EXAM_DATE = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% 
    mutate(EXAM_DATE = gsub(EXAM_DATE, pattern = "-", replacement = "")) %>%
+   mutate(BEGIN_EXAM_DTTM = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% #make sure to actually save it as date object for later processing
    mutate(EMPI = as.factor(EMPI)) %>%
    mutate(On.Psych.Meds = ifelse(On.Psych.Meds == "True", 1, 0)) %>%
    mutate(On.Antidepressants = ifelse(On.Antidepressants == "True", 1, 0)) %>%
@@ -223,7 +334,93 @@ df_demo_and_fascicles <- merge(data_empi_acc_f_phq, fascicle_proportions, by = c
 
 #merge with the df that has lesion volumes, 1 per perosn
 df_demo_and_fascicles <- merge(df_demo_and_fascicles, lesion_volumes, by = c("EMPI", "EXAM_DATE")) #n = 2962
+
+##########################################################
+#            Read in PROMIS Data              #
+##########################################################
+promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_cleaned_n1694_unique_indiv_n501_2015-2022.rds"))
+promis_score_names <- names(promis_data[7:16]) 
+
+df_people_with_promis_data <- df_demo_and_fascicles %>%
+  filter(EMPI %in% promis_data$EMPI) #n=398
+
+unique_empis_in_promis_group <- unique(df_people_with_promis_data$EMPI) #n=116
+
 ```
+```{r make_df_with_volume_instead_of_proportion}
+#I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
+
+#read in fiber volume values
+fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
+
+#extract data frame that only includes the fascicle proportion lost
+df_fascicles_only <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names)]
+df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names)]
+
+#multiply each row by the vector of total volumes
+df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
+                  STATS = fiber_volume_values$volume_full, FUN = "*")
+
+#combine back with data_fram
+df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
+
+```
+
+```{r promis_data_handling}
+#go through each person w/promis data and append the columns to their row that reflects the closest collected PROMIS
+
+#function, take an empi and date, returns a column of promis scores
+get_closest_promis_to_ms_exam_date <- function(subj_empi, subj_exam_date) {
+  df_closest_promis <- promis_data %>%
+    filter(EMPI == subj_empi) %>%
+    mutate(distance_from_scan = abs(RECORDED_TIME-subj_exam_date)) %>%
+    filter(abs(RECORDED_TIME-subj_exam_date)==min(abs(RECORDED_TIME-subj_exam_date))) %>%
+    slice(1)
+  return(df_closest_promis)
+}
+
+#make dataframe to store promis info
+promis_info_closest_proximity <- data.frame(matrix(NA, nrow=dim(df_people_with_promis_data)[1], ncol=(dim(promis_data)[2] + 1)))
+names(promis_info_closest_proximity) <- c(names(promis_data), "distance_from_scan")
+
+for (line in 1:dim(df_people_with_promis_data)[1]) {
+  #pull out subject empi and exam date
+  print(line)
+  subj_empi <- df_people_with_promis_data$EMPI[line]
+  subj_exam_date <- df_people_with_promis_data$BEGIN_EXAM_DTTM[line]
+  closest_promis_data <- get_closest_promis_to_ms_exam_date(subj_empi = subj_empi, subj_exam_date = subj_exam_date)
+  promis_info_closest_proximity[line,] = closest_promis_data
+}
+
+#drop unnecessary columns c("DE_PAT_ID", "EMPI", "HUP_MRN", "SEX", "RACE")
+promis_info_closest_proximity_just_scores <- promis_info_closest_proximity[,6:dim(promis_info_closest_proximity)[2]]
+
+#combine with df_people_with_promis_data
+df_people_with_promis_data_scores_added = cbind(df_people_with_promis_data, promis_info_closest_proximity_just_scores)
+
+#summarize the distance from scans
+
+summary(df_people_with_promis_data_scores_added$distance_from_scan) #mean 873.3 days, median 763 days, range 1 to 2487 days, convert to years
+hist(df_people_with_promis_data_scores_added$distance_from_scan) #convert to years
+
+summary(df_people_with_promis_data_scores_added$distance_from_scan/364) #mean 2.40 ys, median 2.10 years, range 0.003 y to 6.83 years
+hist(df_people_with_promis_data_scores_added$distance_from_scan/364) #convert to years
+
+#sub volume for proportion
+#extract data frame that only includes the fascicle proportion lost
+df_fascicles_only <- df_people_with_promis_data_scores_added[ , (names(df_people_with_promis_data_scores_added) %in% fascicle_names)]
+df_everything_else <- df_people_with_promis_data_scores_added[ , !(names(df_people_with_promis_data_scores_added) %in% fascicle_names)]
+
+#multiply each row by the vector of total volumes
+df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
+                  STATS = fiber_volume_values$volume_full, FUN = "*")
+
+#combine back with data_fram
+df_demo_and_fascicle_volumes_full_w_promis <- cbind(df_everything_else, df_fascicle_volumes)
+
+
+```
+
 
 ```{r demographics}
 
@@ -255,7 +452,31 @@ df_good_mimosa_unique <- df_demo_and_fascicles %>%
   slice(1) %>% 
   ungroup() 
 make_demographics_table_ms(data_frame = df_good_mimosa_unique)
+
+### with promis data
+make_demographics_table_ms_w_promis(data_frame = df_people_with_promis_data_scores_added)
+
+## overall
+#just good mimosa
+df_good_mimosa_promis <- df_people_with_promis_data_scores_added %>% filter(depGroupVar != 0)
+make_demographics_table_ms_w_promis(df_good_mimosa_promis) #n=287 scans
+
+
+#unique
+df_people_with_promis_data_scores_added_unique <- df_people_with_promis_data_scores_added %>%
+  filter(depGroupVar != 0) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() 
+
+
+make_demographics_table_ms_w_promis(data_frame = df_people_with_promis_data_scores_added_unique)
+
 ```
+
+
+
 ```{r compare_overall_volume_of_lesions_dep_vs_non_dep}
 
 #separate out only people in depression group, and take first instance
@@ -294,6 +515,8 @@ barplot_lesion_volume <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diag
 print(barplot_lesion_volume) #p=0.067
 
 ```
+
+
 
 ```{r visualize_depression_network}
 ##########################################################
@@ -682,18 +905,18 @@ print(barplot_bottom_3_quartiles)
 #I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
 
 #read in fiber volume values
-fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
+#fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
 
 #extract data frame that only includes the fascicle proportion lost
-df_fascicles_only <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names)]
-df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names)]
+#df_fascicles_only <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names)]
+#df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names)]
 
 #multiply each row by the vector of total volumes
-df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
-                  STATS = fiber_volume_values$volume_full, FUN = "*")
+#df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
+ #                 STATS = fiber_volume_values$volume_full, FUN = "*")
 
 #combine back with data_fram
-df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
+#df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
 
 #isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
@@ -1037,35 +1260,31 @@ print(scatter_t_val_by_dep_net_overlap)
 
 ```{r bootstrapping_proportion_and_volume_x_dep_t_analyses}
 
-##### proportion
-# 95% confidence intervals for the correlation
-set.seed(1)
+######### functions
 tval <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample
   fit <- lm(formula, data=d)
   return(summary(fit)$coefficients[2,3])
 }
 
+
+##### proportion
+# 95% confidence intervals for the correlation
+
+
+
+
+set.seed(1)
 data_frame_dep_v_nondep_t_x_prop_dep_mask_overlap <- subset(df_fascicle_dep_mask_overlap_t_value, select = c("depression_mask_overlap","dep_vs_healthy_t"))
 results_prop <- boot(data=data_frame_dep_v_nondep_t_x_prop_dep_mask_overlap, statistic=tval,
    R=10000, formula=dep_vs_healthy_t~depression_mask_overlap)
 print(results_prop) #actual 2.62, CI 0.701, 4.553)
 plot(results_prop)
-boot_results_prop.ci <- boot.ci(results_prop, conf=0.95, type="bca", index=1)
+boot_results_prop.ci <- boot.ci(results_prop, conf=0.95, type="perc", index=1)
 print(boot_results_prop.ci)
+pval_prop<-boot.pval(boot_res=results_prop, theta_null = 0, type = "perc", pval_precision = NULL)
+print(pval_prop) #p=0.0087
 
-#manually calculating P from CI, from interwebs
-est=results_prop$t0
-l=boot_results_prop.ci$bca[4]
-u=boot_results_prop.ci$bca[5]
-
-#1) SE=(u-l)/2*1.96
-se=((u-l)/(2*1.96))
-#2) z=Est/SE
-z=est/se
-#3) p=exp(-0.717*z - 0.416*z^2)
-p=exp((-0.717*z) - (0.416*(z*z)))
-print(p) #p=0.008
 
 ##### volume
 # 95% confidence intervals for the correlation
@@ -1076,23 +1295,729 @@ results_vol <- boot(data=data_frame_dep_v_nondep_t_x_vol_dep_mask, statistic=tva
    R=10000, formula=dep_vs_healthy_t~volume_in_dep_mask)
 print(results_vol)
 plot(results_vol)
-boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="bca", index=1)
+boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="perc", index=1)
 print(boot_results_vol.ci)
+pval_vol<-boot.pval(results_vol, type = "perc", theta_null = 0, pval_precision = NULL)
+print(pval_vol) #p=1*10^-16
 
-#get p from CI
-#manually calculating P from CI, from interwebs
-est=results_vol$t0
-l=boot_results_vol.ci$bca[4]
-u=boot_results_vol.ci$bca[5]
 
-#1) SE=(u-l)/2*1.96
-se=((u-l)/(2*1.96))
-#2) z=Est/SE
-z=est/se
-#3) p=exp(-0.717*z - 0.416*z^2)
-p=exp((-0.717*z) - (0.416*(z*z)))
-print(p) # #p=0.001
 
 ```
 
 
+##### PROMIS DATA
+
+```{r compare_overall_promis_scores_by_diagnosis}
+
+#separate out only people in depression group, and take first instance
+dep_and_healthy_groups_for_ICD_analysis <-  df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=82
+
+
+dep_vs_healthy_t <- lapply(promis_score_names, function(x) 
+{
+  t_test_command <- paste0("t.test(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], var.equal=F)")
+  eval(parse(text=t_test_command))
+})
+names(dep_vs_healthy_t) <- promis_score_names
+print(dep_vs_healthy_t)
+
+#pull t-statistic
+dep_vs_healthy_t_values <- sapply(dep_vs_healthy_t, function(x) x$statistic)
+
+#convert to data frame
+df_t_values <- as.data.frame(dep_vs_healthy_t_values) 
+row.names(df_t_values) <- promis_score_names
+print(df_t_values)
+
+#pull p-values
+dep_vs_healthy_p_values <- sapply(dep_vs_healthy_t, function(x) x$p.value)
+
+#convert to data frame
+df_dep_vs_healthy_p_values <- as.data.frame(dep_vs_healthy_p_values)
+row.names(df_dep_vs_healthy_p_values) <- promis_score_names
+print(df_dep_vs_healthy_p_values)
+#FDR correct p-values
+dep_vs_healthy_pfdr <- p.adjust(dep_vs_healthy_p_values,method="fdr")
+  
+plots <- lapply(promis_score_names, function(x) 
+{
+ 
+  Diagnosis <- c("MS w/Depression", "MS No Depression")
+  dep_group <- eval(parse(text=paste0("dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]")))
+  nondep_group <- eval(parse(text=paste0("dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]")))
+  value <- c(mean(dep_group, na.rm=TRUE),
+           mean(nondep_group, na.rm=TRUE))
+  sem=c((sd(dep_group, na.rm = TRUE)/sqrt(sum(dep_group, na.rm = TRUE))), (sd(nondep_group, na.rm = TRUE)/sqrt(sum(nondep_group, na.rm = TRUE))))
+
+  data <- data.frame(Diagnosis,value,sem)
+
+  # Grouped
+  barplot <- ggplot(data, aes(x=reorder(Diagnosis, -value),fill=Diagnosis, y=value)) + 
+    geom_bar(stat="identity", colour="black", width=0.8, size=1.5) + 
+      geom_errorbar(aes(ymin=value-sem, ymax=value+sem), width=.1, position=position_dodge(0.9), size=1.5) +
+    scale_fill_manual(values = c("#cdcdcd", "#FFFFFF")) + #comment out if you want colored graph
+    ggtitle(paste0(x, " by Diagnosis")) + #, p=", round(dep_vs_healthy_t_test$p.value,3))) +
+    ylab(paste0("Promis ", x)) +
+    theme(title = element_text(size=14),
+          axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+          axis.title.y = element_text(size=20),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          panel.background = element_rect(colour = "white", fill = "white"))# + #comment out if you want pretty 
+  #  scale_y_continuous(expand = c(0, 0), limits = c(0, 0.52)) #comment out if you want colored graph
+  print(barplot) #
+  
+
+})
+
+```
+
+#### PROMIS Proportion analyses
+
+```{r depression_vs_healthy_overall_proportion_of_fascicles_affected_promis}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+#I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+ # filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_proportion_of_fascicles_affected_promis_dep_and_nondep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+#I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_proportion_of_fascicles_affected_promis_nondep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+#I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar == 1)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_proportion_of_fascicles_affected_promis_dep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+#I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar == 2)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r dimensional_promis_effects_unique_irrespective_of_dx}
+
+#total n = 116, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=116
+
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_depressed_and_nondepressed}
+
+#total n = 82, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=82
+
+
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_nondepressed}
+
+#total n = 36, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar == 1)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=36
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_depressed}
+
+#total n = 46, nothing significant
+
+dep_and_healthy_groups_for_ICD_analysis <- df_people_with_promis_data_scores_added %>% 
+  filter(depGroupVar == 2)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=46
+
+
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+
+
+#### PROMIS VOLUME ANALYSES
+
+
+
+
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis  %>% 
+ # filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_dep_and_nondep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis  %>% 
+  filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_nondep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis  %>% 
+  filter(depGroupVar == 1)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_dep}
+
+#goal of this segment is to look at overall lesion burden within/outside depression network, and correlate with promis scores between depression and controls, outside of fascicles
+
+
+
+#isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis %>% 
+  filter(depGroupVar == 2)  %>% 
+  mutate(total_fascicle_prop_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_indepnet_top_quartile = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+  mutate(total_fascicle_prop_lost_nondep_bottom_3_quartiles = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+fascicle_proportion_lost_categories <- c("total_fascicle_prop_lost", "total_fascicle_prop_lost_indepnet_top_quartile", "total_fascicle_prop_lost_nondep_bottom_3_quartiles")
+
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_proportion_lost_categories, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_proportion_lost_categories
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+
+```
+
+
+```{r dimensional_promis_effects_unique_irrespective_of_dx_vol}
+
+#total n = 116, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=116
+
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_depressed_and_nondepressed_vol}
+
+#total n = 82, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=82
+
+
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_nondepressed_vol}
+
+#total n = 36, nothing significant
+
+
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis %>% 
+  filter(depGroupVar == 1)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=36
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
+
+```{r dimensional_promis_effects_unique_depressed_vol}
+
+#total n = 46, nothing significant
+
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full_w_promis %>% 
+  filter(depGroupVar == 2)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() #n=46
+
+#ones to try
+#PostOp.PROMIS.Mental.Score
+#[1] "Quality_of_Life"                  "Physical_Health"                  "Mental_Health_and_Mood"           "Social_Activities_Satisfaction"  
+# [5] "Carrying_Out_Social_Activities"   "Carrying_Out_Physical_Activities" "Emotional_Problems"               "Fatique_Average"                 
+# [9] "PostOp.PROMIS.Physical.Score"     "PostOp.PROMIS.Mental.Score"      
+
+#lm
+promis_lm <- lapply(promis_score_names, function(promis_score) {
+ 
+  fascicle_lm <- lapply(fascicle_names_no_cranial_nerves, function(fascicle) 
+  {
+    lm(substitute(fascicle ~ promis_score, list(fascicle = as.name(fascicle), promis_score=as.name(promis_score))), 
+       data = dep_and_healthy_groups_for_ICD_analysis)
+  })
+  names(fascicle_lm) <- fascicle_names_no_cranial_nerves
+  
+  #anova
+  fascicle_anova <- lapply(fascicle_lm, anova)
+  
+  #fdr corrected
+  fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
+  print(fascicle_anova_fdr)
+})
+
+```
