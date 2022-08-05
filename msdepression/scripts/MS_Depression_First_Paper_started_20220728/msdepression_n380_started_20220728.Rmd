@@ -19,6 +19,7 @@ library(pwr)
 library(mgcv)
 library(boot)
 library(boot.pval)
+library(lsr)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -119,18 +120,25 @@ Results
     - Dep vs nondep in top 25% yes **p = 0.034**, Dep = 4829, non dep = 3914
     - Dep vs nondep in bottom 75%, no p = 0.054, dep = 8826, non dep = 7886
   
-  D) T values in fascicle associated with Overlap in Depression map
+  D) Linear models of values in fascicle associated with Overlap in Depression map
     
     - T values correlated w/proportion of overlap of fascicle in depression map
         - p of lm (0.010),
         - 95%   ( 0.701,  4.553 )
         - boostrap p calc from CI - **0.0087**
         
+    - Cohen'd correlated w/proportion of overlap of fascicle w/depression map
+        - p of lm (0.001)
+        - 
+        
     - T values correlated w/volume of overlap with depression network (i.e. # voxels that fascicle shares w/depression map),
         - p = 0.031
         - 95%   ( 1.052,  3.724 )
         - bootstrap p calc from CI- **1*10^-16**
         
+    - Cohen'd correlated w/volume of overlap of fascicle w/depression map
+        - p of lm (p < 2.2 * 10^-16)
+        - Largest effect in corpus callosum
 I think it works best when sticking with *volumes* rather than proportions
 
 #### Promis data, late edition
@@ -446,7 +454,7 @@ df_good_mimosa <- df_demo_and_fascicles %>% filter(depGroupVar != 0)
 make_demographics_table_ms(data_frame = df_good_mimosa)
 
 df_good_mimosa_unique <- df_demo_and_fascicles %>% 
-  filter(depGroupVar != 0) %>%
+#  filter(depGroupVar != 0) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
@@ -457,7 +465,7 @@ make_demographics_table_ms(data_frame = df_good_mimosa_unique)
 make_demographics_table_ms_w_promis(data_frame = df_people_with_promis_data_scores_added)
 
 ## overall
-#just good mimosa
+#just good mimosa w/promis
 df_good_mimosa_promis <- df_people_with_promis_data_scores_added %>% filter(depGroupVar != 0)
 make_demographics_table_ms_w_promis(df_good_mimosa_promis) #n=287 scans
 
@@ -1075,8 +1083,9 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>%
 #ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
 fascicle_dep_vs_healthy_t <- lapply(fascicle_names_no_cranial_nerves, function(x) 
 {
+
   t_test_command <- paste0("t.test(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], var.equal=F)")
-  eval(parse(text=t_test_command))
+ eval(parse(text=t_test_command))
 })
 names(fascicle_dep_vs_healthy_t) <- fascicle_names_no_cranial_nerves
 
@@ -1137,6 +1146,101 @@ scatter_t_val_by_dep_net_overlap <- ggplot(data=df_fascicle_dep_mask_overlap_t_v
   ggtitle(paste0("Fascicle/depression mask Proportion overlap by dx T, p = ", round(summary(dep_overlap_x_dep_vs_healthy_t)$coefficients[2,4],3))) + 
   theme(plot.title=element_text(hjust=0.5))
 print(scatter_t_val_by_dep_net_overlap)
+
+```
+
+```{r comparing_depression_map_overlap_with_dx_diff_no_cranial_nerves_prop_effect_size}
+# the purpose of this chunk is to plot the relationship of the degree of overlap of a depression network with the diagnostic difference between groups
+
+##############################
+## FASCICLES TO BE INCLUDED ##
+##############################
+
+#define the depression network (all areas that intersect with depression network, no cranial nerves)
+fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
+
+#fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
+fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
+fascicle_names_no_cranial_nerves <- fascicle_names[grep("CN", fascicle_names, invert = TRUE)] #n=77
+
+#######################
+### depression map  ###
+#######################
+
+### define depression map
+fascicle_volumes_and_props_dep <- read.csv(paste0(homedir, "results/streamline_volume_within_dep_network_3_09.csv"), header = T, sep = ",")
+
+#filter to exclude fascicles w/cranial nerves
+fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_volumes_and_props_dep %>%
+  replace(is.na(.), 0) %>%
+  filter(fascicle%in% fascicle_names_no_cranial_nerves)
+
+#make data frame that includes each fascicle in 1 column, and each proportion of overlap with depression network in second column
+
+df_fascicle_and_prop_in_mask <- subset(x = fascicle_volumes_dep_network_no_cranial_nerves, select = c("fascicle", "prop_in_mask"))
+
+#######################
+### real data x dx  ###
+#######################
+
+#then, make the data frame
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+
+# lapply to get results of t-test in each fascicle
+#ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
+fascicle_dep_vs_healthy_cohen_d <- sapply(fascicle_names_no_cranial_nerves, function(x) 
+{
+  text_for_eval <- paste0("cohensD(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])")
+  eval(parse(text=text_for_eval))
+})
+names(fascicle_dep_vs_healthy_cohen_d) <- fascicle_names_no_cranial_nerves
+
+
+#convert to data frame
+df_d_values <- as.data.frame(fascicle_dep_vs_healthy_cohen_d)
+
+#######################
+### plot differences ##
+#######################
+
+#combine data frames, column 1 has names of fascicles, column 2 has proportion of overlap with depression network, column 3 has t-test value of dep vs healthy unc, 4th dep vs healthy fdr corrected within that fascicle
+
+df_fascicle_dep_mask_overlap_d_value <- data.frame(df_fascicle_and_prop_in_mask$fascicle, df_fascicle_and_prop_in_mask$prop_in_mask, df_d_values)
+names(df_fascicle_dep_mask_overlap_d_value) <- c("fascicle", "depression_mask_overlap", "dep_vs_healthy_d")
+
+#make copy to sort
+df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask <- df_fascicle_dep_mask_overlap_d_value
+
+df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask$fascicle  <- factor(df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask$fascicle, levels = df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask$fascicle[order(df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask$depression_mask_overlap)])
+
+
+# bar graph of T-values of fascicles, sorted by depression overlap
+plot_fascicle_by_d_sorted_by_dep_overlap <-ggplot(data = df_fascicle_dep_mask_overlap_d_value_sorted_by_prop_overlap_depression_mask, aes(x = fascicle, y=dep_vs_healthy_d), main = "Dep vs Healthy T value, Fascicles ordered by overlap with dep network") + 
+  geom_bar(stat="identity") +
+  ylim(-0.1,0.5) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot_fascicle_by_d_sorted_by_dep_overlap)
+
+
+# plot fascicle overlap x t value
+#statistic, p = 0.010
+dep_overlap_x_dep_vs_healthy_d <- lm(dep_vs_healthy_d ~ depression_mask_overlap, data=df_fascicle_dep_mask_overlap_d_value)
+print(summary(dep_overlap_x_dep_vs_healthy_d))
+
+scatter_d_val_by_dep_net_overlap <- ggplot(data=df_fascicle_dep_mask_overlap_d_value, aes(x=depression_mask_overlap, y=dep_vs_healthy_d)) +
+  geom_point(size=1) + 
+  geom_smooth(method=lm)+
+  xlab("Proportion of Fascicle in Depression Network") + 
+  ylab("Effect of diagnosis calculated in proportions (D)") + 
+  ggtitle(paste0("Fascicle/depression mask Proportion overlap by dx Eff Size, p = ", round(summary(dep_overlap_x_dep_vs_healthy_d)$coefficients[2,4],3))) + 
+  theme(plot.title=element_text(hjust=0.5))
+print(scatter_d_val_by_dep_net_overlap)
 
 ```
 
@@ -1258,20 +1362,255 @@ print(scatter_t_val_by_dep_net_overlap)
 
 ```
 
+```{r comparing_depression_map_overlap_with_dx_diff_no_cranial_nerves_volume_no_CC}
+
+#define the depression network (all areas that intersect with depression network, no cranial nerves)
+fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
+
+#fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
+fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
+fascicle_names_no_cranial_nerves <- fascicle_names[grep("CN", fascicle_names, invert = TRUE)] #n=77
+
+#######################
+### depression map  ###
+#######################
+
+### define depression map
+fascicle_volumes_and_props_dep <- read.csv(paste0(homedir, "results/streamline_volume_within_dep_network_3_09.csv"), header = T, sep = ",")
+
+#filter to exclude fascicles w/cranial nerves
+fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_volumes_and_props_dep %>%
+  replace(is.na(.), 0) %>%
+  filter(fascicle%in% fascicle_names_no_cranial_nerves)
+
+df_fascicle_and_volume_in_mask <- subset(x = fascicle_volumes_dep_network_no_cranial_nerves, select = c("fascicle", "non_zero_voxels_in_dep_map"))
+
+########################
+## Get Volume Values ###
+########################
+
+#read in fiber volume values
+fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
+
+#extract data frame that only includes the fascicle proportion lost
+df_fascicles_only <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names)]
+df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names)]
+
+#multiply each row by the vector of total volumes
+df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
+                  STATS = fiber_volume_values$volume_full, FUN = "*")
+
+#combine back with data_fram
+df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
+
+#isolate out only the depressed group and healthy group, fascicles should be in volumes rather than proportions
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+# lapply to get results of t-test in each fascicle
+#ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
+fascicle_dep_vs_healthy_t <- lapply(fascicle_names_no_cranial_nerves, function(x) 
+{
+  t_test_command <- paste0("t.test(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], var.equal=F)")
+  eval(parse(text=t_test_command))
+})
+names(fascicle_dep_vs_healthy_t) <- fascicle_names_no_cranial_nerves
+
+#pull t-statistic
+dep_vs_healthy_t_values <- sapply(fascicle_dep_vs_healthy_t, function(x) x$statistic)
+
+#convert to data frame
+df_t_values <- as.data.frame(dep_vs_healthy_t_values) 
+row.names(df_t_values) <- fascicle_names_no_cranial_nerves
+  
+#pull p-values
+dep_vs_healthy_p_values <- sapply(fascicle_dep_vs_healthy_t, function(x) x$p.value)
+
+#convert to data frame
+df_dep_vs_healthy_p_values <- as.data.frame(dep_vs_healthy_p_values)
+row.names(df_dep_vs_healthy_p_values) <- fascicle_names_no_cranial_nerves
+
+#FDR correct p-values
+dep_vs_healthy_pfdr <- p.adjust(dep_vs_healthy_p_values,method="fdr")
+  
+#Convert to data frame
+df_dep_vs_healthy_pfdr <- as.data.frame(dep_vs_healthy_pfdr)
+row.names(df_dep_vs_healthy_pfdr) <- fascicle_names_no_cranial_nerves
+
+#######################
+### plot differences ##
+#######################
+
+#combine data frames, column 1 has names of fascicles, column 2 has proportion of overlap with depression network, column 3 has t-test value of dep vs healthy unc, 4th dep vs healthy fdr corrected within that fascicle
+
+df_fascicle_dep_mask_volume_t_value <- data.frame(df_fascicle_and_prop_in_mask$fascicle, df_t_values$dep_vs_healthy_t_values, df_fascicle_and_volume_in_mask$non_zero_voxels_in_dep_map)
+names(df_fascicle_dep_mask_volume_t_value) <- c("fascicle", "dep_vs_healthy_t", "volume_in_dep_mask")
+
+#remove corpus callosum
+df_fascicle_dep_mask_volume_t_value_no_cc <- df_fascicle_dep_mask_volume_t_value %>%
+  filter(fascicle != "CC")
+
+df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask <- df_fascicle_dep_mask_volume_t_value_no_cc
+
+#order by volume in depression mask
+df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask$fascicle  <- factor(df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask$fascicle, levels = df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask$fascicle[order(df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask$volume_in_dep_mask)])
+
+
+# bar graph of T-values of fascicles, sorted by depression overlap
+plot_fascicle_by_t_sorted_by_dep_overlap <-ggplot(data = df_fascicle_dep_mask_overlap_t_value_sorted_by_vol_in_depression_mask, aes(x = fascicle, y=dep_vs_healthy_t), main = "Dep vs Healthy T value, Fascicles ordered by volume of dep network, no CC") + 
+  geom_bar(stat="identity") +
+  ylim(0,5) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot_fascicle_by_t_sorted_by_dep_overlap)
+
+
+#statistic volume, p = 0.031
+dep_overlap_x_dep_vs_healthy_t_no_cc <- lm(dep_vs_healthy_t ~ volume_in_dep_mask, data=df_fascicle_dep_mask_volume_t_value_no_cc)
+print(summary(dep_overlap_x_dep_vs_healthy_t_no_cc))
+
+scatter_t_val_by_dep_net_overlap_no_cc <- ggplot(data=df_fascicle_dep_mask_volume_t_value_no_cc, aes(x=volume_in_dep_mask, y=dep_vs_healthy_t)) +
+  geom_point(size=1) + 
+  geom_smooth(method=lm)+
+  xlab("Volume of Fascicle in Depression Network") + 
+  ylab("Effect of diagnosis (T)") + 
+  ggtitle(paste0("Fascicle/depression mask volume by dx T, no CC, p = ", round(summary(dep_overlap_x_dep_vs_healthy_t_no_cc)$coefficients[2,4],3))) + 
+  theme(plot.title=element_text(hjust=0.5))
+print(scatter_t_val_by_dep_net_overlap_no_cc)
+
+```
+
+```{r comparing_depression_map_overlap_with_dx_diff_no_cranial_nerves_vol_effect_size_no_CC}
+# the purpose of this chunk is to plot the relationship of the degree of overlap of a depression network with the diagnostic difference between groups
+
+##############################
+## FASCICLES TO BE INCLUDED ##
+##############################
+
+
+#define the depression network (all areas that intersect with depression network, no cranial nerves)
+fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
+
+#fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
+fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
+fascicle_names_no_cranial_nerves <- fascicle_names[grep("CN", fascicle_names, invert = TRUE)] #n=77
+
+#######################
+### depression map  ###
+#######################
+
+### define depression map
+fascicle_volumes_and_props_dep <- read.csv(paste0(homedir, "results/streamline_volume_within_dep_network_3_09.csv"), header = T, sep = ",")
+
+#filter to exclude fascicles w/cranial nerves
+fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_volumes_and_props_dep %>%
+  replace(is.na(.), 0) %>%
+  filter(fascicle%in% fascicle_names_no_cranial_nerves)
+
+df_fascicle_and_vol_in_mask <- subset(x = fascicle_volumes_dep_network_no_cranial_nerves, select = c("fascicle", "non_zero_voxels_in_dep_map"))
+
+########################
+## Get Volume Values ###
+########################
+
+#read in fiber volume values
+fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
+
+#extract data frame that only includes the fascicle proportion lost
+df_fascicles_only <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names)]
+df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names)]
+
+#multiply each row by the vector of total volumes
+df_fascicle_volumes <- sweep(x = df_fascicles_only, MARGIN = 2,                        # Sweep with Complex STATS
+                  STATS = fiber_volume_values$volume_full, FUN = "*")
+
+#combine back with data_fram
+df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
+
+###############################
+#######################
+### real data x dx  ###
+#######################
+
+#then, make the data frame
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+
+# lapply to get results of t-test in each fascicle
+#ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
+fascicle_dep_vs_healthy_cohen_d <- sapply(fascicle_names_no_cranial_nerves, function(x) 
+{
+  text_for_eval <- paste0("cohensD(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])")
+  eval(parse(text=text_for_eval))
+})
+names(fascicle_dep_vs_healthy_cohen_d) <- fascicle_names_no_cranial_nerves
+
+
+#convert to data frame
+df_d_values <- as.data.frame(fascicle_dep_vs_healthy_cohen_d)
+
+#######################
+### plot differences ##
+#######################
+
+#combine data frames, column 1 has names of fascicles, column 2 has Volume of overlap with depression network, column 3 has t-test value of dep vs healthy unc, 4th dep vs healthy fdr corrected within that fascicle
+
+df_fascicle_dep_mask_volume_overlap_d_value <- data.frame(df_fascicle_and_vol_in_mask$fascicle, df_fascicle_and_vol_in_mask$non_zero_voxels_in_dep_map, df_d_values)
+names(df_fascicle_dep_mask_volume_overlap_d_value) <- c("fascicle", "volume_in_dep_mask", "dep_vs_healthy_d")
+
+
+df_fascicle_dep_mask_volume_overlap_d_value_no_cc <- df_fascicle_dep_mask_volume_overlap_d_value %>%
+  filter(fascicle != "CC")
+
+#make copy to sort
+df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask <- df_fascicle_dep_mask_volume_overlap_d_value_no_cc 
+
+df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask$fascicle  <- factor(df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask$fascicle, levels = df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask$fascicle[order(df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask$volume_in_dep_mask)])
+
+
+# bar graph of eff size of fascicles, sorted by depression overlap
+plot_fascicle_by_d_sorted_by_dep_overlap <-ggplot(data = df_fascicle_dep_mask_overlap_d_value_sorted_by_vol_overlap_depression_mask, aes(x = fascicle, y=dep_vs_healthy_d), main = "Dep vs Healthy T value, Fascicles ordered by overlap with dep network, no CC") + 
+  geom_bar(stat="identity") +
+  #ylim(-0.1,0.5) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+print(plot_fascicle_by_d_sorted_by_dep_overlap)
+
+
+# plot fascicle overlap x Eff size value
+#statistic, p=001
+dep_overlap_x_dep_vs_healthy_vol_d <- lm(dep_vs_healthy_d ~ volume_in_dep_mask, data=df_fascicle_dep_mask_volume_overlap_d_value_no_cc )
+print(summary(dep_overlap_x_dep_vs_healthy_d))
+
+scatter_d_val_by_dep_net_overlap <- ggplot(data=df_fascicle_dep_mask_volume_overlap_d_value_no_cc , aes(x=volume_in_dep_mask, y=dep_vs_healthy_d)) +
+  geom_point(size=1) + 
+  geom_smooth(method=lm)+
+  xlab("Volume of Fascicle in Depression Network") + 
+  ylab("Effect of diagnosis calculated in Volumes (D)") + 
+  ggtitle(paste0("Fascicle/depression mask Volume overlap by dx Eff Size, No CC p = ", round(summary(dep_overlap_x_dep_vs_healthy_vol_d )$coefficients[2,4],3))) + 
+  theme(plot.title=element_text(hjust=0.5))
+print(scatter_d_val_by_dep_net_overlap)
+
+```
+
 ```{r bootstrapping_proportion_and_volume_x_dep_t_analyses}
 
 ######### functions
 tval <- function(formula, data, indices) {
-  d <- data[indices,] # allows boot to select sample
-  fit <- lm(formula, data=d)
+  df <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=df)
   return(summary(fit)$coefficients[2,3])
 }
 
-
 ##### proportion
 # 95% confidence intervals for the correlation
-
-
 
 
 set.seed(1)
@@ -1285,6 +1624,19 @@ print(boot_results_prop.ci)
 pval_prop<-boot.pval(boot_res=results_prop, theta_null = 0, type = "perc", pval_precision = NULL)
 print(pval_prop) #p=0.0087
 
+##### effect size
+# 95% confidence intervals for the correlation
+
+set.seed(1)
+data_frame_dep_v_nondep_d_x_prop_dep_mask_overlap <- subset(df_fascicle_dep_mask_overlap_d_value, select = c("depression_mask_overlap","dep_vs_healthy_d"))
+results_prop <- boot(data=data_frame_dep_v_nondep_d_x_prop_dep_mask_overlap, statistic=tval,
+   R=10000, formula=dep_vs_healthy_d~depression_mask_overlap)
+print(results_prop) #actual 2.62, CI 0.589, 4.669)
+plot(results_prop)
+boot_results_prop.ci <- boot.ci(results_prop, conf=0.95, type="perc", index=1)
+print(boot_results_prop.ci)
+pval_prop<-boot.pval(boot_res=results_prop, theta_null = 0, type = "perc", pval_precision = NULL)
+print(pval_prop) #p=0.0083
 
 ##### volume
 # 95% confidence intervals for the correlation
@@ -1300,6 +1652,33 @@ print(boot_results_vol.ci)
 pval_vol<-boot.pval(results_vol, type = "perc", theta_null = 0, pval_precision = NULL)
 print(pval_vol) #p=1*10^-16
 
+
+##### volume
+#effect sizes
+# 95% confidence intervals for the correlation
+set.seed(1)
+data_frame_dep_v_nondep_d_x_vol_dep_mask <- subset(df_fascicle_dep_mask_volume_overlap_d_value, select = c("dep_vs_healthy_d", "volume_in_dep_mask"))
+
+results_vol <- boot(data=data_frame_dep_v_nondep_d_x_vol_dep_mask, statistic=tval,
+   R=10000, formula=dep_vs_healthy_d~volume_in_dep_mask)
+print(results_vol)
+plot(results_vol)
+boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="perc", index=1)
+print(boot_results_vol.ci)
+pval_vol<-boot.pval(results_vol, type = "perc", theta_null = 0, pval_precision = NULL)
+print(pval_vol) #p=1*10^-16
+
+### with no corpus callosumm p = 1* 10^-16, CI(1.727, 5.363)
+# 95% confidence intervals for the correlation
+set.seed(1)
+results_vol <- boot(data=df_fascicle_dep_mask_volume_overlap_d_value_no_cc, statistic=tval,
+   R=10000, formula=dep_vs_healthy_d~volume_in_dep_mask)
+print(results_vol)
+plot(results_vol)
+boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="perc", index=1)
+print(boot_results_vol.ci)
+pval_vol<-boot.pval(results_vol, type = "perc", theta_null = 0, pval_precision = NULL)
+print(pval_vol) #p=1*10^-16
 
 
 ```
@@ -1741,9 +2120,8 @@ promis_lm <- lapply(promis_score_names, function(promis_score) {
   fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
   print(fascicle_anova_fdr)
 })
-
-
 ```
+
 
 ```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_dep_and_nondep}
 
@@ -1783,8 +2161,8 @@ promis_lm <- lapply(promis_score_names, function(promis_score) {
   print(fascicle_anova_fdr)
 })
 
-
 ```
+
 
 ```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_nondep}
 
@@ -1823,9 +2201,9 @@ promis_lm <- lapply(promis_score_names, function(promis_score) {
   fascicle_anova_fdr <- fdr_anova_generic(fascicle_anova, 1)
   print(fascicle_anova_fdr)
 })
-
-
 ```
+
+
 
 ```{r depression_vs_healthy_overall_volume_of_fascicles_affected_promis_dep}
 
