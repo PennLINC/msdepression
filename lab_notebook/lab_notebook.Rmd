@@ -1920,3 +1920,11 @@ MS lesion age, predict age in a ridge regression. Predict how old someone is how
 [x] broken up by dx
 [x] within dep net
 [x] outside dep net
+
+#### 20220805
+[x] trying out correlations with effect sizes instead of Ts, wow this makes results even better, they all work
+
+#### 20220810
+[x] make sure the mutate command is okay, somehow I think we might be undercounting the healthy group. Okay ish now, but somehow the depGroupVar has a lower number than chaining together this command:  df_good_mimosa_unique %>% filter(Has.depdx == FALSE) %>% filter(On.Antidepressants == FALSE) %>% filter(PHQ.2_zero == TRUE). Double checked the logic and it looks okay
+- I think it has something to do with when I include people if they have a positive PHQ2 OR 9 (PHQ2 | PHQ9): Checked this, the | works just fine
+- Will need to make sure to write the draw io to match my mutate commands. Must be that when I do the filter separately, I am counting some 0s that I shouldn't be counting in phq2. 
