@@ -3,8 +3,8 @@ title: "Descriptives for potential paper 1 "
 author: "Erica Baller"
 date: "Started 2022 06 22"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -99,24 +99,30 @@ Analyses
   I have also looked at sex differences in individual fascicles as well as agexsex interactions. All are done using 1st scan alone as well as with mixed model using lmer.
   
 Results
-  *Demographics
+
+  *Demographics*
+   
     total n unique subjects = 783 (F = 609, M = 174) 
     total scans = 2962 (F = 2270, M = 692)
     
-  *Age effects (unique):
+  *Age effects (unique): *
+    
       -Age mean 47 (range 20-83). 
       -Almost everything corrects (59 out of 87 fascicles, 26 in association network)
       -Take home - as expected, the older you are, the worse white matter fascicle invovlement you have
    
-  *Age effects (gam unique)
+  *Age effects (gam unique)*
+    
       - 62 out of 87 fascicles correct, 26 in association network
       
-  *Age effects (mixed model)
+  *Age effects (mixed model)*
+  
       - 57 out of 87 correct, 27 in association network
       
-  *Sex effects (unique):
+  *Sex effects (unique):*
+  
       - In the final good MIMoSA group, there were 609 unique females and 174 unique males, 77% women
-      - Individual fascicle results underwhelming, only 3 regions meet P<0.05 (unc), 
+      - Individual fascicle results underwhelming, P<0.05 (unc), 
           SCP	0.020859515			
           CPT_F_R	0.040590173			
           CPT_O_R	0.049616343			
@@ -129,7 +135,8 @@ Results
       - Analyses to consider at a later date
         [] some sort of matching
         
-  *Sex effects (mixed model):
+  *Sex effects (mixed model):*
+  
       - no action
       - Individual fascicle results w/ 12 that meet P<0.05 (uncorrected)
           ICP_L	0.016204905			
@@ -143,10 +150,12 @@ Results
           CST_R	0.039553847			
           DRTT_L	0.043957171	
       
-  * Age*sex (unique)
+  *Agexsex (unique)*
+  
       - no action
       
-  * Age * sex (mixed model) 
+  *Agexsex (mixed model) *
+  
   lmerTest::lmer(substitute(i ~ PAT_AGE_AT_EXAM*osex + (1|EMPI), list(i = as.name(x))), data = df_mm)
       - Action!
       - Age term: 55/87 correct
@@ -268,7 +277,7 @@ make_demographics_table_all_subjs(data_frame = df_unique_empi, binarized_race = 
 
 #have to pull out just the pieces I'm interested in; this is for ALL subjects
 just_empi <- subset(df_demo_and_fascicles, select = c("EMPI"))
-added_to_fascicles <- merge(just_empi, fascicle_proportions, by = c("EMPI"))
+added_to_fascicles <- unique(merge(just_empi, fascicle_proportions, by = c("EMPI")))
 melted_df <- melt(added_to_fascicles, id.vars = c("EMPI", "EXAM_DATE"))
 
 #exclude regions where there was no lesion at all
@@ -290,6 +299,36 @@ lesioned <- subset(melted_df, value > 0)
 histogram_plot_most_affected_fascicles_unique<-ggplot(lesioned, aes(x=value)) + geom_histogram() + facet_wrap(~variable)
 
 print(histogram_plot_most_affected_fascicles_unique)
+
+#####
+#### look at mean fascicle volume across participants and transpose
+
+# drop exam date and empi, and transpose
+fascicles_alone_df <- t(fascicle_proportions[,!(colnames(fascicle_proportions) %in% c("EMPI", "EXAM_DATE"))])
+fascicle_names <- rownames(fascicles_alone_df)
+
+#take row means
+fascicles_alone_rowMeans <- data.frame(fascicle_names, rowMeans(fascicles_alone_df))
+names(fascicles_alone_rowMeans) <- c("fascicle", "value")
+
+
+#sort based on overlap
+fascicle_values_sorted_by_overlap <- fascicles_alone_rowMeans
+
+fascicle_values_sorted_by_overlap$fascicle <- factor(fascicle_values_sorted_by_overlap$fascicle, levels = fascicle_values_sorted_by_overlap$fascicle[order(fascicle_values_sorted_by_overlap$value)])
+
+
+
+
+
+######## Histograms/bar graphs
+#this histogram helps contextualize the number of streamlines with varying degrees of proportions affected
+hist(x=fascicle_values_dep_sorted_by_overlap$prop_in_mask, main = "Histogram Affected Streamlines", xlab = "Proportion Volume per Fascicle Affected", breaks = 20)
+
+sorted_ggplot<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle, y=value), main = "Proportion of Volume per Fascicle Affected") + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+sorted_ggplot
 
 
 ```
@@ -317,6 +356,7 @@ fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
 print(fascicle_age_anova_fdr)
 
 #fdr corrected only association cortex
+fascicle_bundle_mapping=get_fascicle_bundle_mapping()
 fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
 fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
 print(fascicle_anova_fdr_association)
@@ -339,7 +379,7 @@ main = paste0("Age In Good Mimosa Group : n = ", dim(df_unique_empi)[1]), xlab =
 #lm
 fascicle_age_gam <- lapply(fascicle_names, function(x) 
 {
-  gam(substitute(i ~ s(PAT_AGE_AT_EXAM), list(i = as.name(x))), data = df_unique_empi)
+  gam(substitute(i ~ s(PAT_AGE_AT_EXAM, k=4), list(i = as.name(x))), data = df_unique_empi)
 })
 names(fascicle_age_gam) <- fascicle_names
 
@@ -361,7 +401,7 @@ fascicle_anova_w_fiber_mapping <- fascicle_age_anova_smooth_p[which(fascicle_bun
 fascicle_anova_fdr_association <- fdr_anova_generic_p_already_extracted(fascicle_anova_w_fiber_mapping)
 print(fascicle_anova_fdr_association)
 
-
+visreg(fascicle_age_gam$FAT_L)
 ```
 
 
@@ -638,3 +678,4 @@ print(fascicle_agesex_anova_p05_unc) #p uncorrected slf1_L p = 0.0488, CNVIII_R 
 
 
 ```
+
