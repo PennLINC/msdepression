@@ -1928,3 +1928,335 @@ MS lesion age, predict age in a ridge regression. Predict how old someone is how
 [x] make sure the mutate command is okay, somehow I think we might be undercounting the healthy group. Okay ish now, but somehow the depGroupVar has a lower number than chaining together this command:  df_good_mimosa_unique %>% filter(Has.depdx == FALSE) %>% filter(On.Antidepressants == FALSE) %>% filter(PHQ.2_zero == TRUE). Double checked the logic and it looks okay
 - I think it has something to do with when I include people if they have a positive PHQ2 OR 9 (PHQ2 | PHQ9): Checked this, the | works just fine
 - Will need to make sure to write the draw io to match my mutate commands. Must be that when I do the filter separately, I am counting some 0s that I shouldn't be counting in phq2. 
+
+Checks
+- x <-data_empi_acc_f_phq %>% filter(!Has.depdx) %>% filter(!On.Psych.Meds) %>% filter(PHQ.2_zero | PHQ.9_zero)
+- length(unique(x$EMPI)) = 488
+- length(data_empi_acc_f_phq$EMPI[data_empi_acc_f_phq$true_healthy== 1]) = 2608
+- length(unique(data_empi_acc_f_phq$EMPI[data_empi_acc_f_phq$true_healthy== 1])) = 488
+
+- maybe some people with phq2_0 are actually Na?
+- x <-data_empi_acc_f_phq %>% filter(!Has.depdx) %>% filter(!On.Psych.Meds) %>% filter(PHQ.2_zero==1) = 2595, 485 unique
+- x <-data_empi_acc_f_phq %>% filter(!Has.depdx) %>% filter(!On.Psych.Meds) %>% filter(PHQ.9_zero==1) = 13, 3 unique
+- 13+2595 = 2608; 485+3 = 488
+- these all work out
+
+- so is it if you take unique first, some columns are missing? but why would that give you more phq2s that are okay
+
+- Maybe it is merge? First, from ? merge : The rows in the two data frames that match on the specified columns are extracted, and joined together. If there is more than one match, all possible matches contribute one row each. < this should be handled when I take unique later>
+
+- seems to be working now when I call unique at the end. DOuble check what happens when I call unique at the beginning. 
+
+- tried getting unique values in the data_empi_acc_f_phq before merging w/ lesion volumes:
+data_empi_acc_f_phq <- data %>% 
+   mutate(across(.cols = columns_to_make_integer, .fns = as.integer)) %>%
+   mutate(sex_binarized = ifelse(SEX == "MALE", 1, 2)) %>%
+   mutate(osex = ordered(sex_binarized,levels = c(1,2), labels = c("Male","Female"))) %>%
+   mutate(race_binarized = ifelse(RACE == "WHITE", 1, 2)) %>%
+   mutate(orace = ordered(race_binarized,levels = c(1,2), labels = c("White","Non-white"))) %>%
+   mutate(EXAM_DATE = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% 
+   mutate(EXAM_DATE = gsub(EXAM_DATE, pattern = "-", replacement = "")) %>%
+   mutate(BEGIN_EXAM_DTTM = as.Date(BEGIN_EXAM_DTTM, format = "%m/%d/%y")) %>% #make sure to actually save it as date object for later processing
+   mutate(EMPI = as.factor(EMPI)) %>%
+   
+  ###
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup() %>%
+  ###
+   mutate(On.Psych.Meds = ifelse(On.Psych.Meds == "True", 1, 0)) %>%
+   mutate(On.Antidepressants = ifelse(On.Antidepressants == "True", 1, 0)) %>%
+   mutate(Has.PHQ2 = ifelse(Has.PHQ2 == "True", 1, 0)) %>%
+   mutate(Has.PHQ9 = ifelse(Has.PHQ9 == "True", 1, 0)) %>%
+   mutate(Has.depdx = ifelse(grepl("F3", ICD10), 1, 0)) %>%
+   mutate(PHQ.2_modsev_dep_sxs = ifelse((!is.na(PHQ.2) & PHQ.2 >= 3), 1, 0)) %>%
+   mutate(PHQ.9_modsev_dep_sxs = ifelse((!is.na(PHQ.9) & PHQ.9 >= 10), 1, 0)) %>%
+   mutate(PHQ.2_mild_dep_sxs = ifelse((!is.na(PHQ.2) & PHQ.2 > 0 & PHQ.2 < 3), 1, 0)) %>%
+   mutate(PHQ.9_mild_dep_sxs = ifelse((!is.na(PHQ.9) & PHQ.9 > 0 & PHQ.9 < 10), 1, 0)) %>%
+   mutate(PHQ.2_zero = ifelse((!is.na(PHQ.2) & PHQ.2 == 0), 1, 0)) %>%
+   mutate(PHQ.9_zero = ifelse((!is.na(PHQ.9) & PHQ.9 == 0), 1, 0)) %>%
+   mutate(dep_by_dx_phq = ifelse((Has.depdx | PHQ.2_modsev_dep_sxs | PHQ.9_modsev_dep_sxs),1,0)) %>%
+   mutate(dep_by_dx_phq_antidep = ifelse((Has.depdx | On.Antidepressants | PHQ.2_modsev_dep_sxs | PHQ.9_modsev_dep_sxs),1,0)) %>%
+   mutate(true_healthy = ifelse((!Has.depdx & !On.Psych.Meds & (PHQ.2_zero | PHQ.9_zero)), 1, 0)) %>%
+   mutate(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds = ifelse(dep_by_dx_phq_antidep | true_healthy, 1, 0)) %>%
+   rowwise(ACCESSION_NUM) %>%
+   mutate(depGroupVar =
+            sum(c(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds,dep_by_dx_phq_antidep))) %>%#you get an extra point if you are in the depression group, so the end result is dep = 2, healthy = 1, 0 for exclude
+   ungroup()
+
+-Did not work because it took out people who didn't have good mimosas, so by the time you merge w/good mimosas, only 158 scans left.
+
+- Now going to look at the empis that make it to the 168 group and 148 group
+
+x <- df_demo_and_fascicles %>% filter(Has.depdx==FALSE) %>% filter(On.Antidepressants == FALSE) %>% filter(PHQ.2_zero == TRUE) %>% group_by(EMPI) %>% 
++     arrange(EXAM_DATE) %>% 
++     slice(1) %>% 
++     ungroup() 
+> dim(x)
+[1] 168 159
+> x_empi <- x$EMPI
+
+y_empi <- df_good_mimosa_unique$EMPI[df_good_mimosa_unique$true_healthy==TRUE]
+> length(y_empi)
+[1] 148
+
+> z_empi <- setdiff(x_empi,y_empi)
+> z_empi
+ [1] "1000443363" "1000576093" "1000616211" "1000680873" "1000731479" "1000758897" "1000782730" "1001091352" "1001387420" "1001760723" "1001776245" "1003146950"
+[13] "1003642810" "1003709298" "1003867245" "1003873441" "1004564376" "1004566947" "1004641094" "8000342932" "8440021590"
+> length(z_empi)
+[1] 21
+
+
+> df_demo_and_fascicles$depGroupVar[df_demo_and_fascicles$EMPI == 1000443363]
+[1] 0
+> df_demo_and_fascicles$On.Antidepressants[df_demo_and_fascicles$EMPI == 1000443363]
+[1] 0
+> df_demo_and_fascicles$Has.depdx[df_demo_and_fascicles$EMPI == 1000443363]
+[1] 0
+> df_demo_and_fascicles$PHQ.2_zero[df_demo_and_fascicles$EMPI == 1000443363]
+[1] 1
+\> df_demo_and_fascicles$PHQ.9[df_demo_and_fascicles$EMPI == 1000443363]
+[1] NA
+
+AH! I figured it out. I didn't filter out people who are ALSO NOT ON PSYCH MEDS. My mistake in that line was not including not on psych meds.
+
+x <- df_demo_and_fascicles %>% filter(Has.depdx==FALSE) %>% filter(On.Psych.Meds== FALSE) %>% filter(PHQ.2_zero == TRUE) %>% group_by(EMPI) %>%  arrange(EXAM_DATE) %>%   slice(1) %>% ungroup
+> dim(x)
+[1] 147 159
+
+GOT IT !!!!
+
+#### 20220808
+
+Another strange idea that is not needed right now, but what about defining depression even more data driven.
+
+Tract filtration done normally.
+For each tract, instead of looking at its overalp in proportion or volume in depression network, do some sort of cortical parcellation (schaefer for example), and calculate the volume or proportion of overlap of each full tract to the parcellation. calculate prop overlap of each individual fiber to its overlap with each of schaefer regions (so like 200 * 77 matrix).
+Map to yeo networks, compare between healthy and control. Or you can hydra on the yeo networks, or w/in outside depression network, or just look at indiv fascicles. This actually isn't that thought out. Or some sort of spin for network correspondence between network structure in depression as opposed to controls.
+
+[x] look at what happens when you define depression diagnosis by volume rather than proportion overlap. I.e. a fascicle is in the "depression network" if the volume that it shares with the depression network is in the top 25%. In this situation, we still see that overall, depressed have more disease (i.e. more volume affected) irrespective of dx (p=0.045). 
+  [x] Within dep network (as defined by volume), 
+  [x] dep disease > nondep disease in dep network, p=0.0.034,
+  [x] dep disease and nondep disease in bottom 75%, p = 0.071 (NS)
+
+dep_network_names_top_quartile_no_cranial_nerves_by_vol
+ [1] CC      AF_L    SLF2_R  SLF3_R  FAT_L   TR_S_R  SLF2_L  AF_R    TR_S_L  FAT_R   CS_S_R  CPT_F_R CPT_P_L ILF_R   CPT_P_R CS_S_L  PAT_R   MdLF_L  CBT_R  
+
+dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol
+  [1] C_FPH_L C_FPH_R C_FP_L  C_FP_R  C_PH_L  C_PHP_L C_PHP_R C_PH_R  C_R_L   C_R_R   EMC_L   EMC_R   IFOF_L  IFOF_R  ILF_L   MdLF_R  PAT_L   SLF1_L  SLF1_R 
+[20] SLF3_L  UF_L    UF_R    VOF_L   VOF_R   CB_L    CB_R    ICP_L   ICP_R   MCP     SCP     V       AR_L    AR_R    CBT_L   CPT_F_L CPT_O_L CPT_O_R CS_A_L 
+[39] CS_A_R  CS_P_L  CS_P_R  CST_L   CST_R   DRTT_L  DRTT_R  F_L     F_R     ML_L    ML_R    OR_L    OR_R    RST_L   RST_R   TR_A_L  TR_A_R  TR_P_L  TR_P_R 
+[58] AC
+
+I actually think we should use proportions for this, because if we define depression just based on volume, which does work, it is never possible that the volume of small fascicles will contribute meaningfully, even though they may play a big role. Additionally, if you just use volume, you could get a fiber which donates a ton to depression network by volume, but half of that fascicle provides information to outside the depression network. It seems a little more logical to define values as within the depression network based on how much of the total fascicle dead ends into the depression network as compared to its total volume. But luckily the findings are the same, irrespective of whether you define the 25% based on volume or proportion.
+
+One could also make a case that even if, lets say, only 30% of the AF lands in the depression network, but the 99% of the depression network is occupied by AF streamlines, then it should be ranked really high, as opposed to a tiny fascicle where the whole thing lands in the depression network, but it only accounts for 1% of the network. And it is just a good question of what matters. Thank goodness they both work. 
+
+Making DSI studio tracts
+- if it doesn't work to add the depression network as roi, make sure to add the asym template from the harvard depression network first, and then the best mask to use is Dep_clust_T_3_09_binarized.nii.
+
+##### 20220810
+[] do proportion effect size plot if you'd like, not done right now
+[] Figures
+  [] Overall fascicles, highlight optic radiations, etc, use viridis and cool colors
+    - have to do volume, not just proportion. I am thinking - a viridis of some sort to show overall volume of fascicles across people, then a bar to show top chunk, and separate out a graph of top 25% and bottom 75%. 
+    - Could also find a way to show volume in each fascicle in dep vs non
+    - Going to also try in afni to multiple each fascicle by its count, sum them up, and display over template brain. 
+```{bash}
+# go to directory
+cd /Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography
+
+#make new direc if it doesn't exist
+mkdir -p niftis_excluding_cranial_nerves
+
+#copy non-cranial nerves
+cp association/*nii* cerebellum/*nii* commissural/*nii* projection/*nii* niftis_excluding_cranial_nerves/.
+
+#cd into directory
+cd niftis_excluding_cranial_nerves
+
+#read in file with proportions
+
+```
+
+```{bash make_afni_map_w_fascicles_colored_by_prop_or_volume}
+#!/bin/bash
+
+##### Welcome to make_afni_map_w_fascicles_colored_by_prop_overlap ###
+### Pre: A file that has two columns, no headers. First column is the abbreviation of a fascicle, second is proportion overlap (or volume overlap)
+### Post: A nifti where each fascicle is colored by the proportion of overlap, or any value you give it
+### Uses: I wanted to find a way to show, in a brain, which fascicles have the most overlap with lesions (though this can be done w/depression, non-dep, volume). This will go through a table, and for each fascicle, multiply it times the value in the second column, add a suffix, and then at the end, sum them all to make a final image
+### Dependencies: Afni
+
+#change this if doing on pmacs
+homedir="/Users/eballer/BBL/msdepression/"
+
+default=${homedir}/results/fascicle_mean_proportion_overlap_nfasc_77.csv
+default_suffix="prop"
+
+if [ $# == 0 ]
+then
+    echo "We will use the default path file" $default
+    fascicle_file=$default
+else  
+    fascicle_file=$1
+fi
+
+
+echo "File being read is "$fascicle_file
+
+fascicles=$(cat $fascicle_file)
+
+cd ${homedir}/templates/dti/HCP_YA1065_tractography/niftis_excluding_cranial_nerves
+
+(pwd)
+for fascicle in ${fascicles}; do
+        # extract fascicle name and value
+        fascicle_name=$(echo ${fascicle} | perl -pe 's/(.*),.*/$1/')
+        fascicle_value=$(echo ${fascicle} | perl -pe 's/.*,(.*)/$1/')
+        
+        # remove nifti w/values if already there
+        rm -rf ${fascicle_name}_${default_suffix}.nii.gz
+
+        #take the fascicle .nii, multiply it with the value
+        command=$(echo 3dcalc -a ${fascicle_name}.nii.gz -expr \'a*${fascicle_value}\' -prefix ${fascicle_name}_${default_suffix}.nii.gz)
+        echo "Here is the command: "${command}
+        
+        #run command, have to do separately to get variable into afni command
+        eval "${command}";
+done
+
+#remove old file
+rm -rf fascicle_${default_suffix}_sum.nii.gz
+rm -rf fascicle_${default_suffix}_max.nii.gz
+ 
+all_files=$(ls *${default_suffix}.nii.gz)
+
+#take sum
+command_sum=$(3dMean -prefix fascicle_${default_suffix}_sum.nii.gz -sum ${all_files})
+eval "${command_sum}";
+
+#take max
+command_max=$(3dMean -prefix fascicle_${default_suffix}_max.nii.gz -max ${all_files})
+eval "${command_max}";
+
+cd ${homedir}/scripts
+```
+
+    
+  [] Age effects perhaps
+  [] Rank of fascicles based on overlap in proportion (and or volume, or both) w/ depression network
+  [x] lesion overall burden
+  [x] overall fascicle comparison, broken down by 25/75 % (bar graphs)
+  [x] tract scatter plot
+  
+
+From Phil, how to color the fascicles in dsi studio
+
+**This might well be a suboptimal solution, but you can write a text file with one RGB triplet per fiber. In the GUI this is done from the "Tracts Misc" menu "save tract colors". From the command line you'd need to count the tracts in the file and then write the text out in a script.
+You can use the command line to open the GUI with the tracts and associated color files.
+It might be worth asking on the DSI Studio user group if nobody else here has a better solution. Frank is very responsive and adds improvements all the time, so my convoluted way might already be out of date**
+
+#### 20220812
+- added code to look at mean volume (not just proportion) over all fascicles
+- looking at the maps w/volume, really hard to see differences b/c CC is just so much bigger than everything else
+- for funsies, did a subtraction between nondep/dep prop and volume masks - these give cool pictures and really make it clear that there is more right sided disease
+```{bash}
+3dcalc -a fascicle_prop_dep_max.nii.gz -b fascicle_prop_nondep_max.nii.gz -expr 'a-b' -prefix dep_gr_nondep_prop_max.nii.gz
+3dcalc -a fascicle_prop_dep_sum.nii.gz -b fascicle_prop_nondep_sum.nii.gz -expr 'a-b' -prefix dep_gr_nondep_prop_sum.nii.gz
+3dcalc -a fascicle_vol_dep_max.nii.gz -b fascicle_vol_nondep_max.nii.gz -expr 'a-b' -prefix dep_gr_nondep_vol_max.nii.gz
+3dcalc -a fascicle_vol_dep_sum.nii.gz -b fascicle_vol_nondep_sum.nii.gz -expr 'a-b' -prefix dep_gr_nondep_vol_sum.nii.gz
+```
+
+Steps to do the dsi studio things
+- Design color system where each proportion is mapped to an RGB scheme
+  - Okay, so red is 255, 0, 0
+  - Yellow is 255,255,0
+  - So to get the scale I want, I need to only alter the 255. 
+  - If I want to do this in proportions, it means that there need to be 100 increments, each corresponding to a proportion
+  - So 255/100, means every increment of 2.55 will equal 1 increment of proportion. So, to get the green color, take the proportion, multiply by 100 to get it into whole numbers, multiply * 2.55, round
+  - i.e. if the proportion of overlay is 0.02, that means that it is 2% total. 2% * 2.55 = 5.1 -> round, 5. New RGB color is 255 5 0
+  
+  
+- For each fascicle, count the # of streamlines. This will become number of rows in color file
+- For each fascicle, make a file in the style Superior_Longitudinal_Fasciculus3_R_color.txt, with each row containing the RGB color scheme, space separated, with # of rows corresponding to number of fibers in fascicle
+- alternatively, could have two types of files, file 1 with fascicle/rgb mapping, file type 2 would be each fascicle with color written out. Then could use perl to extra the 3 items, replace them, write to new file, and then overwrite initial file.
+
+- looking for command line to get count of each file name
+- dsi_studio --action=rec --source=*.src.gz --rotate_to=dwi_sum.nii.gz --save_nii=*_aligned.nii.gz
+
+- to get fascicle full names, I went to DSI github (https://github.com/frankyeh/DSI-Studio/issues/72), and found this list:
+
+Arcuate_Fasciculus_L Arcuate_Fasciculus_R Cingulum_Frontal_Parahippocampal_L Cingulum_Frontal_Parahippocampal_R Cingulum_Frontal_Parietal_L Cingulum_Frontal_Parietal_R Cingulum_Parahippocampal_Parietal_L Cingulum_Parahippocampal_Parietal_R Cingulum_Parahippocampal_L Cingulum_Parahippocampal_R Cingulum_Parolfactory_L Cingulum_Parolfactory_R Frontal_Aslant_Tract_L Frontal_Aslant_Tract_R Inferior_Fronto_Occipital_Fasciculus_L Inferior_Fronto_Occipital_Fasciculus_R Inferior_Longitudinal_Fasciculus_L Inferior_Longitudinal_Fasciculus_R Middle_Longitudinal_Fasciculus_L Middle_Longitudinal_Fasciculus_R Parietal_Aslant_Tract_L Parietal_Aslant_Tract_R Superior_Longitudinal_Fasciculus1_L Superior_Longitudinal_Fasciculus1_R Superior_Longitudinal_Fasciculus2_L Superior_Longitudinal_Fasciculus2_R Superior_Longitudinal_Fasciculus3_L Superior_Longitudinal_Fasciculus3_R Uncinate_Fasciculus_L Uncinate_Fasciculus_R Vertical_Occipital_Fasciculus_L Vertical_Occipital_Fasciculus_R Corticospinal_Tract_L Corticospinal_Tract_R Corticostriatal_Tract_Anterior_L Corticostriatal_Tract_Anterior_R Corticostriatal_Tract_Posterior_L Corticostriatal_Tract_Posterior_R Corticostriatal_Tract_Superior_L Corticostriatal_Tract_Superior_R Thalamic_Radiation_Anterior_L Thalamic_Radiation_Anterior_R Thalamic_Radiation_Posterior_L Thalamic_Radiation_Posterior_R Thalamic_Radiation_Superior_L Thalamic_Radiation_Superior_R Fornix_L Fornix_R Optic_Radiation_L Optic_Radiation_R Reticular_Tract_L Reticular_Tract_R Corpus_Callosum_Forceps_Minor Corpus_Callosum_Body Corpus_Callosum_Tapetum Corpus_Callosum_Forceps_Major
+
+I stuck it in a file and used a perl command to make it look pretty
+
+```{bash}
+cd /Users/eballer/BBL/msdepression/dti/HCP_YA1065_tractography
+vim fascicle_full_names
+
+#copied values in there and closed out
+more fascicle_full_names | perl -pe 's/ /\n/g' > fascicle_full_names_formatted
+
+
+```
+
+Now looks like this (but only 56 fascicles), so not right list:
+Arcuate_Fasciculus_L
+Arcuate_Fasciculus_R
+Cingulum_Frontal_Parahippocampal_L
+Cingulum_Frontal_Parahippocampal_R
+Cingulum_Frontal_Parietal_L
+Cingulum_Frontal_Parietal_R
+Cingulum_Parahippocampal_Parietal_L
+Cingulum_Parahippocampal_Parietal_R
+Cingulum_Parahippocampal_L
+Cingulum_Parahippocampal_R
+Cingulum_Parolfactory_L
+Cingulum_Parolfactory_R
+Frontal_Aslant_Tract_L
+Frontal_Aslant_Tract_R
+Inferior_Fronto_Occipital_Fasciculus_L
+Inferior_Fronto_Occipital_Fasciculus_R
+Inferior_Longitudinal_Fasciculus_L
+Inferior_Longitudinal_Fasciculus_R
+Middle_Longitudinal_Fasciculus_L
+Middle_Longitudinal_Fasciculus_R
+Parietal_Aslant_Tract_L
+Parietal_Aslant_Tract_R
+Superior_Longitudinal_Fasciculus1_L
+Superior_Longitudinal_Fasciculus1_R
+Superior_Longitudinal_Fasciculus2_L
+Superior_Longitudinal_Fasciculus2_R
+Superior_Longitudinal_Fasciculus3_L
+Superior_Longitudinal_Fasciculus3_R
+Uncinate_Fasciculus_L
+Uncinate_Fasciculus_R
+Vertical_Occipital_Fasciculus_L
+Vertical_Occipital_Fasciculus_R
+Corticospinal_Tract_L
+Corticospinal_Tract_R
+Corticostriatal_Tract_Anterior_L
+Corticostriatal_Tract_Anterior_R
+Corticostriatal_Tract_Posterior_L
+Corticostriatal_Tract_Posterior_R
+Corticostriatal_Tract_Superior_L
+Corticostriatal_Tract_Superior_R
+Thalamic_Radiation_Anterior_L
+Thalamic_Radiation_Anterior_R
+Thalamic_Radiation_Posterior_L
+Thalamic_Radiation_Posterior_R
+Thalamic_Radiation_Superior_L
+Thalamic_Radiation_Superior_R
+Fornix_L
+Fornix_R
+Optic_Radiation_L
+Optic_Radiation_R
+Reticular_Tract_L
+Reticular_Tract_R
+Corpus_Callosum_Forceps_Minor
+Corpus_Callosum_Body
+Corpus_Callosum_Tapetum
+Corpus_Callosum_Forceps_Major
