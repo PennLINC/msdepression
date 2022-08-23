@@ -662,6 +662,7 @@ quartile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 4),0)
 #sort all the fascicles by %overlap, in decreasing order (so highest overlap at the top), and then take the top 1-quartile
 dep_network_names_top_quartile_no_cranial_nerves<- (fascicle_values_dep_no_cranial_nerves[order(fascicle_values_dep_no_cranial_nerves$prop_in_mask, decreasing = TRUE),])$fascicle[1:quartile] #n=19
 
+
 #get a network that includes all of the fascicles NOT in dep 25% network
 dep_network_names_bottom_3_quartiles_no_cranial_nerves <- fascicle_values_dep_no_cranial_nerves$fascicle[!(fascicle_values_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves)] #n=68
 
@@ -737,9 +738,16 @@ quartile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 4),0)
 #sort all the fascicles by %overlap, in decreasing order (so highest overlap at the top), and then take the top 1-quartile
 dep_network_names_top_quartile_no_cranial_nerves_by_vol<- (fascicle_values_dep_no_cranial_nerves[order(fascicle_values_dep_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:quartile] #n=19
 
+dep_network_total_volume_top_quartile_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network$num_voxels_total[which(fascicle_volumes_dep_network$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)])
+
+
+
 #get a network that includes all of the fascicles NOT in dep 25% network
 dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol <- fascicle_values_dep_no_cranial_nerves$fascicle[!(fascicle_values_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)] #n=68
 
+bottom_75_total_volume_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network$num_voxels_total[which(fascicle_volumes_dep_network$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol)])
 
 #plot values within the depression network, and values outside of it
 
@@ -1123,6 +1131,7 @@ sorted_ggplot<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle
   scale_fill_continuous(type="viridis") + 
   ylim(0,30000) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size=12),
         plot.title = element_text(hjust = 0.5, size=14),
         axis.title.x = element_text(size=14),
         axis.title.y = element_text(size=14),
@@ -1181,6 +1190,7 @@ sorted_ggplot<-ggplot(data = fascicle_values_sorted_by_overlap, aes(x = fascicle
   scale_fill_continuous(type="viridis") + 
   ylim(0,30000) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size=12),
         plot.title = element_text(hjust = 0.5, size=14),
         axis.title.x = element_text(size=14),
         axis.title.y = element_text(size=14),
@@ -1326,32 +1336,79 @@ print(barplot_bottom_3_quartiles)
 #df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
 
 #isolate out only the depressed group and healthy group, make a column that sums up the total volume loss, only pay attention to places without cranial nerves
+
+
+### of note, order of operations is that you take the mean first, and then you divide by the total volume of the network. One could imagine a situation where you divide by network first, and then take mean, but it seems reasonable to include network measure after calculating the network mean.
+
+
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
   filter(depGroupVar != 0)  %>% 
   mutate(total_fascicle_vol_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
   mutate(total_fascicle_vol_lost_indepnet_top_quartile = 
-           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves))) %>%
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves_by_vol))) %>%
+  mutate(prop_fascicle_vol_lost_indepnet_top_quartile = (total_fascicle_vol_lost_indepnet_top_quartile / dep_network_total_volume_top_quartile_no_cranial_nerves)) %>%
   mutate(total_fascicle_vol_lost_nondep_bottom_3_quartiles = 
-           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves))) %>%
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol))) %>%
+  mutate(total_fascicle_vol_lost_no_cc = rowMeans(across(fascicle_names_no_cranial_nerves[fascicle_names_no_cranial_nerves!="CC"]))) %>%
+  mutate(prop_fascicle_vol_lost_bottom_3_quartile = (total_fascicle_vol_lost_nondep_bottom_3_quartiles / bottom_75_total_volume_no_cranial_nerves)) %>%
+  mutate(total_fascicle_vol_lost_indepnet_top_quartile_no_cc = 
+           rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves_by_vol[dep_network_names_top_quartile_no_cranial_nerves_by_vol != "CC"]))) %>%
+  mutate(total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc = 
+           rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol[dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol != "CC"]))) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
   ungroup()
 
-#test whether volume lost overall different between depressed and healthy- Yes, p = 0.045, Dep = 9382, Non dep = 8260
-total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 33%, mean non_dep = 28%, p = 0.054
+#test whether ms preferentially hits within or outside depression network, p = 2.2 * 10^-16, mean lost in dep net = 18027, mean lost outside dep net = 4020. More disease outside versus inside, when you look at means
 
-#look at within depression network using top quartiles, yes p = 0.034, Dep = 4829, non dep = 3914
+msdisease_within_versus_outside_depression_network <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles, var.equal = F, paired = TRUE) 
+
+#wilcox test because non normally distributed; p < 2.2*10^-16
+msdisease_within_versus_outside_depression_network_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles,paired = TRUE) 
+
+
+#still 2.2*10^-16; mean of dep net: 6856, mean outside dep net = 4020, excluded corpus callosum b/c it is so very big. 
+msdisease_within_versus_outside_depression_network_no_cc <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc, var.equal = F, paired = TRUE) 
+
+#2.2*1^-16
+msdisease_within_versus_outside_depression_network_no_cc_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc, paired = TRUE) 
+
+#testing group differences if you scale by the size of the network, still significant, in top quartile, proportion lost = 0.021
+#bottom 3, proportion lost = 0.006, p=2.2 * 10^-16
+
+msdisease_within_versus_outside_depression_network_scaled_by_network_size <- t.test(dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_bottom_3_quartile, var.equal = F, paired = TRUE) 
+
+#2.2 *10^-16
+msdisease_within_versus_outside_depression_network_scaled_by_network_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_bottom_3_quartile, paired = TRUE) 
+
+
+
+#test whether volume lost overall different between depressed and healthy- Yes, p = 0.045, Dep = 9382, Non dep = 8260
+total_volume_lost_dep_vs_healthy_unique <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F)
+
+#Yes, p=0.046, Dep = 4952, nondep = 4284
+total_volume_lost_dep_vs_healthy_unique_no_cc <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) 
+
+
+#look at within depression network using top quartiles, yes p = 0.034, Dep = 18957, non dep = 16572
 total_volume_lost_dep_vs_healthy_unique_in_dep_network_top_quartile <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) 
 
+#no corpus callosum, p = 0.028, Dep = 7380, nondep = 6036
+total_volume_lost_dep_vs_healthy_unique_in_dep_network_top_quartile_no_cc <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) 
 
-#look at bottom 75%, no p = 0.054, dep = 8826, non dep = 7886
+#look at bottom 75%, p = 0.07, dep = 4198, non dep = 3740
 total_volume_lost_dep_vs_healthy_unique_in_bottom_3_quartiles <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 30%, mean non_dep = 27%, p = 0.057
+
+#gut check, this should be identical, since CC not in bottom 3 quartiles; p = 0.07, dep = 4198, non dep = 3740
+total_volume_lost_dep_vs_healthy_unique_in_bottom_3_quartiles_no_cc <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 30%, mean non_dep = 27%, p = 0.057
 
 
 ############
 #bar plot
 ############
+
+
 
 #over all fascicles
 Diagnosis <- c("MS w/Depression", "MS No Depression")
@@ -1442,6 +1499,10 @@ df_mean_fascicle_volumes_and_diagnosis <- dep_and_healthy_groups_for_ICD_analysi
 dplyr::select(total_fascicle_vol_lost, total_fascicle_vol_lost_indepnet_top_quartile, total_fascicle_vol_lost_nondep_bottom_3_quartiles, depGroupVar) %>%
   mutate(depGroupVar = ifelse(depGroupVar == 1, "Non-depressed", "Depressed"))
 
+df_mean_fascicle_volumes_and_diagnosis_no_cc <- dep_and_healthy_groups_for_ICD_analysis %>% 
+dplyr::select(total_fascicle_vol_lost_no_cc, total_fascicle_vol_lost_indepnet_top_quartile_no_cc, total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc, depGroupVar) %>%
+  mutate(depGroupVar = ifelse(depGroupVar == 1, "Non-depressed", "Depressed"))
+
 
 jitter_mean_fascicle_volume <- ggplot(df_mean_fascicle_volumes_and_diagnosis, aes(x=depGroupVar, y=total_fascicle_vol_lost, color=depGroupVar)) +
   geom_jitter(shape=16, position=position_jitter(0.15)) + 
@@ -1493,6 +1554,7 @@ print(jitter_mean_fascicle_volume_nondep) #p=0.067
 
 ##### Geom violin
 
+
 violin_mean_fascicle_volume <- ggplot(df_mean_fascicle_volumes_and_diagnosis, aes(x=depGroupVar, y=total_fascicle_vol_lost, fill=depGroupVar)) +
   geom_violin() +  
   geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
@@ -1509,6 +1571,24 @@ violin_mean_fascicle_volume <- ggplot(df_mean_fascicle_volumes_and_diagnosis, ae
         panel.background = element_rect(colour = "white", fill = "white"))
 print(violin_mean_fascicle_volume) #p=0.067
 
+violin_mean_fascicle_volume_no_cc <- ggplot(df_mean_fascicle_volumes_and_diagnosis_no_cc, aes(x=depGroupVar, y=total_fascicle_vol_lost_no_cc, fill=depGroupVar)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Depressed", "2" = "Non-Depressed")) + 
+  ggtitle(paste0("Mean Fascicle Volume Affected by Diagnosis, No CC")) +
+  ylab("Mean Volume of Fascicles") +
+  ylim(0,42000) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_mean_fascicle_volume_no_cc) #p=0.067
+
+
+
 violin_mean_fascicle_volume_dep <- ggplot(df_mean_fascicle_volumes_and_diagnosis, aes(x=depGroupVar, y=total_fascicle_vol_lost_indepnet_top_quartile, fill=depGroupVar)) +
   geom_violin() +  
   geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
@@ -1523,7 +1603,23 @@ violin_mean_fascicle_volume_dep <- ggplot(df_mean_fascicle_volumes_and_diagnosis
         legend.position = "none",
         aspect.ratio=7/5,
         panel.background = element_rect(colour = "white", fill = "white"))
-print(violin_mean_fascicle_volume_dep) #p=0.067
+print(violin_mean_fascicle_volume_dep) 
+
+violin_mean_fascicle_volume_dep_no_cc <- ggplot(df_mean_fascicle_volumes_and_diagnosis_no_cc, aes(x=depGroupVar, y=total_fascicle_vol_lost_indepnet_top_quartile_no_cc, fill=depGroupVar)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Depressed", "2" = "Non-Depressed")) + 
+  ggtitle(paste0("Mean Fascicle Volume Affected Dep Net by Diagnosis")) +
+  ylab("Mean Volume of Fascicles") +
+  ylim(0,42000) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_mean_fascicle_volume_dep_no_cc) 
 
 violin_mean_fascicle_volume_nondep <- ggplot(df_mean_fascicle_volumes_and_diagnosis, aes(x=depGroupVar, y=total_fascicle_vol_lost_nondep_bottom_3_quartiles,  fill=depGroupVar)) +
   geom_violin() +  
@@ -1540,6 +1636,81 @@ violin_mean_fascicle_volume_nondep <- ggplot(df_mean_fascicle_volumes_and_diagno
         aspect.ratio=7/5,
         panel.background = element_rect(colour = "white", fill = "white"))
 print(violin_mean_fascicle_volume_nondep) 
+
+# geom violin within vs outside depression network
+dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+net_values <- c(df_mean_fascicle_volumes_and_diagnosis$total_fascicle_vol_lost_indepnet_top_quartile, df_mean_fascicle_volumes_and_diagnosis$total_fascicle_vol_lost_nondep_bottom_3_quartiles)
+
+newdf <- data.frame(dep_net_group, net_values)
+
+#p = 2.2 x 10^-16. But it is kind of irrelevant because corpus callosum, which is periventricular and just so much bigger, is in the depression network so if you look at volume alone, there is really no way to compete. For this, you gotta use proportion. And when you drop the cranial nerves, doesn't work. COuld try dropping CC, but don't know why I coul dmake the case for that. Though honestly, will prob have to try
+violin_within_vs_outside_network_fascicle_volume <- ggplot(newdf, aes(x=dep_net_group, y=net_values, fill=dep_net_group)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
+  ggtitle(paste0("Mean Fascicle Volume Affected by Network")) +
+  ylab("Mean Volume of Fascicles") +
+  ylim(0,42000) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_within_vs_outside_network_fascicle_volume) #
+
+# geom violin within vs outside depression network, no cc
+dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+net_values <- c(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc)
+
+newdf_no_cc <- data.frame(dep_net_group, net_values)
+
+#p = 2.2 x 10^-16. But it is kind of irrelevant because corpus callosum, which is periventricular and just so much bigger, is in the depression network so if you look at volume alone, there is really no way to compete. For this, you gotta use proportion. And when you drop the cranial nerves, doesn't work. COuld try dropping CC, but don't know why I coul dmake the case for that. Though honestly, will prob have to try
+violin_within_vs_outside_network_fascicle_volume_no_cc <- ggplot(newdf_no_cc, aes(x=dep_net_group, y=net_values, fill=dep_net_group)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
+  ggtitle(paste0("Mean Fascicle Volume Affected by Network, no CC")) +
+  ylab("Mean Volume of Fascicles") +
+  ylim(0,42000) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_within_vs_outside_network_fascicle_volume_no_cc) #
+
+
+### scaling by size of network
+
+
+dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+net_values <- c(dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_bottom_3_quartile)
+
+newdf_no_cc <- data.frame(dep_net_group, net_values)
+
+#p = 2.2 x 10^-16. 
+violin_within_vs_outside_network_scaled_by_network_size <- ggplot(newdf_no_cc, aes(x=dep_net_group, y=net_values, fill=dep_net_group)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
+  ggtitle(paste0("Proportion Fascicle Volume Affected by Network")) +
+  ylab("Proportion (tot volume lost/Net Vol) ") +
+  ylim(0,0.1) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_within_vs_outside_network_scaled_by_network_size) #
+
+
+
 ```
 
 ```{r depression_vs_healthy_overall_volume_of_fascicles_affected_dep_net_by_volume}
@@ -3133,4 +3304,95 @@ promis_lm <- lapply(promis_score_names, function(promis_score) {
   print(fascicle_anova_fdr)
 })
 
+```
+
+```{r age_effects_fascicles_unique_volume}
+########### age effect whole group
+
+#isolate out only the depressed group and healthy group
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
+  filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_vol_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+
+
+#### age histo ###
+hist(dep_and_healthy_groups_for_ICD_analysis$PAT_AGE_AT_EXAM,
+main = paste0("Age In Good Mimosa Group : n = ", dim(dep_and_healthy_groups_for_ICD_analysis)[1]), xlab = "Age", breaks = 10)
+
+#lm
+fascicle_age_lm <- lapply(fascicle_names_no_cranial_nerves, function(x) 
+{
+  lm(substitute(i ~ PAT_AGE_AT_EXAM, list(i = as.name(x))), data = dep_and_healthy_groups_for_ICD_analysis)
+})
+names(fascicle_age_lm) <- fascicle_names_no_cranial_nerves
+
+#anova
+fascicle_age_anova <- lapply(fascicle_age_lm, anova)
+
+#fdr corrected
+fascicle_age_anova_fdr <- fdr_anova_generic(fascicle_age_anova, 1)
+print(fascicle_age_anova_fdr)
+
+#fdr corrected only association cortex
+fascicle_anova_w_fiber_mapping <- fascicle_age_anova[which(fascicle_bundle_mapping$name_vector == "association")]
+fascicle_anova_fdr_association <- fdr_anova_generic(fascicle_anova_w_fiber_mapping,1)
+print(fascicle_anova_fdr_association)
+
+#visreg
+#sapply(fascicle_age_lm,visreg)
+visreg(fascicle_age_lm$AF_R,ylab = "Volume of Affected Streamlines", xlab = "Age in Years",
+       line=list(col="red"),
+       points=list(col="black"))
+
+### Mean Volume loss x age
+age_x_vol_affected <- lm(total_fascicle_vol_lost~ PAT_AGE_AT_EXAM, data=dep_and_healthy_groups_for_ICD_analysis )
+print(summary(age_x_vol_affected))
+visreg(age_x_vol_affected, gg=TRUE) + 
+  xlab("Age") + 
+  ylab("Mean Volume of Fascicle Affected") + 
+  ggtitle("Mean Volume of Fascicles Affected by Age, p = 2.1*10^-5") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+scatter_age_x_vol_affected <- ggplot(data=age_x_vol_affected, aes(x=PAT_AGE_AT_EXAM, y=total_fascicle_vol_lost)) +
+  geom_point(size=1) + 
+  geom_smooth(method=lm)+
+  xlab("Age") + 
+  ylab("Mean Volume of Fascicles Affected") + 
+  ggtitle("Mean Volume of Fascicles Affected by Age, p = 2.1*10^-5") + 
+  theme(plot.title = element_text(hjust = 0.5, size=20),
+        axis.title = element_text(size=20),
+        axis.text = element_text(size=14),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(scatter_age_x_vol_affected)
+
+##### Ascending graph of all age regressions
+#get lm results, including uncorrected
+df_t_lm_age <- sapply(fascicle_age_lm, function(v) summary(v)$coefficients[2,3])
+
+#Convert to data frame
+df_t_lm_age <- data_frame(fascicle_names_no_cranial_nerves, df_t_lm_age)
+names(df_t_lm_age) = c("Fascicle", "tvalue")
+
+#remove items with cranial nerves
+df_t_lm_age_no_cranial_nerves <- df_t_lm_age  %>% filter(Fascicle %in% fascicle_names_no_cranial_nerves)
+
+df_t_lm_age_no_cranial_nerves$Fascicle <- factor(df_t_lm_age_no_cranial_nerves$Fascicle, levels = df_t_lm_age_no_cranial_nerves$Fascicle[order(df_t_lm_age_no_cranial_nerves$tvalue)])
+  
+# bar graph of T-values of fascicles
+plot_fascicle_by_t_sorted <-ggplot(data = df_t_lm_age_no_cranial_nerves, aes(x = Fascicle, y=tvalue))+ 
+  geom_bar(stat="identity") +
+  xlab("Fascicle") + 
+  ylab("T-value of AgexFascile Affected Regression") + 
+  ylim(-2,8) +
+  ggtitle("Effects of age within each fascicle ") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title = element_text(hjust = 0.5, size=30),
+        axis.title.x = element_text(size=30),
+        axis.title.y = element_text(size=30))
+print(plot_fascicle_by_t_sorted)
 ```
