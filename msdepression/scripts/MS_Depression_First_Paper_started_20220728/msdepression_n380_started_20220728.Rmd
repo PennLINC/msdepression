@@ -20,6 +20,8 @@ library(mgcv)
 library(boot)
 library(boot.pval)
 library(lsr)
+library(sjPlot)
+#library(merTools)
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
 ```
@@ -146,32 +148,34 @@ I think it works best when sticking with *volumes* rather than proportions
 We decided to look at some of the promis data (which measures broad functional categories, though not specifically psychiatric diagnosis) to see if a) measures differed by diagnostic groups and b) whether there were dimensional effects. Unfortunately, the PROMIS picked up in 2018, which was also the same year that Melissa ended her pull, so our n's are small. 
 
 Current ns for people with at least 1 promis score= 
-Total n promis scores: 1694 
-Total n unique individuals w/promis scores: 501
+Total n promis scores: 1694-> 1813 
+Total n unique individuals w/promis scores: 501->532
 
 Different scores have different # of overall scans
-                        Total                      General_Health                  Quality_of_Life                  Physical_Health 
-                            1694                             1693                             1503                             1503 
-          Mental_Health_and_Mood   Social_Activities_Satisfaction   Carrying_Out_Social_Activities Carrying_Out_Physical_Activities 
-                            1503                             1503                             1501                             1499 
-              Emotional_Problems                  Fatique_Average     PostOp.PROMIS.Physical.Score       PostOp.PROMIS.Mental.Score 
-                            1499                             1499                             1440                             1442 
+(x<-promis_data[6:15] ; x[!is.na(x)] = 1; x[is.na(x)] = 0, colSums(x))
+
+                  General_Health                  Quality_of_Life                  Physical_Health           Mental_Health_and_Mood 
+                            1812                             1567                             1567                             1567 
+  Social_Activities_Satisfaction   Carrying_Out_Social_Activities Carrying_Out_Physical_Activities               Emotional_Problems 
+                            1567                             1565                             1563                             1563 
+                 Fatique_Average     PostOp.PROMIS.Physical.Score 
+                            1563                             1504 
 
 
 W/good mimosa:
-Total n promis scores : 398
-Total n unique individuals w/promis scores: 116
+Total n promis scores : 398 -> 412
+Total n unique individuals w/promis scores: 116 -> 121
 Total n unique indivs in nondepressed group = 36
-Total n unique individuals in depressed group = 46
+Total n unique individuals in depressed group = 46->49
 
 Method:
 To use the promis scores, I cleaned them in a separate script (promis_score_cleaning_2010-2022.Rmd)
 In this script, I link each scan with its most proximal promis score. The challenge here is that there is no time linking. Summary of the time (in days and years) between scanning and a promis (these are absolute values, do not indicate before or after).
 
 Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    1.0   376.8   763.0   873.3  1229.8  2487.0 
+  1.0   396.0   800.5   933.8  1325.5  2606.0 
     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-0.002747 1.035027 2.096154 2.399132 3.378434 6.832418 
+0.002747 1.087912 2.199176 2.565346 3.641484 7.159341 
 
 Next, I looked at overall differences between diagnostic groups on each of the PROMIS measures, correcting for multiple comparisons w/FDR (Q<0.05).
 
@@ -180,74 +184,74 @@ Then, I looked at the relationship between promis scores and fascicle measures (
 
 Proportion:
 Proportion within versus outside depression map correlated w/promis scores (33 analyses per group (11 promis domains x 3 networks [total, depression 25%, nondep 75%]))
-    - all participants (116)
-    - Depressed + nondepressed (82)
+    - all participants (121)
+    - Depressed + nondepressed (85)
     - Non-depressed alone (36)
-    - Depressed alone (46)
+    - Depressed alone (49)
 
 Proportion of individual fascicle affected related to promis scores (777 analyses per group (11 promis domains x 77 individual fascicles))
   - all participants (116)
-  - Depressed + nondepressed (82)
+  - Depressed + nondepressed (85)
   - Non-depressed alone (36)
-  - Depressed alone (46)
+  - Depressed alone (49)
   
 
 
 Volume:   
 
 Volume within versus outside depression map correlated w/promis scores (33 analyses per group (11 promis domains x 3 networks [total, depression 25%, nondep 75%]))
-   - all participants (116)
-    - Depressed + nondepressed (82)
+   - all participants (121)
+    - Depressed + nondepressed (85)
     - Non-depressed alone (36)
-    - Depressed alone (46)
+    - Depressed alone (49)
   
 Volume of individual fascicle affected related to promis scores  (777 analyses per group (11 promis domains x 77 individual fascicles))
-  - all participants (116)
-  - Depressed + nondepressed (82)
+  - all participants (121)
+  - Depressed + nondepressed (85)
   - Non-depressed alone (36)
-  - Depressed alone (46)
+  - Depressed alone (49)
 
 
 Promis results:
-Interestingly, across all 11 scores, with the exception of fatigue, Depressed patients have lower scores (lower = worse functioning), than non-depressed patients. controls. They all fdr correct. What I love about this is fatigue not being different. If fatigue was worse in depressed patients, one could argue that quality of life, health, emotional problems, social activities, etc are all worse because of underlying fatigue. Similarly, as fatigue is a component of the PHQ9 and depression screening, this could be confounding. That they were different in a lot of measures but not fatigue is informative.
+Interestingly, across all 10 scores, with the exception of fatigue, Depressed patients have lower scores (lower = worse functioning), than non-depressed patients. controls. They all fdr correct. What I love about this is fatigue not being different. If fatigue was worse in depressed patients, one could argue that quality of life, health, emotional problems, social activities, etc are all worse because of underlying fatigue. Similarly, as fatigue is a component of the PHQ9 and depression screening, this could be confounding. That they were different in a lot of measures but not fatigue is informative.
 
-Quality_of_Life	0.015199144			
-Physical_Health	0.012579264			
-Mental_Health_and_Mood	0.012579264			
-Social_Activities_Satisfaction	0.001063449			
-Carrying_Out_Social_Activities	0.011375799			
-Carrying_Out_Physical_Activities	0.031616473			
-Emotional_Problems	0.011270683			
-Fatique_Average	0.231497853			
-PostOp.PROMIS.Physical.Score	0.041172446			
-PostOp.PROMIS.Mental.Score	0.001253404	
+Quality_of_Life	0.010			
+Physical_Health	0.019			
+Mental_Health_and_Mood	0.011		
+Social_Activities_Satisfaction	0.001		
+Carrying_Out_Social_Activities	0.007			
+Carrying_Out_Physical_Activities	0.032			
+Emotional_Problems	0.011			
+Fatique_Average	0.181			
+PostOp.PROMIS.Physical.Score	0.032			
+PostOp.PROMIS.Mental.Score	0.001	
 
 Proportion
 Proportion within versus outside depression map correlated w/promis scores - NO SIGNIFICANT FINDINGS
-    - all participants (116)
-    - Depressed + nondepressed (82)
-    - Non-depressed alone (36)
-    - Depressed alone (46)
+  - all participants (121)
+  - Depressed + nondepressed (85)
+  - Non-depressed alone (36)
+  - Depressed alone (49)
 
 Proportion of individual fascicle affected related to promis scores-  NO SIGNIFICANT FINDINGS
-  - all participants (116)
-  - Depressed + nondepressed (82)
+  - all participants (121)
+  - Depressed + nondepressed (85)
   - Non-depressed alone (36)
-  - Depressed alone (46)
+  - Depressed alone (49)
   
 Volume     
 Volume within versus outside depression map correlated w/promis scores -  NO SIGNIFICANT FINDINGS
-   - all participants (116)
-    - Depressed + nondepressed (82)
-    - Non-depressed alone (36)
-    - Depressed alone (46)
-   
-Volume of individual fascicle affected related to promis scores-  NO SIGNIFICANT FINDINGS
-  - all participants (116)
-  - Depressed + nondepressed (82)
+  - all participants (121)
+  - Depressed + nondepressed (85)
   - Non-depressed alone (36)
-  - Depressed alone (46)
-
+  - Depressed alone (49)
+  
+Volume of individual fascicle affected related to promis scores-  NO SIGNIFICANT FINDINGS
+  - all participants (121)
+  - Depressed + nondepressed (85)
+  - Non-depressed alone (36)
+  - Depressed alone (49)
+  
 #### Using volume rather than proportion to determine inside vs outside depression network
 It occurred to me that defining the top 25% depression network has been done by looking at proportion overlap, where everything else seems to work best in volume. It made me wonder what would happen if I defined my top 25% network based on the absolute volume of overlap a fascicle had with the depression network, and ranked based on that (rather than the % of fascicle that overlapped). It tests a slightly different hypothesis, where the depression network is though of as a collection of fascicles that have the most dead ending or overlap, i.e. contribute the most volume to the network. Proportion, on the other hand, thinks more about the specificity of the fascicle - i.e. if the majority of a fascicle dead ends in the network, its activity is probably highly specific to the network. In a volume only, the value of that fascicle's contribution would be neglibile. Using volume = house of representatives. using overlap - senate.
 
@@ -364,15 +368,18 @@ df_demo_and_fascicles <- merge(df_demo_and_fascicles, lesion_volumes, by = c("EM
 ##########################################################
 #            Read in PROMIS Data              #
 ##########################################################
-promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_cleaned_n1694_unique_indiv_n501_2015-2022.rds"))
+#promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_cleaned_n1694_unique_indiv_n501_2015-2022.rds"))
+promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_20220824_fixed_physical_health_cleaned_n1813_unique_indiv_n532_2015-2022.rds"))
 promis_score_names <- names(promis_data[7:16]) 
 
 df_people_with_promis_data <- df_demo_and_fascicles %>%
-  filter(EMPI %in% promis_data$EMPI) #n=398
+  filter(EMPI %in% promis_data$EMPI) #n=416
 
-unique_empis_in_promis_group <- unique(df_people_with_promis_data$EMPI) #n=116
+unique_empis_in_promis_group <- unique(df_people_with_promis_data$EMPI) #n=121
 
 ```
+
+
 ```{r make_df_with_volume_instead_of_proportion}
 #I'll read in the volume of each fascicle, and multiply it by the proportion of volume loss in each subject, thereby returing the volume of the fascicle affected
 
@@ -656,6 +663,10 @@ print(plot_all_fascicles_r_and_l_sep_no_cranial_nerves)
 # of note, we do not have all cranial nerves represented, we only have, CNII (optic), III(oculomotor), V (trigeminal), VII(facial), VIII(vestibulocochlear)
 fascicle_values_dep_no_cranial_nerves = fascicle_values_dep_sorted_by_overlap[(grep(pattern = "CN", x = fascicle_values_dep_sorted_by_overlap$fascicle, invert = TRUE)),]
 
+just_fascicle_and_proportion <- fascicle_values_dep_no_cranial_nerves %>% dplyr::select(fascicle, prop_in_mask)
+
+write.table(file = paste0(homedir, "/results/fascicle_proportion_overlap_with_depression_network_n77.csv"), x = just_fascicle_and_proportion, sep = ",", row.names = F, col.names = FALSE, quote=F)
+
 #figure out how many fascicles that is, then 
 quartile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 4),0)
 
@@ -732,14 +743,19 @@ print(plot_all_fascicles_r_and_l_sep_no_cranial_nerves)
 # of note, we do not have all cranial nerves represented, we only have, CNII (optic), III(oculomotor), V (trigeminal), VII(facial), VIII(vestibulocochlear)
 fascicle_values_dep_no_cranial_nerves = fascicle_values_dep_sorted_by_overlap[(grep(pattern = "CN", x = fascicle_values_dep_sorted_by_overlap$fascicle, invert = TRUE)),]
 
+fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_values_dep_no_cranial_nerves %>%
+filter(fascicle%in% fascicle_names_no_cranial_nerves)
+
 #figure out how many fascicles that is, then 
 quartile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 4),0)
 
 #sort all the fascicles by %overlap, in decreasing order (so highest overlap at the top), and then take the top 1-quartile
 dep_network_names_top_quartile_no_cranial_nerves_by_vol<- (fascicle_values_dep_no_cranial_nerves[order(fascicle_values_dep_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:quartile] #n=19
+write.table(dep_network_names_top_quartile_no_cranial_nerves_by_vol, file = paste0(homedir, "/results/dep_network_names_top_quartile_no_cranial_nerves_by_vol.txt"), quote = F, row.names = F, col.names = F)
+
 
 dep_network_total_volume_top_quartile_no_cranial_nerves <-
-sum(fascicle_volumes_dep_network$num_voxels_total[which(fascicle_volumes_dep_network$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)])
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)])
 
 
 
@@ -747,8 +763,10 @@ sum(fascicle_volumes_dep_network$num_voxels_total[which(fascicle_volumes_dep_net
 dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol <- fascicle_values_dep_no_cranial_nerves$fascicle[!(fascicle_values_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)] #n=68
 
 bottom_75_total_volume_no_cranial_nerves <-
-sum(fascicle_volumes_dep_network$num_voxels_total[which(fascicle_volumes_dep_network$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol)])
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol)])
 
+#### Calculate total volume in all non-cranial_nerve_network
+total_volume_all_full_fascicles <- dep_network_total_volume_top_quartile_no_cranial_nerves + bottom_75_total_volume_no_cranial_nerves
 #plot values within the depression network, and values outside of it
 
 fascicles_dep_25_percent_for_plot_no_cranial_nerves <- fascicle_values_dep_sorted_by_overlap[(fascicle_values_dep_sorted_by_overlap$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol),]
@@ -1344,17 +1362,32 @@ print(barplot_bottom_3_quartiles)
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
   filter(depGroupVar != 0)  %>% 
   mutate(total_fascicle_vol_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(sum_fascicle_vol_lost = rowSums(across(fascicle_names_no_cranial_nerves))) %>%
+  mutate(proportion_volume_lost_per_total_network_size_sum = sum_fascicle_vol_lost/total_volume_all_full_fascicles) %>%
+  
   mutate(total_fascicle_vol_lost_indepnet_top_quartile = 
            rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves_by_vol))) %>%
+  mutate(sum_fascicle_vol_lost_indepnet_top_quartile = 
+           rowSums(across(dep_network_names_top_quartile_no_cranial_nerves_by_vol))) %>%
   mutate(prop_fascicle_vol_lost_indepnet_top_quartile = (total_fascicle_vol_lost_indepnet_top_quartile / dep_network_total_volume_top_quartile_no_cranial_nerves)) %>%
+  mutate(proportion_volume_lost_dep_net_by_network_size_sum = sum_fascicle_vol_lost_indepnet_top_quartile /dep_network_total_volume_top_quartile_no_cranial_nerves) %>%
+ 
+  
   mutate(total_fascicle_vol_lost_nondep_bottom_3_quartiles = 
            rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol))) %>%
+  mutate(sum_fascicle_vol_lost_nondep_bottom_3_quartiles = 
+           rowSums(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol))) %>%
+  mutate(prop_fascicle_vol_lost_bottom_3_quartile = (total_fascicle_vol_lost_nondep_bottom_3_quartiles / bottom_75_total_volume_no_cranial_nerves)) %>% 
+   mutate(proportion_volume_lost_nondep_net_by_network_size_sum = sum_fascicle_vol_lost_nondep_bottom_3_quartiles /bottom_75_total_volume_no_cranial_nerves) %>%
+    
   mutate(total_fascicle_vol_lost_no_cc = rowMeans(across(fascicle_names_no_cranial_nerves[fascicle_names_no_cranial_nerves!="CC"]))) %>%
-  mutate(prop_fascicle_vol_lost_bottom_3_quartile = (total_fascicle_vol_lost_nondep_bottom_3_quartiles / bottom_75_total_volume_no_cranial_nerves)) %>%
   mutate(total_fascicle_vol_lost_indepnet_top_quartile_no_cc = 
            rowMeans(across(dep_network_names_top_quartile_no_cranial_nerves_by_vol[dep_network_names_top_quartile_no_cranial_nerves_by_vol != "CC"]))) %>%
   mutate(total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc = 
            rowMeans(across(dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol[dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol != "CC"]))) %>%
+  
+  #remove people who didn't lose anything, i.e. bad data
+ # filter(total_fascicle_vol_lost != 0) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
@@ -1382,6 +1415,15 @@ msdisease_within_versus_outside_depression_network_scaled_by_network_size <- t.t
 #2.2 *10^-16
 msdisease_within_versus_outside_depression_network_scaled_by_network_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_bottom_3_quartile, paired = TRUE) 
 
+### use sums instead of means
+#wilcox test because non normally distributed; sums instead of means, scaled by network size p < 2.2*10^-16
+msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum,paired = TRUE) 
+
+#wilcox test because non normally distributed; sums instead of means, scaled by network size, only in non_dep people p < 2.2*10^-16
+msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon_nondep <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], paired = TRUE) 
+
+#wilcox test because non normally distributed; sums instead of means, scaled by network size, only in dep people p < 2.2*10^-16
+msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon_dep <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired = TRUE) 
 
 
 #test whether volume lost overall different between depressed and healthy- Yes, p = 0.045, Dep = 9382, Non dep = 8260
@@ -1402,6 +1444,79 @@ total_volume_lost_dep_vs_healthy_unique_in_bottom_3_quartiles <- t.test(dep_and_
 
 #gut check, this should be identical, since CC not in bottom 3 quartiles; p = 0.07, dep = 4198, non dep = 3740
 total_volume_lost_dep_vs_healthy_unique_in_bottom_3_quartiles_no_cc <- t.test(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #mean dep = 30%, mean non_dep = 27%, p = 0.057
+
+
+
+#### interaction of diagnosis by network
+
+scale=1
+
+df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
+  mutate(subject = as.factor(EMPI)) %>%
+  mutate(diagnosis = as.factor(depGroupVar)) %>%
+  mutate(Dep_network = proportion_volume_lost_dep_net_by_network_size_sum) %>%
+  mutate(Nondep_network = proportion_volume_lost_nondep_net_by_network_size_sum) %>%
+  #mutate(Dep_network_affected = total_fascicle_vol_lost_indepnet_top_quartile) %>%
+  #mutate(Nondep_network_affected = total_fascicle_vol_lost_nondep_bottom_3_quartiles) %>%
+  dplyr::select(subject, diagnosis, Dep_network, Nondep_network) %>% 
+  gather(network, proportion_affected, -subject, -diagnosis) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
+ # mutate(network_size = ifelse(network == "Dep_network", dep_network_total_volume_top_quartile_no_cranial_nerves/scale, bottom_75_total_volume_no_cranial_nerves/scale)) %>%
+#  mutate(total_affected_volume_in_net = (proportion_affected * network_size)) %>% 
+  ungroup()
+  
+   
+#df_empi_dx_network_proportions <- as.data.frame(df_empi_dx_network_proportions)
+
+
+
+diagnosis_by_network_interaction_lmer <- lmer(proportion_affected ~ network*diagnosis + (1|subject), data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer)
+
+diagnosis_by_network_interaction_lmer_main_effects <- lmer(proportion_affected ~ network+diagnosis + (1|subject), data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer_main_effects)
+
+diagnosis_by_network_interaction_lmer_plot <- plot_model(diagnosis_by_network_interaction_lmer, type = "int")
+print(diagnosis_by_network_interaction_lmer_plot)
+
+#diagnosis_by_network_interaction_glmer <- glmer(cbind(total_affected_volume_in_net, network_size-total_affected_volume_in_net) ~ network*diagnosis + (1|subject), data = df_empi_dx_network_proportions, family = binomial(link="logit")) 
+#summary(diagnosis_by_network_interaction_glmer )
+
+#diagnosis_by_network_interaction_glmer_plot  <- plot_model(diagnosis_by_network_interaction_glmer , type = "int")
+#print(diagnosis_by_network_interaction_glmer_plot)
+
+
+#pred_df <- df_empi_dx_network_proportions %>% 
+ #          dplyr::select(network,diagnosis) %>% 
+  #         expand.grid() %>% distinct() %>% mutate(subject = rep(df_empi_dx_network_proportions$subject[1], 4))
+ 
+
+#predicted_values_means_glmer <- predict(object=diagnosis_by_network_interaction_glmer,newdata=pred_df,se.fit=TRUE, re.form=NA, type = "response")
+
+#predicted_values_means_lmer <- predict(object=diagnosis_by_network_interaction_lmer,newdata=pred_df,se.fit=TRUE, re.form=NA, type = "response")
+
+
+#pred_lmer <- merTools::predictInterval(diagnosis_by_network_interaction_lmer, newdata =pred_df, n.sims = 999, which = "fixed")
+
+#pred_glmer <- merTools::predictInterval(diagnosis_by_network_interaction_glmer, newdata = pred_df, n.sims = 999, which="fixed")
+
+#pred_df_lmer_w_ci <- cbind(pred_df, pred_lmer)
+#pred_df_glmer_w_ci <- cbind(pred_df, pred_glmer)
+
+#plot_pred_df_lmer_plot <- ggplot(pred_df_lmer_w_ci,aes(x=network,y=fit,color=diagnosis, group=diagnosis, ymax=upr,ymin=lwr)) +
+ #  geom_point(position = position_dodge(width=0.5),size=1) + geom_errorbar(size=1,position = position_dodge(width=0.5),width=.5)+geom_line(position = position_dodge(width=0.5),size=1) 
+#  ylim(0.2,0.5)
+
+#plot_pred_df_glmer_plot <- ggplot(pred_df_glmer_w_ci,aes(x=network,y=fit,color=diagnosis, group=diagnosis, ymax=upr,ymin=lwr)) +
+   #geom_point() + geom_errorbar()+geom_line()
+
+#geom_point(aes(color=diagnosis)) + geom_line(aes(color=diagnosis)) + geom_errorbar()
+
+
+#ggplot(pred_df,aes(x=network,y=mean,color=diagnosis,ymax=upper_ci,ymin=lower_ci)) + geom_point() + geom_errorbar()+geom_line()
+#predicted_values_ces <- predict(object=diagnosis_by_network_interaction_glmer,newdata=pred_df,se.fit=TRUE, re.form=NA)
+
+#binomial, model needs to account for the fact that you can't have values outside of the 0-1 range. Change families because outcome variable not from a normal distribution. 
+
 
 
 ############
@@ -1638,7 +1753,7 @@ violin_mean_fascicle_volume_nondep <- ggplot(df_mean_fascicle_volumes_and_diagno
 print(violin_mean_fascicle_volume_nondep) 
 
 # geom violin within vs outside depression network
-dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+dep_net_group <- c(rep("Dep_net", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Non_dep_net",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
 net_values <- c(df_mean_fascicle_volumes_and_diagnosis$total_fascicle_vol_lost_indepnet_top_quartile, df_mean_fascicle_volumes_and_diagnosis$total_fascicle_vol_lost_nondep_bottom_3_quartiles)
 
 newdf <- data.frame(dep_net_group, net_values)
@@ -1661,7 +1776,7 @@ violin_within_vs_outside_network_fascicle_volume <- ggplot(newdf, aes(x=dep_net_
 print(violin_within_vs_outside_network_fascicle_volume) #
 
 # geom violin within vs outside depression network, no cc
-dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+dep_net_group <- c(rep("Dep_net", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Non_dep_net",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
 net_values <- c(dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_indepnet_top_quartile_no_cc, dep_and_healthy_groups_for_ICD_analysis$total_fascicle_vol_lost_nondep_bottom_3_quartiles_no_cc)
 
 newdf_no_cc <- data.frame(dep_net_group, net_values)
@@ -1686,8 +1801,7 @@ print(violin_within_vs_outside_network_fascicle_volume_no_cc) #
 
 ### scaling by size of network
 
-
-dep_net_group <- c(rep("Dep_net", times = 380), rep("Non_dep_net",times = 380))
+dep_net_group <- c(rep("Dep_net", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Non_dep_net",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
 net_values <- c(dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_indepnet_top_quartile, dep_and_healthy_groups_for_ICD_analysis$prop_fascicle_vol_lost_bottom_3_quartile)
 
 newdf_no_cc <- data.frame(dep_net_group, net_values)
@@ -1698,7 +1812,7 @@ violin_within_vs_outside_network_scaled_by_network_size <- ggplot(newdf_no_cc, a
   geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
   scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
   ggtitle(paste0("Proportion Fascicle Volume Affected by Network")) +
-  ylab("Proportion (tot volume lost/Net Vol) ") +
+  ylab("Proportion (mean tot volume lost/Net Vol) ") +
   ylim(0,0.1) + 
   theme(plot.title = element_text(size=16, hjust = 0.55),
         axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
@@ -1709,7 +1823,28 @@ violin_within_vs_outside_network_scaled_by_network_size <- ggplot(newdf_no_cc, a
         panel.background = element_rect(colour = "white", fill = "white"))
 print(violin_within_vs_outside_network_scaled_by_network_size) #
 
+#sums instead of means, scaling by size of network
+dep_net_group <- c(rep("Dep_net", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Non_dep_net",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
+net_values <- c(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum)
 
+newdf_no_cc <- data.frame(dep_net_group, net_values)
+
+#p = 2.2 x 10^-16. 
+violin_within_vs_outside_network_sum_proportion_scaled_by_network_size <- ggplot(newdf_no_cc, aes(x=dep_net_group, y=net_values, fill=dep_net_group)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
+  ggtitle(paste0("Proportion Fascicle Volume Affected by Network")) +
+  ylab("Proportion (sum total volume lost/Net Vol) ") +
+ # ylim(0,0.1) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(violin_within_vs_outside_network_sum_proportion_scaled_by_network_size) #
 
 ```
 
@@ -1976,7 +2111,7 @@ print(barplot_bottom_3_quartiles)
 ## FASCICLES TO BE INCLUDED ##
 ##############################
 
-#define the depression network (all areas that intersect with depression network, no cranial nerves)
+#dfectine the depression network (all areas that intersect with depression network, no cranial nerves)
 fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
 
 #fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
@@ -2385,11 +2520,12 @@ df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volum
 #then, make the data frame
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicle_volumes_full %>% 
   filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_vol_lost = rowMeans(across(fascicle_names_no_cranial_nerves))) %>%
+#  filter(total_fascicle_vol_lost != 0) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
   slice(1) %>% 
   ungroup()
-
 
 # lapply to get results of t-test in each fascicle
 #ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
