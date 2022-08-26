@@ -2260,3 +2260,167 @@ Corpus_Callosum_Forceps_Minor
 Corpus_Callosum_Body
 Corpus_Callosum_Tapetum
 Corpus_Callosum_Forceps_Major
+
+#### 20220819
+Try the within/between without cc
+make talk pretty
+
+#### 20220823
+[x] sarah weinstein about network enrichment on slack
+[x] scale by number of fibers in the depression network vs outside, rather than by fascicle. - works p < 2.2 *10^-16
+
+#### 20220824
+[x] keep talking with sarah
+  - Sarah and Taki like option three (sum all disease within each network, divide by size of network)
+[x] double check that wilcoxon is the right test to do given non normality. 
+[x] there are 2 people who have no disease at all on their scans. WIll check them, but it is possible that I should remove them, maybe the mimosa step broke.
+  - if i exclude those two people, findings are interesting - total overall volume lost not different between groups (p=0.06). Depression (p=0.046), nondepressed people = 0.096)
+  - I did check, they do have mimosas, but the mimosas seem to be in perhaps cranial nerve areas. I am going to keep as is for now.
+[] make clean notebook. Current one is excessive.
+
+#### 20220825
+[x] figure out how to do interaction
+       - need a data frame with two colums, diagnosis (1s and 2s), and dep network (1s and 2s). What is the measure? 
+       - Diagnosis    Dep Network   Proportion     Person
+           1            1               .39           1
+           1            2               .61           1
+           2            1               .22           2
+           2            2               .34           2
+           
+           model:
+           proportion disease ~ diagnosis*dep_net + (1 | person)
+[x] bart decided he wanted to do binomial instead of linear, realize that this is quite unstable given how big the numbers are
+- tried with a scale factor
+- tried 100000 and 10000, they give VERY big differences (i.e. dividing the number of total voxels in the network divided by the scale)
+- might be related to the false consideration that each voxel is independent, and the size of the data
+- in the end, will probably just do the linear model
+- everyone got greedy
+
+GOING BACK TO JUST LMER
+
+#### 20220826
+[] colors 
+  - redownloaded dsistudio from frank. Currently, fascicles need to have colors manually added
+  - script to make individual files for colors (rscript make_red_to_yellow_RGB_color_scheme.R)
+  - Also, if you give load a table with multiple lines, it will assign it to multiple fascicles in order! So I am just going to also just output the RGB values into a spreadsheet for reading in. 
+    [x] made table wmake_red_to_yello_RBG_color_scheme
+    [x] in dsi studio, added each tract manually
+      [x] double checked TWICE that fascicle order from fascicle_mean_proportion_overlap_nfasc_77_fascicle_names.txt is the same order that the fascicles are loaded in /Users/eballer/BBL/msdepression/templates/dti
+      [x] saved it All_77_tracts_no_cranial_nerves.gz.txt
+      [x] loaded colors (tracts misc/open cluster colors), navigate to /Users/eballer/BBL/msdepression/templates/dti/colors, and selected: fascicle_mean_proportion_overlap_nfasc_77_rgb.txt
+      [x] looked at the pretty pictures!, red is lower proportion, yellow is higher proportion
+      [x] wow, so pretty! Challenge is that it assumes there are equal values from 0-1, so if the max is low, it scales incorrectly. Will try to set max to be the max proportion, and scale based on that.
+      [x] now you can scale!
+*********
+  - To open the collection of fascicles: in dsistudio, in t3D tracts (right next to autotracking), click the button. 
+  - open /Users/eballer/BBL/msdepression/templates/dti/colors/All_77_tracts_colored_by_overlap_w_dep_map.tt.gz
+  - it gives you each cluster in order, labeled 0 through 76. These were cross referenced with size of the named fascicles to confirm THEY ARE IN ORDER OF RGB MAPS
+  
+  **********
+  - Another way to do this
+      - Open dsistudio
+      - click on fib file to open: /Users/eballer/BBL/msdepression/templates/dti/1904002815.src.gz.odf8.f5.gqi.1.25.fib.gz
+      - once in studio, in t3d on right hand corner, click the folder
+      - open /Users/eballer/BBL/msdepression/templates/dti/colors/All_77_tracts_colored_by_overlap_w_dep_map.tt.gz (should load in the order I want)
+      - click each of the boxes
+      - confirm order is what I want
+      - load colors : /Users/eballer/BBL/msdepression/templates/dti/colors, and selected: fascicle_mean_proportion_overlap_nfasc_77_rgb.txt (or whatever color I want)
+      - available color maps at this time (constructed in make_red_to_yellow_RGB_color_scheme):
+      "fascicle_mean_proportion_overlap_nfasc_77", "fascicle_proportion_overlap_with_depression_network_n77"
+  *********
+  
+***********
+   - Now just need to find a way to make a color scale like in afni, a bar of sorts
+[x] made separate spreadsheet for fascicles and their overlap with the depression network so I could get colors for them
+``` {r writing}
+#line 660 through 664 msdepression_n380_started_20220726
+
+just_fascicle_and_proportion <- fascicle_values_dep_no_cranial_nerves %>% dplyr::select(fascicle, prop_in_mask)
+
+write.table(file = paste0(homedir, "/results/fascicle_proportion_overlap_with_depression_network_n77.csv"), x = just_fascicle_and_proportion, sep = ",", row.names = F, col.names = FALSE, quote=F)
+
+```
+
+[x] promis - updated, everything looks good, fatigue not different, all other findings going in expected direction, physical and mental health are now different
+
+``` {r make_red_to_yellow_RGB_color_scheme.R}
+#### Welcome to make_red_to_yellow_RGB_color_scheme! ####
+
+### I developed this script because I wanted to make my own RGB color palettes for DSI studio. 
+### In short, I want to color each fascicle to be its proportion of loss, scaled on the RGB scale
+### In order to do this, I needed to figure out how to map my proportions to RGB
+
+### Pre: File of proportions
+### Post: Output of RGB values in Red to Yellow Scale for the Proportions
+### Uses: Step 0: Figure out how to scale from red to yellow 
+###           - Red = 255 0 0, yellow 255 255 0
+###           - Means that we need to vary the middle value (255) to get where we need to be
+###       Step 1) For red to yellow, calculate the step (i.e. how much each value will be)
+###             - because my proportions are out of 1, I wanted each step to be 1/100
+###             - I am setting this value as "max", so it could vary if you have another max #
+###       Step 2) Multiply the proportion by 100, so now each count is 1-100, in percents
+###       Step 3) Multiply the percent by the step
+###       Step 4) Save this value in that fascicle, 255 [new_value] 0
+###
+### Dependencies: Any R will do
+
+###
+homedir="/Users/eballer/BBL/msdepression/"
+
+files = c("fascicle_mean_proportion_overlap_nfasc_77", "fascicle_proportion_overlap_with_depression_network_n77")
+
+for (filename in files) {
+  #suffix
+  suffix = paste0("_", filename, "_RGB")
+  
+  #read in file with fascicle name and proportion
+  fascicle_name_and_prop <- read.csv(paste0(homedir, "/results/", filename, ".csv"), sep = ",", header = F)
+  names(fascicle_name_and_prop) <- c("fascicle", "proportion")
+  
+  #set scale dynamically
+  #highest possible number in scale
+  max<-100 * max(fascicle_name_and_prop$proportion)
+  
+  #step that each value in our scale will correspond to
+  step<-255/max 
+  
+  # make a column for red
+  red <- rep(x=255, times = 77)
+  
+  fascicle_name_and_prop$red <- red
+  #multiply proportion column by 100, then by step, and round
+  fascicle_name_and_prop$green<- round((fascicle_name_and_prop$proportion *100*step),0)
+  
+  #make column for blue
+  blue <- rep(x=0, times = 77)
+  fascicle_name_and_prop$blue=blue
+  
+  #sort based on proportion to check, it works! Lower values are associated with lower RGB
+  #sorted <- fascicle_name_and_prop[order(fascicle_name_and_prop$proportion),]
+  
+  #make individual file colors for loading
+  for (fascicle in 1:dim(fascicle_name_and_prop)[1]) {
+    
+    fascicle_name = fascicle_name_and_prop$fascicle[fascicle]
+    fascicle_rgb = paste0(fascicle_name_and_prop$red[fascicle], " ", fascicle_name_and_prop$green[fascicle], " ", fascicle_name_and_prop$blue[fascicle])
+    print(paste0(fascicle_name, " ", fascicle_rgb))
+    write.table(file = paste0(homedir, "templates/dti/colors/", fascicle_name, suffix,".txt"), x = fascicle_rgb, quote = FALSE, col.names = FALSE, row.names = FALSE)
+    
+  }
+  
+  #output color file (77 lines, each represents a color), and color name vector. Not sure how to do 1:1 assignments rather than manually, but I'll see if I can figure that out!
+  fascicle_name_and_prop_rgb_only <- fascicle_name_and_prop %>%
+    mutate(rgb = paste0(fascicle_name_and_prop$red, " ", fascicle_name_and_prop$green, " ", fascicle_name_and_prop$blue)) %>%
+    dplyr::select(fascicle, rgb)
+  
+  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, "_fascicle_names.txt"), x = fascicle_name_and_prop_rgb_only$fascicle, row.names = FALSE, col.names = FALSE, quote = FALSE)
+  
+  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, "_rgb.txt"), x = fascicle_name_and_prop_rgb_only$rgb, row.names = FALSE, col.names = FALSE, quote = FALSE)
+}
+```
+
+
+#### 20220830
+
+[] play with visualizations. Could probably have a map that has blue for non dep, and yellow for dep
+
