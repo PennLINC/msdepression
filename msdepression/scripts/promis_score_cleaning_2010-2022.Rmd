@@ -1,0 +1,78 @@
+---
+title: "Cleaning PROMIS scores"
+author: "Erica Baller"
+date: '2022-08-02'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Goal of this script is to clean the promis scores and assemble them in a better table format for later processing.
+
+Number of non NA values for each of the promis scores:
+
+General_Health                  Quality_of_Life                  Physical_Health 
+                            1694                             1693                             1503                             1503 
+          Mental_Health_and_Mood   Social_Activities_Satisfaction   Carrying_Out_Social_Activities Carrying_Out_Physical_Activities 
+                            1503                             1503                             1501                             1499 
+              Emotional_Problems                  Fatique_Average     PostOp.PROMIS.Physical.Score       PostOp.PROMIS.Mental.Score 
+                            1499                             1499                             1440                             1442 
+
+```{r score_cleaning}
+#before doing this, must save the promis score spreadsheet, /Users/eballer/BBL/msdepression/data/dac/copyofpromisflowsheetdata2010-2022.xlsx in two separate csv files (because it has two tabs). This was done manually and separated by date. New files are:
+#/Users/eballer/BBL/msdepression/data/dac/promis_data_2015.csv
+#/Users/eballer/BBL/msdepression/data/dac/promis_data_2016-2022.csv
+
+#read in spreadsheets
+promis_data_2015 <- read.csv("/Users/eballer/BBL/msdepression/data/dac/promisflowsheetdataupdated_good_physical_health_scores_20220824_sheet1.csv", sep = ",", header = T) #n=2041
+promis_data_2016_2022 <- read.csv("/Users/eballer/BBL/msdepression/data/dac/promisflowsheetdataupdated_good_physical_health_scores_20220824_sheet2.csv", sep = ",", header = T)#n=
+
+promis_data_combined <- rbind(promis_data_2015, promis_data_2016_2022) #n=6916
+
+#promis score names, from 7th column all the way to the end of the spreadsheet, starting with general health to PostOp.PROMIS.Mental.Score
+
+promis_score_names <- names(promis_data_combined[7:dim(promis_data_combined)[2]-1]) 
+
+##### cleaning ####
+
+#total scores n=1694
+promis_data_cleaned <- promis_data_combined %>%
+  mutate(across(everything(), gsub, pattern = "NULL", replacement = "NA")) %>% #replace null with NA for easier use
+  filter(RECORDED_TIME != "NA") %>% #remove nulls in Recorded time
+  mutate(date_promis_collected = as.Date(RECORDED_TIME, format = "%m/%d/%y")) %>% 
+  mutate(date_promis_collected = gsub(date_promis_collected, pattern = "-", replacement = "")) %>% #get time into better format, now matches other spreadsheet
+  mutate(year_promis_collected = gsub(date_promis_collected, pattern = "\\d{4}$", replacement = "")) %>% #make new column that just as date and change to numeric
+  mutate(across(everything(), gsub, pattern = "\\s*-.*", replacement = "")) %>% #\\s = whitespace, .* any character, replace with blank, to clean the text up
+  mutate_at(promis_score_names, as.numeric) %>% #convert columns from character to numeric
+  mutate(year_promis_collected = as.numeric(year_promis_collected)) %>% #convert to numeric
+  mutate(RECORDED_TIME = as.Date(RECORDED_TIME, format = "%m/%d/%y")) #turn back into date format
+
+
+
+#histos
+hist(promis_data_cleaned$year_promis_collected) #want to see spread of when scores collected
+
+for (i in promis_score_names) {
+  eval_for_parse <- paste0("hist(promis_data_cleaned$", i, ")")
+  eval(parse(text=eval_for_parse))
+}
+
+#look at number of samples in each column promis_data_cleaned
+colSums(!is.na(promis_data_cleaned)) 
+
+unique_individuals <- promis_data_cleaned %>% 
+  group_by(EMPI) %>% 
+  slice(1) %>%
+  ungroup #n = 501
+
+total_num_promis_scores <- dim(promis_data_cleaned)[1] #n= 1694
+
+num_unique_indiv <- dim(unique_individuals)[1] #n=501
+
+saveRDS(promis_data_cleaned, file = paste0("/Users/eballer/BBL/msdepression/data/dac/promis_data_20220824_fixed_physical_health_cleaned_n", total_num_promis_scores, "_unique_indiv_n", num_unique_indiv, "_2015-2022.rds"))
+```
+
