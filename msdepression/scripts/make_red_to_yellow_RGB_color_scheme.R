@@ -19,13 +19,18 @@
 ### Dependencies: Any R will do
 
 ###
+
+### gradients
+## red-yellow - R always 255, green scaled (0 is red, 255 is yellow), blue always 0
+## pink gradient (pg) - Red always 255, green scaled 0 to 255 , blue always 255
+
 homedir="/Users/eballer/BBL/msdepression/"
 
-files = c("fascicle_mean_proportion_overlap_nfasc_77", "fascicle_proportion_overlap_with_depression_network_n77")
+files = c("fascicle_mean_proportion_overlap_nfasc_77", "fascicle_proportion_overlap_with_depression_network_n77", "fascicle_and_effect_size_for_volxdx_analysis_n77")
 
 for (filename in files) {
   #suffix
-  suffix = paste0("_", filename, "_RGB")
+  suffix = "_pg" #pink gradient
   
   #read in file with fascicle name and proportion
   fascicle_name_and_prop <- read.csv(paste0(homedir, "/results/", filename, ".csv"), sep = ",", header = F)
@@ -39,29 +44,34 @@ for (filename in files) {
   step<-255/max 
   
   # make a column for red
+  
   red <- rep(x=255, times = 77)
   
   fascicle_name_and_prop$red <- red
   #multiply proportion column by 100, then by step, and round
-  fascicle_name_and_prop$green<- round((fascicle_name_and_prop$proportion *100*step),0)
+ # fascicle_name_and_prop$green<- round((fascicle_name_and_prop$proportion *100*step),0)
+  fascicle_name_and_prop$green<- 255-round((fascicle_name_and_prop$proportion *100*step),0) #for pg, I want darker colors to be more sig
+  
   
   #make column for blue
-  blue <- rep(x=0, times = 77)
+ # blue <- rep(x=0, times = 77)
+  blue <- rep(x=255, times = 77)
   fascicle_name_and_prop$blue=blue
   
   #sort based on proportion to check, it works! Lower values are associated with lower RGB
   #sorted <- fascicle_name_and_prop[order(fascicle_name_and_prop$proportion),]
   
   #make individual file colors for loading
-  for (fascicle in 1:dim(fascicle_name_and_prop)[1]) {
+  #for (fascicle in 1:dim(fascicle_name_and_prop)[1]) {
     
-    fascicle_name = fascicle_name_and_prop$fascicle[fascicle]
-    fascicle_rgb = paste0(fascicle_name_and_prop$red[fascicle], " ", fascicle_name_and_prop$green[fascicle], " ", fascicle_name_and_prop$blue[fascicle])
-    print(paste0(fascicle_name, " ", fascicle_rgb))
-    write.table(file = paste0(homedir, "templates/dti/colors/", fascicle_name, suffix,".txt"), x = fascicle_rgb, quote = FALSE, col.names = FALSE, row.names = FALSE)
+   # fascicle_name = fascicle_name_and_prop$fascicle[fascicle]
+  #  fascicle_rgb = paste0(fascicle_name_and_prop$red[fascicle], " ", fascicle_name_and_prop$green[fascicle], " ", fascicle_name_and_prop$blue[fascicle])
+  #  print(paste0(fascicle_name, " ", fascicle_rgb))
+  #  write.table(file = paste0(homedir, "templates/dti/colors/", fascicle_name, "_", filename, suffix,".txt"), x = fascicle_rgb, quote = FALSE, col.names = FALSE, row.names = FALSE)
     
-  }
-  
+  #}
+
+           
   #output color file (77 lines, each represents a color), and color name vector. Not sure how to do 1:1 assignments rather than manually, but I'll see if I can figure that out!
   fascicle_name_and_prop_rgb_only <- fascicle_name_and_prop %>%
     mutate(rgb = paste0(fascicle_name_and_prop$red, " ", fascicle_name_and_prop$green, " ", fascicle_name_and_prop$blue)) %>%
@@ -69,7 +79,7 @@ for (filename in files) {
   
   write.table(file = paste0(homedir, "/templates/dti/colors/", filename, "_fascicle_names.txt"), x = fascicle_name_and_prop_rgb_only$fascicle, row.names = FALSE, col.names = FALSE, quote = FALSE)
   
-  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, "_rgb.txt"), x = fascicle_name_and_prop_rgb_only$rgb, row.names = FALSE, col.names = FALSE, quote = FALSE)
+  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, suffix, ".txt"), x = fascicle_name_and_prop_rgb_only$rgb, row.names = FALSE, col.names = FALSE, quote = FALSE)
 }
 
 
