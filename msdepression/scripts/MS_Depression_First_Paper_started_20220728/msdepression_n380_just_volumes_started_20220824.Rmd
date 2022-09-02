@@ -19,8 +19,12 @@ library(boot)
 library(boot.pval)
 library(lsr)
 library(sjPlot)
+library(coin)
+library(rstatix)
+
 #functions
 source("~/BBL/msdepression/scripts/msdepression_functions.R")
+#source("~/BBL/msdepression/scripts/wilcox_effsize.R")
 ```
 
 Read in Data and do some preprocessing
@@ -80,8 +84,6 @@ fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_
 fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
 fascicle_names_no_cranial_nerves <- fascicle_names[grep("CN", fascicle_names, invert = TRUE)] #n=77, drop cranial nerves
 
-#write.table(fascicle_names,"/Users/eballer/BBL/msdepression/templates/dti/HCP_YA1065_tractography/fascicle_names.csv", row.names = F, quote = F, col.names = F)
-
 #add suffix to each measure
 fascicle_names_w_prop_suffix <- gsub(pattern = "(.*)", replacement = "\\1_prop", perl=TRUE, x = fascicle_names_no_cranial_nerves)
 fascicle_names_w_vol_suffix <- gsub(pattern = "(.*)", replacement = "\\1_vol", perl=TRUE, x = fascicle_names_no_cranial_nerves)
@@ -92,20 +94,6 @@ fascicle_names_w_vol_suffix <- gsub(pattern = "(.*)", replacement = "\\1_vol", p
 ########
 
 fascicle_volumes_dep <- read.csv(paste0(homedir, "results/streamline_volume_within_dep_network_3_09.csv"), header = T, sep = ",")
-
-#add column to indicate whether does not meet criteria for inclusion in dep mask (0), any overlapping voxels (1), or >10% overlapping voxels (2)
-#fascicle_volumes_dep_network <- fascicle_volumes_dep %>%
- # replace(is.na(.), 0) %>%
-#  mutate(inDepMask=case_when(prop_in_mask == 0 ~ 0, (prop_in_mask > 0 & prop_in_mask < 0.1) ~ 1, prop_in_mask >= 0.1 ~ 2))
-
-
-
-#Write out the new network groupings to a file, will be used later
-#fascicle_names_dep_network_grouping <- paste0(homedir,  "/templates/dti/HCP_YA1065_tractography/fascicle_names_dep_network_grouping_3_09.csv")
-#write.table(fascicle_volumes_dep_network, file=fascicle_names_dep_network_grouping, sep = ",", col.names=T)#, row.names = F, quote = F, col.names = T)
-
-#fascicle_mapping, returns numerical mapping as well as names of tracts, and whether any overlap with depression network (anything above 1 is overlap), as well as whether the fascicle overlaps, and the proportion of overlap with yeo networks
-#fascicle_bundle_mapping <- get_fascicle_bundle_mapping_generic_dep_mask(dep_network_grouping_file = fascicle_names_dep_network_grouping)
 
 ##########################################################
 #             Read in Lesion Volumes                     #
@@ -131,13 +119,17 @@ df_demo_and_fascicles <- merge(df_demo_and_fascicles, lesion_volumes, by = c("EM
 #read in fiber volume values
 fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
 
+#remove cranial nerves
+fiber_volume_values_no_cranial_nerves <- fiber_volume_values %>% filter(fascicle %in% fascicle_names_no_cranial_nerves)
+
 #extract data frame that only includes the fascicle proportion lost
 df_fascicles_prop <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names_no_cranial_nerves)]
 df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names_no_cranial_nerves)]
 
 #multiply each row by the vector of total volumes to extract volume of disease within fascicle
 df_fascicles_volumes <- sweep(x = df_fascicles_prop, MARGIN = 2,                        # Sweep with Complex STATS
-                  STATS = fiber_volume_values$volume_full, FUN = "*")
+                  STATS = fiber_volume_values_no_cranial_nerves$volume_full, FUN = "*") %>%
+  mutate_if(is.numeric, round) #round all values
 
 # change name of df_fascicle_volumes to have the suffix, and add a suffix for the proportion measures
 names(df_fascicles_prop) <- fascicle_names_w_prop_suffix
@@ -150,13 +142,13 @@ df_demo_and_fascicles_prop_and_vol <- cbind(df_everything_else, df_fascicles_pro
 
 
 ```
-PROMIS DATA HANDLING to link a person to their most proximal promis
+PROMIS DATA HANDLING to link a person to their most proximal PROMIS
 
 ```{r promis_data_handling}
 ##########################################################
 #            Read in PROMIS Data              #
 ##########################################################
-promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_cleaned_n1694_unique_indiv_n501_2015-2022.rds"))
+promis_data <- readRDS(paste0(homedir, "/data/dac/promis_data_20220824_fixed_physical_health_cleaned_n1813_unique_indiv_n532_2015-2022.rds"))
 promis_score_names <- names(promis_data[7:16]) 
 
 df_people_with_promis_data <- df_demo_and_fascicles_prop_and_vol %>%
@@ -166,7 +158,7 @@ unique_empis_in_promis_group <- unique(df_people_with_promis_data$EMPI) #n=116
 
 #go through each person w/promis data and append the columns to their row that reflects the closest collected PROMIS
 
-#function, take an empi and date, returns a column of promis scores
+#function, take an empi and date, returns the row of data w/promis scores
 get_closest_promis_to_ms_exam_date <- function(subj_empi, subj_exam_date) {
   df_closest_promis <- promis_data %>%
     filter(EMPI == subj_empi) %>%
@@ -182,10 +174,13 @@ names(promis_info_closest_proximity) <- c(names(promis_data), "distance_from_sca
 
 for (line in 1:dim(df_people_with_promis_data)[1]) {
   #pull out subject empi and exam date
-  print(line)
   subj_empi <- df_people_with_promis_data$EMPI[line]
   subj_exam_date <- df_people_with_promis_data$BEGIN_EXAM_DTTM[line]
-  closest_promis_data <- get_closest_promis_to_ms_exam_date(subj_empi = subj_empi, subj_exam_date = subj_exam_date)
+  
+  #returns whole line, promis scores, id, empi, everything
+  closest_promis_data <- get_closest_promis_to_ms_exam_date(subj_empi = subj_empi, subj_exam_date = subj_exam_date) 
+
+  #store as new line
   promis_info_closest_proximity[line,] = closest_promis_data
 }
 
@@ -197,6 +192,7 @@ df_people_with_promis_data_scores_added = cbind(df_people_with_promis_data, prom
 
 #summarize the distance from scans
 summary(df_people_with_promis_data_scores_added$distance_from_scan/364) #mean 2.40 ys, median 2.10 years, range 0.003 y to 6.83 years
+
 hist(df_people_with_promis_data_scores_added$distance_from_scan/364, 
      main = "Hisogram of years between Promis and Scan",
      xlab = "Years from Scan") #convert to years
@@ -228,6 +224,85 @@ df_people_with_promis_data_scores_added_unique <- df_people_with_promis_data_sco
 make_demographics_table_ms_w_promis(data_frame = df_people_with_promis_data_scores_added_unique)
 
 ```
+
+
+
+Define Depression Network by Volume of Overlap
+```{r visualize_depression_network_volume}
+###################################################
+### Defining and Visualizing Depression Network ###
+###################################################
+
+#This chunk reads in a file where columns are fascicle, num_voxels_total, non_zero_voxels_in_dep_map, prop_in_mask
+# by the end, the depression mask will be defined
+# We consider fascicles in the depression network to be the ones that share the most VOLUME with the depression mask
+# Of course, it is possible that huge fascicles contribute a ton to the depression network, but also the non-depression network
+# And to get at specificity (i.e. which fibers most exclusively send information within the depression network), we could look at proportion of the fiber (volume that intersects / total volume of the fascicle). But then you have a situation where tiny fibers get lots of credit. We have actually tried this as well and the findings aren't that different. 
+#But for the sake of this paper, will do volume because the question is all volume based (volume of lesions to volume of fascicles)
+
+
+######## Histograms for depression network
+#first set the values to be the volumes
+fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_volumes_dep %>% filter(fascicle %in% fascicle_names_no_cranial_nerves)
+
+#set NAs to zero
+fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map[is.na(fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map)] = 0
+
+#sort based on overlap with depression depression map
+fascicle_volumes_dep_network_no_cranial_nerves$fascicle <- factor(fascicle_volumes_dep_network_no_cranial_nerves$fascicle, levels = fascicle_volumes_dep_network_no_cranial_nerves$fascicle[order(fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map)])
+
+#figure out how many fascicles are in top quartile
+quartile <- round((dim(fascicle_volumes_dep_network_no_cranial_nerves)[1] / 4),0)
+
+#sort all the fascicles by %overlap, in decreasing order (so highest overlap at the top), and then take names of the top quartile
+dep_network_names_top_quartile_no_cranial_nerves<- (fascicle_volumes_dep_network_no_cranial_nerves[order(fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:quartile] 
+
+#get names of bottom 3 quartiles
+
+#get a network that includes all of the fascicles NOT in dep 25% network
+dep_network_names_bottom_3_quartiles_no_cranial_nerves <- fascicle_volumes_dep_network_no_cranial_nerves$fascicle[!(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves)] 
+
+
+#### Get sums of the volumes of the fascicles in each network, and total sum
+
+#top quartile, depression network
+dep_network_total_volume_top_quartile_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves)])
+
+#bottom 3 quartiles, nondepression network
+bottom_75_total_volume_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves)])
+
+#### Calculate total volume in all non-cranial_nerve_network
+total_volume_all_full_fascicles <- dep_network_total_volume_top_quartile_no_cranial_nerves + bottom_75_total_volume_no_cranial_nerves
+
+###
+
+plot_all_fascicle_volumes_dep_network_no_cranial_nerves <-ggplot(data = fascicle_volumes_dep_network_no_cranial_nerves, aes(x = fascicle, y=non_zero_voxels_in_dep_map))+
+  ggtitle("Volume Overlap per Fascicle 3_09") + 
+  geom_bar(stat="identity", fill="006300") +
+  xlab("Fascicle") +
+  ylab("Overlap with Depression Mask") +
+  ylim(0,40000) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title = element_text(hjust = 0.5, size=14),
+        axis.title.x = element_text(size=14),
+        axis.title.y = element_text(size=14),
+        axis.line = element_line(size=1),
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(plot_all_fascicle_volumes_dep_network_no_cranial_nerves)
+
+### Change names to add suffix
+#replace each fascicle with vol suffix
+dep_network_names_top_quartile_no_cranial_nerves <- dep_network_names_top_quartile_no_cranial_nerves %>% 
+  gsub(pattern = "(.*)", replacement = "\\1_vol", perl=TRUE) #n=68, w/volume suffix
+
+dep_network_names_bottom_3_quartiles_no_cranial_nerves <- dep_network_names_bottom_3_quartiles_no_cranial_nerves %>%
+   gsub(pattern = "(.*)", replacement = "\\1_vol", perl=TRUE) #n=68, w/volume suffix
+```
+
+
+
 Compare overall volume of the lesions, irrespective of fascicle involvement, between diagnostic groups
 
 ```{r compare_overall_volume_of_lesions_dep_vs_non_dep}
@@ -240,7 +315,17 @@ dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles_prop_and_vol %>
   slice(1) %>% 
   ungroup()
 
-dep_vs_healthy_t_test_lesion_volume <-  t.test(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], var.equal = F) #p=0.07
+# Assessing Normality w/histograms and Shapiro_Wilk test for normality
+hist(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])
+non_dep_lesion_vol_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]) #W=0.77, p = 8.2 * 10^-14, NON-NORMAL
+
+hist(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])
+dep_lesion_vol_shapiro <- hist(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2])
+shapiro.test(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) #W=0.80, p = 2.2 * 10^-16, NON-NORMAL
+
+dep_vs_healthy_wilcoxon_lesion_volume_results <-  wilcox.test(dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$volume_of_mimosa_lesions[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired = F) #p=0.036; depressed = 15,871; nondepressed = 12,886
+
+dep_vs_healthy_wilcoxon_lesion_volume_eff_size <- rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis, formula = volume_of_mimosa_lesions ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = "perc", nboot = 1000)
 
 #extract overall volume and diagnosis
 df_lesion_volume_and_diagnosis <- dep_and_healthy_groups_for_ICD_analysis %>% 
@@ -264,93 +349,355 @@ violin_lesion_volume <- ggplot(df_lesion_volume_and_diagnosis, aes(x=depGroupVar
 print(violin_lesion_volume) #p=0.067
 
 ```
-Define Depression Network by Volume of Overlap
-```{r visualize_depression_network_volume}
-##########################################################
-#                 Histos                        #
-##########################################################
 
 
-######## Histograms for depression network
-#first set the values to be the volumes
-fascicle_volumes_dep_network_sorted_by_overlap <- fascicle_volumes_dep
 
-#set NAs to zero
-fascicle_volumes_dep_network_sorted_by_overlap$non_zero_voxels_in_dep_map[is.na(fascicle_volumes_dep_network_sorted_by_overlap$non_zero_voxels_in_dep_map)] = 0
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected}
+## compare disease within and outside depression network, between diagnoses, and interactions
 
-#sort based on overlap with depression depression map
-fascicle_volumes_dep_network_sorted_by_overlap$fascicle <- factor(fascicle_volumes_dep_network_sorted_by_overlap$fascicle, levels = fascicle_volumes_dep_network_sorted_by_overlap$fascicle[order(fascicle_volumes_dep_network_sorted_by_overlap$non_zero_voxels_in_dep_map)])
 
-#remove fascicles with cranial nerves
-fascicle_volumes_dep_network_no_cranial_nerves <- fascicle_volumes_dep_network_sorted_by_overlap %>% filter(fascicle %in% fascicle_names_no_cranial_nerves)
+###############################
+### Constructing Data Frame ###
+###############################
 
-plot_all_fascicle_volumes_dep_network_no_cranial_nerves <-ggplot(data = fascicle_volumes_dep_network_no_cranial_nerves, aes(x = fascicle, y=non_zero_voxels_in_dep_map))+
-  ggtitle("Volume Overlap per Fascicle 3_09") + 
-  geom_bar(stat="identity", fill="006300") +
-  xlab("Fascicle") +
-  ylab("Overlap with Depression Mask") +
-  ylim(0,40000) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        plot.title = element_text(hjust = 0.5, size=14),
-        axis.title.x = element_text(size=14),
-        axis.title.y = element_text(size=14),
-        axis.line = element_line(size=1),
+#make a data frame for only unique individuals, and get means of overall volume of disease across all fascicles, and within/outside dep net
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles_prop_and_vol %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  
+  #sum of total volume lost and proportion of volume lost 
+  mutate(sum_fascicle_vol_lost = rowSums(across(all_of(fascicle_names_w_vol_suffix)))) %>%
+  mutate(proportion_volume_lost_per_total_network_size_sum = sum_fascicle_vol_lost/total_volume_all_full_fascicles) %>%
+  
+  #sum of total volume lost in depression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_indepnet_top_quartile = 
+           rowSums(across(all_of(dep_network_names_top_quartile_no_cranial_nerves)))) %>%
+  mutate(proportion_volume_lost_dep_net_by_network_size_sum = sum_fascicle_vol_lost_indepnet_top_quartile /dep_network_total_volume_top_quartile_no_cranial_nerves) %>%
+ 
+  #sum of total volume lost in nondepression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_nondep_bottom_3_quartiles = 
+           rowSums(across(all_of(dep_network_names_bottom_3_quartiles_no_cranial_nerves)))) %>%
+  mutate(proportion_volume_lost_nondep_net_by_network_size_sum = sum_fascicle_vol_lost_nondep_bottom_3_quartiles /bottom_75_total_volume_no_cranial_nerves) %>%
+
+  ungroup() 
+
+###################
+
+
+##### Assessing Normality w/histograms and Shapiro_Wilk test for normality ####
+
+### Test for normality within each network, within each diagnosis
+
+disease_overall_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_per_total_network_size_sum) #W=0.97, p = 3.4 * 10^-7, NON-NORMAL
+
+disease_dep_net_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum) #W=0.97, p = 5.0 * 10^-7, NON-NORMAL
+
+disease_nondep_net_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum) #W=0.97, p = 1.9 * 10^-7, NON-NORMAL
+
+disease_dep_dx_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_per_total_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) #W=0.97, p = 0.0002 NON-NORMAL
+
+disease_nondep_dx_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_per_total_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]) #W=0.96, p = 0.0001 NON-NORMAL
+
+
+## All are non-normal, will use wilcoxon for comparisons
+
+### Within/outside depression network, p = 2.2*10^-16, dep net prop = 0.400, non dep = 0.339
+msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum,paired = TRUE) 
+
+
+### Diagnostic effects
+
+#proportion volume lost over whole network = W=14995, p=0.04, dep = 0.39, nondep = 0.30
+proportion_volume_lost_over_whole_brain_dep_vs_healthy <- wilcox.test (dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_per_total_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_per_total_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired=FALSE)
+
+#effsize 0.11
+proportion_volume_lost_over_whole_brain_dep_vs_healthy_eff_size <- rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis, formula = proportion_volume_lost_per_total_network_size_sum ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+#proportion volume lost within depression network, W = 14941, p-value = 0.03; dep = 0.42, nondep = 0.38
+proportion_volume_lost_dep_net_dep_vs_healthy <- wilcox.test (dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired=FALSE)
+
+#effsize 0.11
+proportion_volume_lost_over_dep_net_brain_dep_vs_healthy_eff_size <- rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis, formula = proportion_volume_lost_dep_net_by_network_size_sum ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+#proportion volume lost outside depression network W = 15120, p-value 0.05; dep = 0.36, nondep = 0.33
+proportion_volume_lost_nondep_net_dep_vs_healthy <- wilcox.test (dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired=FALSE)
+
+#effsize 0.10
+proportion_volume_lost_over_nondep_net_brain_dep_vs_healthy_eff_size <- rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis, formula = proportion_volume_lost_nondep_net_by_network_size_sum ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+### Interaction Network x Diagnosis
+scale=1
+
+df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
+  mutate(subject = as.factor(EMPI)) %>%
+  mutate(Diagnosis = ifelse(depGroupVar==1, "Nondepressed", "Depressed")) %>%
+  mutate(Diagnosis = as.factor(Diagnosis)) %>%
+  mutate(Dep_network = proportion_volume_lost_dep_net_by_network_size_sum) %>%
+  mutate(Nondep_network = proportion_volume_lost_nondep_net_by_network_size_sum) %>%
+  dplyr::select(subject, Diagnosis, Dep_network, Nondep_network) %>% 
+  gather(Network, proportion_affected, -subject, -Diagnosis) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
+  mutate(Network = as.factor(Network)) %>%
+  ungroup()
+ 
+#eff size = 0.73
+msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon_eff_size <- rstatix::wilcox_effsize(df_empi_dx_network_proportions, formula = proportion_affected ~ Network, paired = T, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+
+#diagnosis: Dep > nondep T = 2.285, p = 0.023; Network dep>nondep = T=16.6, p = 2*10^-16; intx = T = 2.21, p = 0.027
+diagnosis_by_network_interaction_lmer <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject), data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer)
+
+
+```
+
+``` {r plots_for_dx_net_intx}
+########## PLOTS #############
+
+#Within vs outside network
+dep_net_group <- c(rep("Dep_net", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Non_dep_net",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
+net_values <- c(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum)
+
+newdf <- data.frame(dep_net_group, net_values)
+
+violin_within_vs_outside_network_sum_proportion_scaled_by_network_size <- ggplot(newdf, aes(x=dep_net_group, y=net_values, fill=dep_net_group)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "Dep Net", "2" = "Non-Dep Net")) + 
+  ggtitle(paste0("Proportion Fascicle Volume Affected by Network")) +
+  ylab("Proportion (sum total volume lost/Net Vol) ") +
+  ylim(0,1) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
         panel.background = element_rect(colour = "white", fill = "white"))
-print(plot_all_fascicle_volumes_dep_network_no_cranial_nerves)
+print(violin_within_vs_outside_network_sum_proportion_scaled_by_network_size) #
+
+#diagnosis
+
+df_proportion_network_volume_and_diagnosis <- dep_and_healthy_groups_for_ICD_analysis %>% 
+dplyr::select(proportion_volume_lost_per_total_network_size_sum, depGroupVar) %>%
+  mutate(depGroupVar = ifelse(depGroupVar == 1, "Non-depressed", "Depressed"))
 
 
-#figure out how many fascicles that is, then 
-quartile <- round((dim(fascicle_volumes_dep_network_no_cranial_nerves)[1] / 4),0)
-
-#sort all the fascicles by %overlap, in decreasing order (so highest overlap at the top), and then take the top 1-quartile
-dep_network_names_top_quartile_no_cranial_nerves<- (fascicle_volumes_dep_network_no_cranial_nerves[order(fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:quartile] #n=19
-
-dep_network_total_volume_top_quartile_no_cranial_nerves <-
-sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)])
-
-
-
-#get a network that includes all of the fascicles NOT in dep 25% network
-dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol <- fascicle_volumes_dep_no_cranial_nerves$fascicle[!(fascicle_volumes_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol)] #n=68
-
-bottom_75_total_volume_no_cranial_nerves <-
-sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol)])
-
-#### Calculate total volume in all non-cranial_nerve_network
-total_volume_all_full_fascicles <- dep_network_total_volume_top_quartile_no_cranial_nerves + bottom_75_total_volume_no_cranial_nerves
-#plot volumes within the depression network, and volumes outside of it
-
-fascicles_dep_25_percent_for_plot_no_cranial_nerves <- fascicle_volumes_dep_sorted_by_overlap[(fascicle_volumes_dep_sorted_by_overlap$fascicle %in% dep_network_names_top_quartile_no_cranial_nerves_by_vol),]
-
-plot_all_fascicles_r_and_l_sep_top_quartile_no_cranial_nerves <-ggplot(data = fascicles_dep_25_percent_for_plot_no_cranial_nerves, aes(x = fascicle, y=non_zero_voxels_in_dep_map)) + 
-  geom_bar(stat="identity", fill="violet") +
-  ggtitle("Volume per Fascicle Affected Dep net 3_09, top quartile") + 
-  ylab("Volume in Depression Mask") +
-  ylim(0,40000) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        plot.title = element_text(hjust = 0.5, size=14),
-        axis.title.x = element_text(size=14),
-        axis.title.y = element_text(size=14),
-        axis.line = element_line(size=1),
+violin_dep_vs_nondep_scaled_by_network_size <- ggplot(df_proportion_network_volume_and_diagnosis, aes(x=depGroupVar, y=proportion_volume_lost_per_total_network_size_sum, fill=depGroupVar)) +
+  geom_violin() +  
+  geom_boxplot(width=0.1, color="black", fill="white", outlier.size = 0.2) + 
+  scale_x_discrete(labels=c("1" = "NonDepressed", "2" = "Depressed")) + 
+  ggtitle(paste0("Proportion Fascicle Volume Affected by Diagnosis")) +
+  ylab("Proportion (sum total volume lost/Net Vol) ") +
+  ylim(0,1) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        legend.position = "none",
+        aspect.ratio=7/5,
         panel.background = element_rect(colour = "white", fill = "white"))
-print(plot_all_fascicles_r_and_l_sep_top_quartile_no_cranial_nerves)
+print(violin_dep_vs_nondep_scaled_by_network_size) #
 
-#bottom 3 quartiles
-fascicles_dep_bottom_3_quartiles_for_plot_no_cranial_nerves<- fascicle_volumes_dep_sorted_by_overlap[(fascicle_volumes_dep_sorted_by_overlap$fascicle %in% dep_network_names_bottom_3_quartiles_no_cranial_nerves_by_vol),]
 
-plot_all_fascicles_r_and_l_sep_bottom_3_quartiles_no_cranial_nerves <-ggplot(data = fascicles_dep_bottom_3_quartiles_for_plot_no_cranial_nerves, aes(x = fascicle, y=non_zero_voxels_in_dep_map)) + 
-  geom_bar(stat="identity", fill="darkgreen") +
-  ylab("Volume in Depression Mask") +
-  ylim(0,40000) +
-  ggtitle("Volume per Fascicle Affected Dep net 3_09, bottom three quartiles") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        plot.title = element_text(hjust = 0.5),
-        axis.line = element_line(size=1),
-        panel.background = element_rect(colour = "white", fill = "white"))
-print(plot_all_fascicles_r_and_l_sep_bottom_3_quartiles_no_cranial_nerves) #n=58, which is total 68 - 10 CNs
 
+#interaction
+diagnosis_by_network_interaction_lmer_plot <- plot_model(diagnosis_by_network_interaction_lmer, 
+                                                         type = "int",
+                                                         axis.lim = c(0.2,0.5),
+                                                         colors = c("#ff00ff", "#3df2f2"),
+                                                         line.size = 1.3,
+                                                         dodge=0.2,
+                                                         axis.title = c("Diagnosis", "Proportion Affected"),
+                                                         title = "Diagnosis x Depression Network Disease")+
+
+  theme(axis.text.x = element_text(size=12),
+        axis.text.y = element_text(size=12),
+        axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+        aspect.ratio = 3/2,
+        panel.background = element_rect(colour = "white", fill = "white")) 
+
+print(diagnosis_by_network_interaction_lmer_plot)
+
+
+```
+
+``` {r effect_size_regression}
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles_prop_and_vol %>% 
+  filter(depGroupVar != 0)  %>% 
+  mutate(total_fascicle_vol_lost = rowMeans(across(all_of(fascicle_names_w_vol_suffix)))) %>%
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  ungroup()
+  
+# lapply to get results of t-test in each fascicle
+#ldepGroup 2 is depressed group, Dep group 1 is healthy group. Positive Ts are places where depressed people have more disease than controls
+fascicle_dep_vs_healthy_cohen_d <- sapply(fascicle_names_w_vol_suffix, function(x) 
+{
+  text_for_eval <- paste0("cohensD(dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", x, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])")
+  eval(parse(text=text_for_eval))
+})
+names(fascicle_dep_vs_healthy_cohen_d) <- fascicle_names_w_vol_suffix
+
+
+#convert to data frame
+df_d_values <- as.data.frame(fascicle_dep_vs_healthy_cohen_d)
+
+```
+
+``` {r bootstrap}
+#### bootstrap
+
+######### functions
+tval <- function(formula, data, indices) {
+  df <- data[indices,] # allows boot to select sample
+  fit <- lm(formula, data=df)
+  return(summary(fit)$coefficients[2,3])
+}
+
+
+#effect sizes
+# 95% confidence intervals for the correlation
+set.seed(1)
+data_frame_dep_v_nondep_d_x_vol_dep_mask <- subset(df_fascicle_dep_mask_volume_overlap_d_value, select = c("dep_vs_healthy_d", "volume_in_dep_mask"))
+
+results_vol <- boot(data=data_frame_dep_v_nondep_d_x_vol_dep_mask, statistic=tval,
+   R=10000, formula=dep_vs_healthy_d~volume_in_dep_mask)
+print(results_vol)
+plot(results_vol)
+boot_results_vol.ci <- boot.ci(results_vol, conf=0.95, type="perc", index=1)
+print(boot_results_vol.ci)
+pval_vol<-boot.pval(results_vol, type = "perc", theta_null = 0, pval_precision = NULL)
+print(pval_vol) #p=1*10^-16
+
+```
+
+``` {r plot_scatter}
+#######################
+### plot differences ##
+#######################
+
+#combine data frames, column 1 has names of fascicles, column 2 has Volume of overlap with depression network, column 3 has t-test value of dep vs healthy unc, 4th dep vs healthy fdr corrected within that fascicle
+
+df_fascicle_dep_mask_volume_overlap_d_value <- data.frame(fascicle_volumes_dep_network_no_cranial_nerves$fascicle, fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map, df_d_values)
+names(df_fascicle_dep_mask_volume_overlap_d_value) <- c("fascicle", "volume_in_dep_mask", "dep_vs_healthy_d")
+
+
+# plot fascicle overlap x Eff size value
+#statistic, p=001
+dep_overlap_x_dep_vs_healthy_vol_d <- lm(dep_vs_healthy_d ~ volume_in_dep_mask, data=df_fascicle_dep_mask_volume_overlap_d_value )
+
+scatter_d_val_by_dep_net_overlap <- ggplot(data=df_fascicle_dep_mask_volume_overlap_d_value, aes(x=volume_in_dep_mask, y=dep_vs_healthy_d)) +
+  geom_point(size=1) + 
+  geom_smooth(method=lm)+
+  xlab("Volume of Fascicle in Depression Network") + 
+  ylab("Effect Size (D)") + 
+  ggtitle(paste0("Effect of Diagnosis by Overlap with Depression Network, p = ", pval_vol)) + 
+                 #round(summary(dep_overlap_x_dep_vs_healthy_vol_d )$coefficients[2,4],3))) + 
+#  ggtitle(paste0("Effect of Diagnosis by Overlap with Depression Network")) + 
+  theme(plot.title=element_text(hjust=0.5),
+        axis.text = element_text(size=12, color = "black"),
+        axis.title = element_text(size=14, color = "black"),
+        axis.line = element_line(color="black", size=1.3),
+        panel.background = element_blank())
+print(scatter_d_val_by_dep_net_overlap)
+
+df_for_making_colors <- df_fascicle_dep_mask_volume_overlap_d_value %>% dplyr::select(fascicle, dep_vs_healthy_d)
+write.table(x = df_for_making_colors, file = paste0(homedir, "results/fascicle_and_effect_size_for_volxdx_analysis_n77.csv"), row.names = F, col.names = F, quote = F, sep = ",")
 
 
 ```
 
 
+
+
+
+
+```{r sensitivity analyses}
+tertile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 3),0)
+quintile <- round((dim(fascicle_values_dep_no_cranial_nerves)[1] / 5),0)
+
+dep_network_names_top_tertile_no_cranial_nerves_by_vol<- (fascicle_values_dep_no_cranial_nerves[order(fascicle_values_dep_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:tertile] #n=26
+
+dep_network_names_top_quintile_no_cranial_nerves_by_vol<- (fascicle_values_dep_no_cranial_nerves[order(fascicle_values_dep_no_cranial_nerves$non_zero_voxels_in_dep_map, decreasing = TRUE),])$fascicle[1:quintile] #n=15
+
+dep_network_names_bottom_tertiles_no_cranial_nerves_by_vol <- fascicle_values_dep_no_cranial_nerves$fascicle[!(fascicle_values_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_tertile_no_cranial_nerves_by_vol)] 
+
+dep_network_names_bottom_quintiles_no_cranial_nerves_by_vol <- fascicle_values_dep_no_cranial_nerves$fascicle[!(fascicle_values_dep_no_cranial_nerves$fascicle %in% dep_network_names_top_quintile_no_cranial_nerves_by_vol)] 
+
+top_tertile_total_volume_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_tertile_no_cranial_nerves_by_vol)])
+
+top_quintile_total_volume_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_top_quintile_no_cranial_nerves_by_vol)])
+
+bottom_tertiles_total_volume_no_cranial_nerves <-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_bottom_tertiles_no_cranial_nerves_by_vol)])
+
+bottom_quintiles_total_volume_no_cranial_nerves<-
+sum(fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[which(fascicle_volumes_dep_network_no_cranial_nerves$fascicle %in% dep_network_names_bottom_quintiles_no_cranial_nerves_by_vol)])
+
+
+
+
+
+
+dep_and_healthy_groups_for_ICD_analysis <- dep_and_healthy_groups_for_ICD_analysis %>%
+  
+  #tertile and quintiles
+  mutate(sum_fascicle_vol_lost_top_tertile = 
+           rowSums(across(dep_network_names_top_tertile_no_cranial_nerves_by_vol))) %>%
+  mutate(proportion_volume_lost_top_tertile_by_network_size_sum = sum_fascicle_vol_lost_top_tertile /top_tertile_total_volume_no_cranial_nerves) %>%
+  
+  mutate(sum_fascicle_vol_lost_bottom_tertiles = 
+           rowSums(across(dep_network_names_bottom_tertiles_no_cranial_nerves_by_vol))) %>%
+  mutate(proportion_volume_lost_bottom_tertiles_by_network_size_sum = sum_fascicle_vol_lost_bottom_tertiles /bottom_tertiles_total_volume_no_cranial_nerves) %>%
+  
+  mutate(sum_fascicle_vol_lost_top_quintile = 
+           rowSums(across(dep_network_names_top_quintile_no_cranial_nerves_by_vol))) %>%
+  mutate(proportion_volume_lost_top_quintile_by_network_size_sum = sum_fascicle_vol_lost_top_quintile /top_quintile_total_volume_no_cranial_nerves) %>%
+  
+  mutate(sum_fascicle_vol_lost_bottom_quintiles = 
+           rowSums(across(dep_network_names_bottom_quintiles_no_cranial_nerves_by_vol))) %>%
+  mutate(proportion_volume_lost_bottom_quintiles_by_network_size_sum = sum_fascicle_vol_lost_bottom_quintiles /bottom_quintiles_total_volume_no_cranial_nerves) %>%
+
+ 
+#### Save a data frame that contains the mean volume of disease within network, scaled by the size of the network, for visualization
+
+diagnosis_vector <- c(1,2,1,2) #1 is healthy, 2 is depressed
+network_vector <- c(1,1,2,2) #1 is depression network, 2 is non_depression network
+mean_diagnosis_by_network_vector <- c(mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
+                             mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+                             mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
+                             mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]))
+
+#df_means_volume_scaled_by_network_size <-data.frame(diagnosis_vector, network_vector, mean_diagnosis_by_network_vector)
+#names(df_means_volume_scaled_by_network_size) <- c("diagnosis", "network", "mean")
+#write.table(df_means_volume_scaled_by_network_size, paste0(homedir, "/results/df_means_of_volumes_scaled_by_network_size_dx_net_for_color.csv"), row.names=F, col.names = T, quote = F, sep=",")
+
+
+
+#### tertile/quintile
+
+#p=2.2*10^16, top tertile prop vol affected = 0.420, bottom 2 tertiles = 0.298
+msdisease_within_versus_outside_depression_network_wilcoxon_tertile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_tertile_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_tertiles_by_network_size_sum,paired = TRUE) 
+
+#p=0.0328, dep = 0.4407, nondep = 0.387
+msdisease_diagnostic_effects_wilcoxon_tertile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_tertile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_tertile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=0.058, dep = 0.31, nondep= 0.28
+msdisease_diagnostic_effects_wilcoxon_bottom_tertiles <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_tertiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_tertiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=2.2*10^-16, top quintile prop vol affected = 0.419, bottom 4 quintiles = 0.322
+msdisease_within_versus_outside_depression_network_wilcoxon_quintile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_quintile_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_quintiles_by_network_size_sum,paired = TRUE) 
+
+#p=0.0325, dep = 0.4411, nondep = 0.386
+msdisease_diagnostic_effects_wilcoxon_quintile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_quintile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_quintile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=0.048, dep = 0.34, nondep = 0.30
+msdisease_diagnostic_effects_wilcoxon_bottom_quintiles <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_quintiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_quintiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+
+```
