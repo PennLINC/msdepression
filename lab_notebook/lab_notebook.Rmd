@@ -2492,9 +2492,6 @@ msdisease_diagnostic_effects_wilcoxon_bottom_quintiles <- wilcox.test(dep_and_he
 [o] make graphics separating out depressed patients and non depressed patients 
    - the scaling I am using right now just isn't wide enough to give me the contrast I'd like. 
 
-[] make interaction graph prettier. Can actually hard code some things
-> get_model_data(diagnosis_by_network_interaction_lmer, type="int")
-# Predicted values of proportion_affected
 
 # Network = Dep_network
 
@@ -2517,3 +2514,145 @@ Adjusted for:
    
 #### 20220901
 [] separate to make a clean document once confirm analyses w/Ted
+  - making a better spreadsheet that separates out proportion and volume
+
+```{r fiber_volumes_values}
+
+#read in fiber volume values
+fiber_volume_values <- read.csv(paste0(homedir, "templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv"), sep=",", header = T)
+
+#remove cranial nerves
+fiber_volume_values_no_cranial_nerves <- fiber_volume_values %>% filter(fascicle %in% fascicle_names_no_cranial_nerves)
+
+#extract data frame that only includes the fascicle proportion lost
+df_fascicles_prop <- df_demo_and_fascicles[ , (names(df_demo_and_fascicles) %in% fascicle_names_no_cranial_nerves)]
+df_everything_else <- df_demo_and_fascicles[ , !(names(df_demo_and_fascicles) %in% fascicle_names_no_cranial_nerves)]
+
+#multiply each row by the vector of total volumes to extract volume of disease within fascicle
+df_fascicles_volumes <- sweep(x = df_fascicles_prop, MARGIN = 2,                        # Sweep with Complex STATS
+                  STATS = fiber_volume_values_no_cranial_nerves$volume_full, FUN = "*")
+
+# change name of df_fascicle_volumes to have the suffix, and add a suffix for the proportion measures
+names(df_fascicles_prop) <- fascicle_names_w_prop_suffix
+names(df_fascicles_volumes) <- fascicle_names_w_vol_suffix
+
+
+#combine back with data_fram
+#df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
+df_demo_and_fascicles_prop_and_vol <- cbind(df_everything_else, df_fascicles_prop, df_fascicles_volumes )
+
+
+```
+
+  [x] THIS WAS DOUBLE CHECKED with a few spot checks
+>df_demo_and_fascicles_prop_and_vol$CC_prop[4]
+[1] 0.5956769
+> df_demo_and_fascicles_prop_and_vol$CC_vol[4]
+[1] 232672
+> fiber_volume_values_no_cranial_nerves$volume_full[fiber_volume_values_no_cranial_nerves$fascicle=="CC"]
+[1] 390601
+> 0.5956769*390601
+[1] 232672
+> df_demo_and_fascicles_prop_and_vol$AF_L_prop[4]
+[1] 0.1407772
+> df_demo_and_fascicles_prop_and_vol$AF_L_vol[4]
+[1] 5028
+> fiber_volume_values_no_cranial_nerves$volume_full[fiber_volume_values_no_cranial_nerves$fascicle=="AF_L"]
+[1] 35716
+> 0.1407772*35716
+[1] 5027.998
+
+[] make interaction plot prettier
+  - awaiting bart - no other feedback. Will need to do this manually
+[x] try making fascicle maps in dsi studio with different fib template (that better maps onto the template we used (fib))
+  - /Users/eballer/BBL/msdepression/templates/dsi/hcp1065.1mm.fib.gz
+  - Open T3d 
+  - Select all files in HCP_YA1065_tractography/ in each section, except for cranial nerves
+    [x] association [x] cerebellum [x] projection [x] commissural
+  [x] make sure in right order
+  [x] click all the boxes
+  [x] save as one big file
+  - load color file -> tracts misc -> open cluster colors
+  - save this file
+  
+[] make depression bold map - need to either apply a brain mask or chose slices selectively b/c of the whole template thing
+
+[] Ted wants me to try for JAMA Neurology
+- 3000 words
+≤5 tables and/or figures
+Structured abstract
+Key Points
+Study Type
+Follow EQUATOR Reporting Guidelines
+Do not submit figures with more than 4 panels unless otherwise justified.
+See the AMA Manual of Style for more guidance on figure types and components.
+
+For JAMA Neurology, 5 figures:
+
+  [] 1. Flow chart for patient selection (fig 1, required)
+  [] 2. Demographics (or just list in text, or make A with flow chart and B with demographics) (table 1)
+  [] 3. Pipeline figure (maybe will be e-file)
+  [] 4. Two part image of depression network
+    [] a: Rank of fascicles by volume of overlap w/dep network (cortical rendering of depression network)
+    [] b: DSI fascicle of volume of overlap w/network (how to scale for visualizations) (new hamphire forest in the fall colors)
+  [] 5. In vs outside dep net
+    a. pink and blue fascicle pcicture part B
+    b. inside vs outside dep net violin
+  [] 6. Diagnosis analysis
+    a. no diff by lesion volum
+    b. but difference in fascicle volume
+  [] 7. Dep Network Interaction bar graph
+    [] is it possible to have a 3 part figure? 
+      - a. interaction graph
+      - b. picture of A. In depressed patients, volume of disease in dep network in depressed patients in one color, volume of disease in non depressed network in another color, divided by overall network size; B. Same thing in nondepressed patients. All on same color scale so you can hopefully see brighter colors/contrast in depressed as compared to non-depressed
+  [] 8. Depression network overlap 
+    a. scatter
+    b. Fascicles colored by effect size 
+
+Could prob combine 5,6, 7&8
+1. flow chart
+2. Pipeline
+3. Depression network
+4. In vs out network, diagnosis analysis
+5. Interaction and scatter
+ 
+FIGURE POTENTIAL
+1. Flow chart
+  - demographics (+- promis scores) e-file (?)
+  - pipeline is e -file (can only have max 4 pt figure)
+2. Making depression network 
+  a: Cortical rendering of depression network
+  b: DSI fascicle of volume of overlap w/network (how to scale for visualizations) (new hampshire forest in the fall colors)
+3.  In vs outside dep net
+    a. inside vs outside dep net violin
+    b. pink and blue fascicle picture part B
+4. Diagnosis analysis
+    a. diff by lesion volume (violin)
+    b. but difference in fascicle volume (violin)
+        - just dep vs non dep (put stuff about within/outside network for each diagnostic group in text)
+5. Dep Network Interaction bar graph
+     a. interaction graph
+     b. scatter (effect size by overlap)
+     c. Fascicles colored by effect size 
+     
+     
+#### 20220902
+[] Cleaning script
+  [] Sections
+    [x] Initialize
+    [x] read in data/subset
+    [x] read in and handle promis scores, link to scan
+    [x] Demographics
+    [x] Define Depression Network
+    [x] Network enrichment/disease within/outside depression network
+    [x] Lesion Volume between diagnostic groups
+    [x] Lesion burden between diagnostic groups
+    [x] Interaction
+    [x] Effect size x fascicle volume of overlap
+    
+
+#### 20220906
+    [] Sensitivity Analyses
+    
+
+
