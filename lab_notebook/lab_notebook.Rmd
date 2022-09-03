@@ -2649,10 +2649,10 @@ FIGURE POTENTIAL
     [x] Lesion burden between diagnostic groups
     [x] Interaction
     [x] Effect size x fascicle volume of overlap
-    
+    [x] Sensitivity Analyses
 
 #### 20220906
-    [] Sensitivity Analyses
-    
+
+    - add vol suffix    
 
 
