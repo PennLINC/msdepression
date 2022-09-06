@@ -15,16 +15,16 @@ homedir="/Users/eballer/BBL/msdepression/"
 
 dep_network_names_top_quartile_no_cranial_nerves_by_vol <- read.csv(file = paste0(homedir, "/results/dep_network_names_top_quartile_no_cranial_nerves_by_vol.txt"), header = F)
 
-files = c("fascicle_proportion_overlap_with_depression_network_n77")
+files = c("volume_of_overlap_w_dep_net_n77") #c("fascicle_proportion_overlap_with_depression_network_n77")
 
-#color_depressed_net = "255 0 255" #pink
-#color_nondepressed_net = "0 255 255" #light blue
-color_depressed_net = "255 255 0" #yellow
-color_nondepressed_net = "0 0 255" #blue
+color_depressed_net = "255 0 255" #pink
+color_nondepressed_net = "0 255 255" #light blue
+#color_depressed_net = "255 255 0" #yellow
+#color_nondepressed_net = "0 0 255" #blue
 
 for (filename in files) {
   #suffix, CHANGE IF YOU WANT A DIFFERENT FLAG
-  suffix = "yb"
+  suffix = "pinkblue"
   
   #read in file with fascicle name and proportion
   fascicle_name_and_prop <- read.csv(paste0(homedir, "/results/", filename, ".csv"), sep = ",", header = F)
