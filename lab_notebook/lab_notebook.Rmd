@@ -2655,4 +2655,178 @@ FIGURE POTENTIAL
 
     - add vol suffix    
 
+#### 20220906
 
+- Getting rid of some of the within network analyses in the replication. Just going to do interactions because they look great.
+
+``` {r teriles_and_quintiles}
+
+#Diagnostic effects
+
+#p=0.0328, dep = 0.4407, nondep = 0.387
+msdisease_diagnostic_effects_wilcoxon_tertile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_tertile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_tertile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=0.058, dep = 0.31, nondep= 0.28
+msdisease_diagnostic_effects_wilcoxon_bottom_tertiles <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_tertiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_tertiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=0.0325, dep = 0.4411, nondep = 0.386
+msdisease_diagnostic_effects_wilcoxon_quintile <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_quintile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_top_quintile_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+#p=0.048, dep = 0.34, nondep = 0.30
+msdisease_diagnostic_effects_wilcoxon_bottom_quintiles <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_quintiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_bottom_quintiles_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]) 
+
+
+```
+
+also getting rid of some commented out code for saving things
+
+``` {r commented_out_stuff_from_quintile_tertile_section}
+#### Save a data frame that contains the mean volume of disease within network, scaled by the size of the network, for visualization
+
+#diagnosis_vector <- c(1,2,1,2) #1 is healthy, 2 is depressed
+#network_vector <- c(1,1,2,2) #1 is depression network, 2 is non_depression network
+#mean_diagnosis_by_network_vector <- c(mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
+#                             mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]),
+#                             mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1]),
+ #                            mean(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2]))
+
+#df_means_volume_scaled_by_network_size <-data.frame(diagnosis_vector, network_vector, mean_diagnosis_by_network_vector)
+#names(df_means_volume_scaled_by_network_size) <- c("diagnosis", "network", "mean")
+#write.table(df_means_volume_scaled_by_network_size, paste0(homedir, "/results/df_means_of_volumes_scaled_by_network_size_dx_net_for_color.csv"), row.names=F, col.names = T, quote = F, sep=",")
+
+
+```
+
+Getting rid of effect size regression with cohen d (b/c fascicles aren't normally distributed)
+``` {r effect_size_regression}
+#  text_for_eval <- paste0("cohensD(dep_and_healthy_groups_for_ICD_analysis$", fascicle, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$", fascicle, "[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1])")
+```
+
+#### 20220908
+
+[x] got replication off to Elizabeth on 9/7
+[x] Making figures
+  [x] For brains, made red to yellow map for volume of overlap w/depression network (scaled w AF, not cc because it is too big)
+    [x] brain results file: /Users/eballer/BBL/msdepression/volume_of_overlap_w_dep_net_n77
+    [x] color file: /Users/eballer/BBL/msdepression/templates/dti/colors/volume_of_overlap_w_dep_net_n77_ry_scaling_cc.txt
+  [x] made pink gradient map for the vol/effect size map
+    [x] brain results file: /Users/eballer/BBL/msdepression/fascicle_and_wilcox_effect_size_for_volxdx_analysis_n77
+    [x] color file: /Users/eballer/BBL/msdepression/templates/dti/colors/fascicle_and_wilcox_effect_size_for_volxdx_analysis_n77_pg.txt
+  [x] made binary map of volume
+    [x] brain results file: /Users/eballer/BBL/msdepression/volume_of_overlap_w_dep_net_n77
+    [x] color file: /Users/eballer/BBL/msdepression/templates/dti/colors/volume_of_overlap_w_dep_net_n77_pinkblue.txt
+
+[] make figure of depression network from bold
+  [x] resampled the harvard map to mni_icbm_2009b template: 
+  [x] multiplied the resampled image with the mask
+  [x] displayed in fsleyes and looks amazing
+    underlay: mni_icbm152_t1_tal_nlin_asym_09a_mask.nii (drop intensity a bit to get the background not to have that ring around it)
+    overlay: DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii (set to 3.09/3.09 for yellow, 3.09/5 for colored)
+
+```{bash resampling}
+
+ #resample to get in same space
+
+ 3dresample -master mni_icbm152_t1_tal_nlin_asym_09a.nii -input DepressionCircuit_t.nii -prefix DepressionCircuit_t_resampled_to_mni_icbm152_asym09a.nii
+ 
+ #mask
+  3dcalc -a DepressionCircuit_t_resampled_to_mni_icbm152_asym09a.nii -b mni_icbm152_t1_tal_nlin_asym_09a_mask.nii -expr 'a*b' -prefix DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii
+  
+# display
+ fsleyes
+ #underlay: mni_icbm152_t1_tal_nlin_asym_09a_mask.nii
+#overlay: DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii
+```
+  
+  
+```{r make_red_to_yello_RGB_color_scheme_accounting_for_cc} 
+#### Welcome to make_red_to_yellow_RGB_color_scheme_accounting_for_corpus callosum! ####
+
+### I developed this script because I wanted to make my own RGB color palettes for DSI studio. 
+### In short, I want to color each fascicle to be its volume of loss, scaled on the RGB scale
+### In order to do this, I needed to figure out how to map my volumes to RGB
+
+### Pre: File of volumes
+### Post: Output of RGB values in Red to Yellow Scale for the Volumes
+### Uses: Step 0: Figure out how to scale from red to yellow 
+###           - Red = 255 0 0, yellow 255 255 0
+###           - Means that we need to vary the middle value (255) to get where we need to be
+###       Step 1) For red to yellow, calculate the step (i.e. how much each value will be)
+###             - because my volumes are out of 1, I wanted each step to be 1/100
+###             - Usually I set this value as "max"
+###             - But with CC being so big, things scale poorly. So I will set cc to full yellow, and set max to be the next biggest
+###             - This is similar to normal thresholding, where everything above a value will be a specific color
+###       Step 2) Multiply the volume by 100, so now each count is 1-100, in percents
+###       Step 3) Multiply the percent by the step
+###       Step 4) Save this value in that fascicle, 255 [new_value] 0
+###       Step 5) if you want to change how the max value is scaled, change SLICE to be the # (slice(1) - max value, slice(2) - second value, etc)
+###
+### Dependencies: Any R will do
+
+###
+
+### gradients
+## red-yellow - R always 255, green scaled (0 is red, 255 is yellow), blue always 0
+## pink gradient (pg) - Red always 255, green scaled 0 to 255 , blue always 255
+
+homedir="/Users/eballer/BBL/msdepression/"
+
+files = c("volume_of_overlap_w_dep_net_n77")  # "fascicle_mean_volume_overlap_nfasc_77", "fascicle_volume_overlap_with_depression_network_n77", "fascicle_and_effect_size_for_volxdx_analysis_n77")
+
+for (filename in files) {
+  #suffix
+  suffix = "_ry_scaling_cc" #red-yello gradient
+
+  #  suffix = "_pg"
+  #read in file with fascicle name and volume
+  fascicle_names_and_vol <- read.csv(paste0(homedir, "/results/", filename, ".csv"), sep = ",", header = F)
+  names(fascicle_names_and_vol) <- c("fascicle", "volume")
+  
+  #Make each value into a volume by dividing the volume by the total volume of all values
+  total_volume_of_all_overlapping_fascicles <- sum(fascicle_names_and_vol$volume)
+  
+  fascicle_names_and_vol$proportion <- fascicle_name_and_vol$volume/total_volume_of_all_overlapping_fascicles
+  
+  #set scale dynamically
+  #highest possible number in scale
+  
+  #sort by volume, take 2nd highest, extract proportion
+  max_value<- fascicle_names_and_vol %>% 
+    dplyr::select(proportion) %>%
+    arrange(desc(proportion)) %>%
+    slice(2) * 100 
+  
+  #step that each value in our scale will correspond to
+  max_value <- as.numeric(max_value)
+  step <- 255/max_value
+  
+  # make a column for red
+  
+  red <- rep(x=255, times = 77)
+  
+  fascicle_names_and_vol$red <- red
+
+  #if proportion greater than max, set it to max value, otherwise, scale
+  fascicle_names_and_vol$green<-  ifelse(fascicle_names_and_vol$proportion *100 > max_value, 255, round((fascicle_names_and_vol$proportion *100*step),0)) #ry
+  
+  #make column for blue
+  blue <- rep(x=0, times = 77) #ry
+
+ #blue <- rep(x=255, times = 77) #pg
+  fascicle_names_and_vol$blue=blue
+  
+
+#output color file (77 lines, each represents a color), and color name vector. Not sure how to do 1:1 assignments rather than manually, but I'll see if I can figure that out!
+  fascicle_names_and_vol_rgb_only <- fascicle_names_and_vol %>%
+    mutate(rgb = paste0(fascicle_names_and_vol$red, " ", fascicle_names_and_vol$green, " ", fascicle_names_and_vol$blue)) %>%
+    dplyr::select(fascicle, rgb)
+  
+  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, suffix, "_fascicle_names.txt"), x = fascicle_names_and_vol_rgb_only$fascicle, row.names = FALSE, col.names = FALSE, quote = FALSE)
+  
+  write.table(file = paste0(homedir, "/templates/dti/colors/", filename, suffix, ".txt"), x = fascicle_names_and_vol_rgb_only$rgb, row.names = FALSE, col.names = FALSE, quote = FALSE)
+}
+
+
+```
+
+    
