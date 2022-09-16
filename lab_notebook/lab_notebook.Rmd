@@ -2716,7 +2716,7 @@ Getting rid of effect size regression with cohen d (b/c fascicles aren't normall
     [x] brain results file: /Users/eballer/BBL/msdepression/volume_of_overlap_w_dep_net_n77
     [x] color file: /Users/eballer/BBL/msdepression/templates/dti/colors/volume_of_overlap_w_dep_net_n77_pinkblue.txt
 
-[] make figure of depression network from bold
+[x] make figure of depression network from bold
   [x] resampled the harvard map to mni_icbm_2009b template: 
   [x] multiplied the resampled image with the mask
   [x] displayed in fsleyes and looks amazing
@@ -2829,4 +2829,131 @@ for (filename in files) {
 
 ```
 
-    
+
+#### 20220913
+1. [o] Flow chart (text is small, do I need to make bigger?)
+  efile a.[x] demographics full
+  efile b.[x] (promis scores)
+  efile c. [] pipeline is e -file (can only have max 4 pt figure), will need to work with Maddie for this.
+2. Making depression network
+  [x]: Cortical rendering of depression network
+  [x]: DSI fascicle of volume of overlap w/network (how to scale for visualizations) (new hampshire forest in the fall colors)
+3.  In vs outside dep net
+    a. inside vs outside dep net violin
+    b. pink and blue fascicle picture part B
+4. Diagnosis analysis
+    a. no diff by lesion volume (violin)
+    b. but difference in fascicle volume (violin)
+        - just in/outside of network (put stuff about within/outside network for each diagnostic group in text)
+5. Dep Network/dx interactions
+     a. interaction graph
+     b. scatter (effect size by overlap)
+     c. Fascicles colored by effect size (edited)    
+     
+
+
+#### 20220914
+Ted meeting
+
+[] Elizabeth is currently replicating
+  - found a bug in the naming order of one of the files. We have changed it, and the subsequent results are the same, but a little better
+  - The mask stays the same (dep vs non), so no need to regenerate those pictures
+  - Coloring for new hamphire colors and pink effect size are slightly different
+    - [x] redid the new hampshire color plot
+    - [x] redid pink plot
+  - Will need to remake the main effect of dx and network violins with new data
+    [x] main effect of network
+    [x] main effect of diagnosis
+  - Remake scatter and interaction plots
+    [x] scatter
+    [x] interaction
+[x] review some sample figures
+[x] talk about science for LRP
+  - spoke with Mark, feasibility important
+  - In line with that, do I convert aim 1 to 2 aims (have sex differences be one)?
+  - Or (my preference), basically keep everything the same but state that aim 2 will be the beginning of a collection of data (50 people per year), rather than 250. 
+    - would be much eaasier to do this rather than rewrite that whole chunk.
+    - Also, mentorship team from K, but without mike fox and tom. Substitute sex differences for EMR training?
+  - I have also included that I applied for a K already, and what my plans are if I don't get it
+  - 
+  
+#### 20220915
+  [] cleaning up scatter with Elizabeth - incremented the volume by 1, and log transformed for a much prettier graph!
+  [x] Making the binary brain map on an inflated brain in workbench
+   - first, binarized it 
+```{bash}
+3dcalc -a DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii -expr 'ispositive(a-3.09)' -prefix DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_3_09.nii
+```
+   - tried to use command line tools for workbench, couldn't do it, but val passed on a script that was just amazing, and I adapted it for my stuff
+```{r}
+
+---
+title: "Project an MNI volume to the fslr surface for visualization"
+author: "Valerie Jill Sydnor, adapted by Erica Baller"
+date: "9/16/2022"
+output: html_document
+---
+library(ciftiTools)
+ciftiTools.setOption('wb_path', '/Users/eballer/Software/workbench/')
+#set the path to your installation of connectome workbench as 'wb_path'
+library(rgl) #to use ciftiTools graphics
+library(rmarkdown)
+library(gifti) #to read in your surface giftis 
+
+#Map volume data to left and right cortical surfaces
+#left hemisphere
+command1=sprintf("-volume-to-surface-mapping /Users/eballer/BBL/msdepression/templates/harvard_depression/surfaces/DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_3_09.nii /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii /Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_l.shape.gii -trilinear")
+ciftiTools::run_wb_cmd(command1, intern = FALSE, ignore.stdout = NULL, ignore.stderr = NULL)
+
+#right hemisphere
+command2=sprintf("-volume-to-surface-mapping /Users/eballer/BBL/msdepression/templates/harvard_depression/surfaces/DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_3_09.nii /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii /Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_r.shape.gii -trilinear")
+ciftiTools::run_wb_cmd(command2, intern = FALSE, ignore.stdout = NULL, ignore.stderr = NULL)
+
+#Read in your surface giftis
+test_l <- read_gifti("/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_l.shape.gii")
+test_r <- read_gifti("/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_r.shape.gii")
+
+#Combine your giftis into one cifti surface (for visualization with ciftiTools)
+test.ciftimap <- as_cifti(cortexL = test_l$data$normal, cortexR = test_r$data$normal) #the datas are stored in file$data$normal
+test.ciftimap$data$cortex_left[test.ciftimap$data$cortex_left > 0] <- 1
+test.ciftimap$data$cortex_right[test.ciftimap$data$cortex_right > 0] <- 1
+
+#You can also save out this cifti for viewing in connectome workbench
+write_cifti(test.ciftimap, "/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf.dscalar.nii")
+
+#Choose what surface you want to visualize your data on (midthickness, inflated, sphere, etc.)
+#lets use midthickness
+surfL_name <- read_surf("/Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii")
+surfR_name <- read_surf("/Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii")
+
+#gotta add these surfs to your cifti from the step above
+test.ciftimap <- add_surf(test.ciftimap, surfL=surfL_name, surfR=surfR_name)
+
+#Visualize!
+#```{r, rgl=TRUE, format="png"} 
+view_cifti(test.ciftimap, colors=c("magma"), widget=TRUE)
+```
+
+- I then had to take this into workbench, and futz with the colors
+
+  - open application: wb_view
+  - open file: /Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf.dscalar.nii
+  - open file: /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii
+  - open file: /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii
+  - click montage
+  - under settings, click the wrench
+  - Threshold: Off
+  - Palette
+    - Pick the palette HSB8_clrmid
+    - Invert off
+    - click interpolate colors
+    - click fixed
+    - setting 40/0/0/0
+  - click negative and positive
+  - Click bars under histogram
+  - change bars color and envelope to fuchsia (don't know if this does anything)
+  - Color bar and palette settings: apply to all maps
+
+- Save, screenshot, bring to illustrator and have at it
+
+- Also, will do log scatter, looks so much better. Have to increment by 1 in order to make it pretty though, otherwise all the 0 values will screw you over
