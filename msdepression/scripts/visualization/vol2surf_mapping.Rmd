@@ -1,0 +1,60 @@
+---
+title: "Project an MNI volume to the fslr surface for visualization"
+author: "Valerie Jill Sydnor, adapted by Erica Baller"
+date: "9/16/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ciftiTools)
+ciftiTools.setOption('wb_path', '/Users/eballer/Software/workbench/')
+#set the path to your installation of connectome workbench as 'wb_path'
+library(rgl) #to use ciftiTools graphics
+library(rmarkdown)
+library(gifti) #to read in your surface giftis 
+```
+
+Map volume data to left and right cortical surfaces
+```{r}
+#left hemisphere
+command1=sprintf("-volume-to-surface-mapping /Users/eballer/BBL/msdepression/templates/harvard_depression/surfaces/DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_3_09.nii /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii /Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_l.shape.gii -trilinear")
+ciftiTools::run_wb_cmd(command1, intern = FALSE, ignore.stdout = NULL, ignore.stderr = NULL)
+
+#right hemisphere
+command2=sprintf("-volume-to-surface-mapping /Users/eballer/BBL/msdepression/templates/harvard_depression/surfaces/DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_3_09.nii /Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii /Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_r.shape.gii -trilinear")
+ciftiTools::run_wb_cmd(command2, intern = FALSE, ignore.stdout = NULL, ignore.stderr = NULL)
+```
+
+Read in your surface giftis
+```{r}
+test_l <- read_gifti("/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_l.shape.gii")
+test_r <- read_gifti("/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf_r.shape.gii")
+```
+
+Combine your giftis into one cifti surface (for visualization with ciftiTools)
+```{r}
+test.ciftimap <- as_cifti(cortexL = test_l$data$normal, cortexR = test_r$data$normal) #the datas are stored in file$data$normal
+test.ciftimap$data$cortex_left[test.ciftimap$data$cortex_left > 0] <- 1
+test.ciftimap$data$cortex_right[test.ciftimap$data$cortex_right > 0] <- 1
+
+```
+
+You can also save out this cifti for viewing in connectome workbench
+```{r}
+write_cifti(test.ciftimap, "/Users/eballer/BBL/msdepression/templates/harvard_depression/testvol2surf.dscalar.nii")
+```
+
+Choose what surface you want to visualize your data on (midthickness, inflated, sphere, etc.)
+```{r}
+#lets use midthickness
+surfL_name <- read_surf("/Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.L.midthickness_MSMAll.32k_fs_LR.surf.gii")
+surfR_name <- read_surf("/Users/eballer/Software/workbench/workbench_files/HCP_S1200_GroupAvg_v1/S1200.R.midthickness_MSMAll.32k_fs_LR.surf.gii")
+
+#gotta add these surfs to your cifti from the step above
+test.ciftimap <- add_surf(test.ciftimap, surfL=surfL_name, surfR=surfR_name)
+```
+
+Visualize!
+```{r, rgl=TRUE, format="png"} 
+view_cifti(test.ciftimap, colors=c("magma"), widget=TRUE)
+```
