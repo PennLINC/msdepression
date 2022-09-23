@@ -2957,3 +2957,34 @@ view_cifti(test.ciftimap, colors=c("magma"), widget=TRUE)
 - Save, screenshot, bring to illustrator and have at it
 
 - Also, will do log scatter, looks so much better. Have to increment by 1 in order to make it pretty though, otherwise all the 0 values will screw you over
+
+#### 20220921
+
+[x] replicated!
+[x] Updated the stats in my markdown and changed the name to reflect that it is post replication
+[x] big changes - correcting the volume multiplication error
+[x] Also changed the effect size by volume plot to be scaled logarithmicly
+  [x] Now p value of this regression is 0.0187 (Adjusted R2 0.06).
+  [x] Elizabeth thinks we can drop the Boot. Ted??
+[x] colors for depressed vs nondepressed plots
+[x] figure alternatives (move interaction to figure 4, and have fig 5 just brain + scatter)
+
+#### 20220922
+
+[] no cerebellum -> should I find a way to do a flat representation?
+
+Need to install python and pennlinc toolkit
+
+First installed pip (python3 is what i am using)
+
+
+1. navigate to your git directory of choice (/Users/eballer/BBL/msdepression/erica_local_git/)
+2. git clone https://github.com/PennLINC/PennLINC-Kit.git 
+3. Activate your python environment of choice [python3]
+4. in the cloned directory: pip install -e . (/Users/eballer/BBL/msdepression/erica_local_git/PennLINC-Kit)
+5. That should do it.. you can then load up your python interpreter and should be able to import pennlinckit, or from pennlinckit import … where … is whatever function or subpackage you want to import
+
+```{bash}
+
+```
+
