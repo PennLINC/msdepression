@@ -266,7 +266,8 @@ library(sjPlot)
 library(coin)
 library(rstatix)
 library(effectsize)
-
+library(colormod)
+library(ggpubr)
 
 homedir <- "/Users/eballer/BBL/msdepression/" 
 
@@ -697,7 +698,6 @@ proportion_volume_lost_nondep_net_dep_vs_healthy <- wilcox.test (dep_and_healthy
 proportion_volume_lost_over_nondep_net_brain_dep_vs_healthy_eff_size <- rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis, formula = proportion_volume_lost_nondep_net_by_network_size_sum ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = "perc", nboot = 1000)
 
 ### Interaction Network x Diagnosis
-#scale=1
 
 df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
   mutate(subject = as.factor(EMPI)) %>%
@@ -724,6 +724,18 @@ summary(diagnosis_by_network_interaction_lmer)
 ### Plot interaction
 ``` {r plots_for_dx_net_intx}
 ########## PLOTS #############
+
+#### color scheme
+Diagnosis_colors <- c("#AB19E6", "#1954E6")
+Diagnosis_colors_faded <- as.vector(sapply(Diagnosis_colors, function(color) {decrease_saturation(color, 0.3)})) 
+Network_colors <- c("#ff00ff", "#3df2f2")
+Network_colors_faded <- as.vector(sapply(Network_colors, function(color) {decrease_saturation(color, 0.3)})) 
+
+#label scheme
+Network_labels <- c("Depression Network", "Nondepression Network")
+Network_labels_wrapped <- c("Depression\nNetwork", "Nondepression\n Network")
+Diagnosis_labels <- c("Depressed", "Nondepressed")
+
 
 #Within vs outside network
 dep_net_group <- c(rep("Depression Network", times = dim(dep_and_healthy_groups_for_ICD_analysis)[1]), rep("Nondepression Network",times =dim(dep_and_healthy_groups_for_ICD_analysis)[1]))
@@ -761,6 +773,7 @@ dev.off()
 
 #diagnosis
 
+
 df_proportion_network_volume_and_diagnosis <- dep_and_healthy_groups_for_ICD_analysis %>% 
 dplyr::select(proportion_volume_lost_per_total_network_size_sum, depGroupVar) %>%
   mutate(depGroupVar = ifelse(depGroupVar == 1, "Non-depressed", "Depressed"))
@@ -773,7 +786,7 @@ violin_dep_vs_nondep_scaled_by_network_size <- ggplot(df_proportion_network_volu
   ggtitle(paste0("Proportion Fascicle Volume Affected by Diagnosis")) +
   ylab("Proportion (sum total volume lost/Net Vol) ") +
   ylim(0,1) + 
-  scale_fill_manual(values=c("#AB19E6", "#1954E6")) + 
+  scale_fill_manual(values=Diagnosis_colors) + 
   theme(plot.title = element_text(size=16, hjust = 0.55),
         axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
         axis.title.y = element_text(size=16),
@@ -788,36 +801,185 @@ pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/violin_dep_vs_
   violin_dep_vs_nondep_scaled_by_network_size
 dev.off()
 
-#interaction
+# bar graph instead of violin
 
+df_proportion_network_volume_and_diagnosis_summary <- df_proportion_network_volume_and_diagnosis %>%
+  group_by(depGroupVar) %>%
+  summarise(
+    mean = mean(proportion_volume_lost_per_total_network_size_sum),
+    sd = sd(proportion_volume_lost_per_total_network_size_sum),
+    n = n(),
+    se = sd / sqrt(n)
+  )
 
-diagnosis_by_network_interaction_lmer_plot <- plot_model(diagnosis_by_network_interaction_lmer, 
-                                                         type = "int",
-                                                         axis.lim = c(0,1),
-                                                         colors = c("#ff00ff", "#3df2f2"),
-                                                         line.size = 2,
-                                                         dodge=0.2,
-                                                         axis.title = c("Diagnosis", "Proportion Affected"),
-                                                         title = "Diagnosis x Depression Network Disease") +
-
-  theme(axis.text.x = element_text(size=16, color="black"),
-        axis.text.y = element_text(size=16, color="black"),
-        axis.title.x = element_text(size =16), 
-        axis.title.y = element_text(size =16), 
-        title = element_text(size=18),
+bar_dep_vs_nondep_scaled_by_network_size <- ggplot(df_proportion_network_volume_and_diagnosis_summary, aes(x=depGroupVar, y=mean, fill=depGroupVar)) +
+  geom_bar(stat = "identity", fill=Diagnosis_colors_faded, color = Diagnosis_colors, size = 1.5, width = 0.8) +  
+  geom_errorbar(aes(ymin=mean-se,ymax=mean+se), width=0.2, size=1.5, color = 'black') + #, position=position_dodge(width=0.5), width = 0.2,size = 1.5, color='black') +
+  scale_x_discrete(labels=c("Non-depressed" = "Nondepressed", "Depressed" = "Depressed")) + 
+  ggtitle(paste0("Proportion Fascicle Volume Affected by Diagnosis")) +
+  ylab("Proportion (sum total volume lost/Net Vol) ") +
+  ylim(0,0.5) + 
+  theme(plot.title = element_text(size=16, hjust = 0.55),
+        axis.text = element_text(size = 16, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=16),
         axis.line = element_line(size = 1.5, colour = "black", linetype=1),
-        aspect.ratio = 5/3,
-        panel.background = element_rect(colour = "white", fill = "white")) 
+        legend.position = "none",
+        aspect.ratio=7/5,
+        panel.background = element_rect(colour = "white", fill = "white"))
+print(bar_dep_vs_nondep_scaled_by_network_size) #
 
-print(diagnosis_by_network_interaction_lmer_plot)
+#save pdf
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/bar_dep_vs_nondep_scaled_by_network_size.pdf"))
+  bar_dep_vs_nondep_scaled_by_network_size
+dev.off()
+
+#plot interaction with ggplot rather than plot_model
+
+df_interaction <- expand.grid(Network = levels(df_empi_dx_network_proportions$Network), Diagnosis = levels(df_empi_dx_network_proportions$Diagnosis), subject = "8450972724") # just pick a random person
+
+model_data <- get_model_data(model = diagnosis_by_network_interaction_lmer, type = "int")
+
+df_interaction_fit_upper_lower <- cbind(df_interaction, model_data$predicted, model_data$conf.high, model_data$conf.low)
+
+
+### line
+
+interaction_line <- ggplot(data = df_interaction_fit_upper_lower, aes(x = Network, y = model_data$predicted, color = Diagnosis)) +
+  geom_line(aes(group = Diagnosis), size = 1.5) +
+  scale_color_manual(values=Diagnosis_colors, labels=Diagnosis_labels)+ 
+  geom_point(size = 3) + 
+ # geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), width = 0.2,size = 1, color='black') +
+  scale_x_discrete(labels=Network_labels) +
+  ylim(0,0.5) + 
+    xlab("Diagnosis") + 
+    ylab("Proportion Affected") + 
+    theme(axis.text.x = element_text(size=16, color="black"),
+          axis.text.y = element_text(size=16, color="black"),
+          axis.title.x = element_blank(), #element_text(size =16), 
+          axis.title.y = element_text(size =16), 
+          title = element_text(size=18),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          aspect.ratio = 7/5,
+          panel.background = element_rect(colour = "white", fill = "white"),
+          legend.key=element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 14), legend.position = "top") 
 
 #save as pdf
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_lmer_range0to1.pdf"))
-  diagnosis_by_network_interaction_lmer_plot
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_line_graph_range0to05_point.pdf"))
+  interaction_line
 dev.off()
 
 
+#geom_point
+interaction_ggplot_point <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network, group = interaction(Diagnosis, Network))) + 
+    geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), position=position_dodge(width=0.5), width = 0.2,size = 1.5, color='black') +
+    geom_point(position = position_dodge(width=0.5), size = 5) + 
+    scale_color_manual(values=Network_colors, labels = c("Depression Network", "Nondepression Network")) + 
+    ylim(0,1) + 
+    xlab("Diagnosis") + 
+    ylab("Proportion Affected") + 
+    theme(axis.text.x = element_text(size=16, color="black"),
+          axis.text.y = element_text(size=16, color="black"),
+          axis.title.x = element_blank(), #element_text(size =16), 
+          axis.title.y = element_text(size =16), 
+          title = element_text(size=18),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          aspect.ratio = 5/3,
+          panel.background = element_rect(colour = "white", fill = "white"),
+          legend.key=element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 14), #,
+          legend.position = "top") #+ 
+ #   ggtitle("Diagnosis x Depression Network Disease")
+print(interaction_ggplot_point)
+
+#save as pdf
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0to1_point.pdf"))
+  interaction_ggplot_point
+dev.off()
+
+
+#geom_point 0.2-0.5
+interaction_ggplot_point_02_05 <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network, group = interaction(Diagnosis, Network))) + 
+    geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), position=position_dodge(width=0.5), width = 0.2,size = 1.5, color='black') +
+    geom_point(position = position_dodge(width=0.5), size = 5) + 
+    scale_color_manual(values=Network_colors, labels = c("Depression Network", "Nondepression Network")) + 
+    ylim(0.2,0.5) + 
+    xlab("Diagnosis") + 
+    ylab("Proportion Affected") + 
+    theme(axis.text.x = element_text(size=16, color="black"),
+          axis.text.y = element_text(size=16, color="black"),
+          axis.title.x = element_blank(), #element_text(size =16), 
+          axis.title.y = element_text(size =16), 
+          title = element_text(size=18),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          aspect.ratio = 5/3,
+          panel.background = element_rect(colour = "white", fill = "white"),
+          legend.key=element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 14), #,
+          legend.position = "top") #+ 
+ #   ggtitle("Diagnosis x Depression Network Disease")
+print(interaction_ggplot_point_02_05)
+
+#save as pdf
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0_2to0_5_point.pdf"))
+  interaction_ggplot_point_02_05
+dev.off()
+
+#geom_bar
+interaction_ggplot_bar <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network,  group = interaction(Diagnosis, Network))) + 
+    geom_col(position = position_dodge(width=0.6), fill = c(Network_colors_faded, Network_colors_faded), color = c(Network_colors, Network_colors), width = 0.5, size = 1.5) + 
+    geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), position=position_dodge(width=0.6), width = 0.2,size = 1.5, color='black') +
+    #geom_point(position = position_dodge(width=0.5), size = 5) + 
+    scale_color_manual(values=Network_colors) + #, labels = c("Depression Network", "Nondepression Network"))+ 
+    ylim(0,0.5) + 
+    xlab("Diagnosis") + 
+    ylab("Proportion Affected") + 
+    theme(axis.text.x = element_text(size=16, color="black"),
+          axis.text.y = element_text(size=16, color="black"),
+          axis.title.x = element_blank(), #element_text(size =16), 
+          axis.title.y = element_text(size =16), 
+          plot.title = element_text(size=16, hjust = 0.5),
+          axis.line = element_line(size = 1.5, colour = "black", linetype=1),
+          aspect.ratio = 7/5,
+          panel.background = element_rect(colour = "white", fill = "white"),
+          legend.key=element_blank(),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 14),
+          legend.position = "top")+ 
+          
+    ggtitle("Diagnosis x Depression Network Disease")
+print(interaction_ggplot_bar)
+
+#save as pdf
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0to05_bar.pdf"))
+  interaction_ggplot_bar
+dev.off()
+
+
+### wrap
+
+diagnosis_and_interaction_bar_combined <- ggarrange(bar_dep_vs_nondep_scaled_by_network_size,interaction_ggplot_bar, 
+                                                labels = c("A", "B"),
+                                                ncol = 2, nrow = 1)
+
+
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_intx_line_and_intx_bargraph_range0to05.pdf"))
+  diagnosis_and_interaction_bar_combined
+  
+  
+diagnosis_and_interaction_all_combined <- ggarrange(bar_dep_vs_nondep_scaled_by_network_size, interaction_line,interaction_ggplot_bar, 
+                                                labels = c("A", "B", "C"),
+                                                ncol = 3, nrow = 1)
+
+
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_intx_line_and_intx_bargraph_range0to05.pdf"))
+  diagnosis_and_interaction_all_combined
+dev.off()
 ```
+
 ### Effect size regression (effect size x overlap with dep net)
 ``` {r effect_size_regression}
 dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles_prop_and_vol %>% 
