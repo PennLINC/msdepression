@@ -677,6 +677,16 @@ disease_nondep_dx_shapiro <- shapiro.test(dep_and_healthy_groups_for_ICD_analysi
 ### Within/outside depression network, V = 65897, p = 2.2*10^-16, mean dep net prop = 0.41, mean non dep = 0.31
 msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum, dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum,paired = TRUE) 
 
+
+#within nondepressed group, V=9661, p <2.2*10^-16
+msdisease_within_versus_outside_depression_network_nondep_group_sums_scaled_by_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1],paired = TRUE) 
+
+
+#within depressed group, V= 25143, p<2.2*10^-16
+msdisease_within_versus_outside_depression_network_dep_group_sums_scaled_by_size_wilcoxon <- wilcox.test(dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_dep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], dep_and_healthy_groups_for_ICD_analysis$proportion_volume_lost_nondep_net_by_network_size_sum[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2],paired = TRUE) 
+
+
+
 ### Diagnostic effects
 
 #proportion volume lost over whole network = W=14996, p=0.04, mean dep = 0.39, mean nondep = 0.34
@@ -711,8 +721,14 @@ df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
   ungroup()
  
 
-#eff size = 0.78 (large)
+#effect size within vs outside dep network, eff size = 0.78 (large)
 msdisease_within_versus_outside_depression_network_sums_scaled_by_size_wilcoxon_eff_size <- rstatix::wilcox_effsize(df_empi_dx_network_proportions, formula = proportion_affected ~ Network, paired = T, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+#effect size dep vs nondep network within nondepressed, eff size = 0.75 (large)
+msdisease_within_versus_outside_depression_network_nondep_group_sums_scaled_by_size_wilcoxon_eff_size <- rstatix::wilcox_effsize(df_empi_dx_network_proportions[(df_empi_dx_network_proportions$Diagnosis == "Nondepressed"),], formula = proportion_affected ~ Network, paired = T, conf.level = 0.95, ci.type = "perc", nboot = 1000)
+
+#effect size dep vs dep network within depressed, eff size = 0.80, large
+msdisease_within_versus_outside_depression_network_nondep_group_sums_scaled_by_size_wilcoxon_eff_size <- rstatix::wilcox_effsize(df_empi_dx_network_proportions[(df_empi_dx_network_proportions$Diagnosis == "Depressed"),], formula = proportion_affected ~ Network, paired = T, conf.level = 0.95, ci.type = "perc", nboot = 1000)
 
 #diagnosis: Dep > nondep T = 2.4, p = 0.015; Network dep>nondep = T=19.2, p = 2*10^-16; intx = T = 2.3, p = 0.020
 diagnosis_by_network_interaction_lmer <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject), data = df_empi_dx_network_proportions)
