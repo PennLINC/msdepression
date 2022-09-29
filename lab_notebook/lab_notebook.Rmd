@@ -2971,20 +2971,12 @@ view_cifti(test.ciftimap, colors=c("magma"), widget=TRUE)
 
 #### 20220922
 
-[] no cerebellum -> should I find a way to do a flat representation?
+[x] no cerebellum -> should I find a way to do a flat representation? (NO)
 
-Need to install python and pennlinc toolkit
+Need to install python and pennlinc toolkit - did not work. It is broken. Don't use it
 
-First installed pip (python3 is what i am using)
-
-
-1. navigate to your git directory of choice (/Users/eballer/BBL/msdepression/erica_local_git/)
-2. git clone https://github.com/PennLINC/PennLINC-Kit.git 
-3. Activate your python environment of choice [python3]
-4. in the cloned directory: pip install -e . (/Users/eballer/BBL/msdepression/erica_local_git/PennLINC-Kit)
-5. That should do it.. you can then load up your python interpreter and should be able to import pennlinckit, or from pennlinckit import … where … is whatever function or subpackage you want to import
-
-```{bash}
-
-```
-
+#### 20220930 or next week
+[] add post hoc */bars to figure 4
+[] add legend
+[] call it a win!
+[] add statistics to other graphs (p/effect size)
