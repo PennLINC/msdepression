@@ -268,6 +268,7 @@ library(rstatix)
 library(effectsize)
 library(colormod)
 library(ggpubr)
+library(ggsignif)
 
 homedir <- "/Users/eballer/BBL/msdepression/" 
 
@@ -294,7 +295,6 @@ columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","C
 #we need to keep scans from people seen by an MS provider (n = 17067) who have an MS diagnostic code (n=16,830)
 #we make a bunch of columns from character to integer, binarize sex and race, and put date into a nice format YYYYMMDD, the %m%d%y indicates what it started out as
 
-#goal is to keep people who were seen by 
  data_empi_acc_f_phq <- data %>% 
    mutate(across(.cols = columns_to_make_integer, .fns = as.integer)) %>%
    mutate(sex_binarized = ifelse(SEX == "MALE", 1, 2)) %>%
@@ -323,14 +323,19 @@ columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","C
    rowwise(ACCESSION_NUM) %>%
    mutate(depGroupVar =
             sum(c(dep_by_dx_phq_meds_healthy_phq0_no_psych_meds,dep_by_dx_phq_antidep))) %>%#you get an extra point if you are in the depression group, so the end result is dep = 2, healthy = 1, 0 for exclude
-   ungroup()
+   ungroup() #n=3,737 unique people, n= 16,830 total
+
 
 
 ##########################################################
 #             Read in Fascicle info             #
 ##########################################################
 
-fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336
+fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336, n unique = 958
+
+#change empi to factor
+
+fascicle_proportions$EMPI = as.factor(fascicle_proportions$EMPI)
 
 #fascicle names are contained in all but the first 2 columns of the fascicle_proportions df
 fascicle_names <- names(fascicle_proportions[3:dim(fascicle_proportions)[2]])
@@ -353,13 +358,16 @@ fascicle_volumes_dep <- read.csv(paste0(homedir, "/results/streamline_volume_wit
 
 # contains the volume of lesioned voxels, i.e. a sum of all the areas of each individual's binary mask that are 1
 
-lesion_volumes <- read.csv(paste0(homedir, "/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes"), sep = ",", header = TRUE)
+lesion_volumes <- read.csv(paste0(homedir, "/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes"), sep = ",", header = TRUE) #n=958 unique, identical to fascicle unique
+
+lesion_volumes$EMPI <- as.factor(lesion_volumes$EMPI)
+
 
 ##########################################################
 #             Merge with data_empi              #
 ##########################################################
 #merge whole data set with fascicle proportions
-df_demo_and_fascicles <- merge(data_empi_acc_f_phq, fascicle_proportions, by = c("EMPI", "EXAM_DATE")) #n = 2962
+df_demo_and_fascicles <- merge(data_empi_acc_f_phq, fascicle_proportions, by = c("EMPI", "EXAM_DATE")) #n = 2962, unique = 783
 
 #merge with the df that has lesion volumes, 1 per perosn
 df_demo_and_fascicles <- merge(df_demo_and_fascicles, lesion_volumes, by = c("EMPI", "EXAM_DATE")) #n = 2962
@@ -394,8 +402,57 @@ names(df_fascicles_volumes) <- fascicle_names_w_vol_suffix
 #df_demo_and_fascicle_volumes_full <- cbind(df_everything_else, df_fascicle_volumes)
 df_demo_and_fascicles_prop_and_vol <- cbind(df_everything_else, df_fascicles_prop, df_fascicles_volumes)
 
-
 ```
+
+```{r get_mimosa_QC_info}
+
+
+#This section checks how many unique individuals had QA data, and then how many met MIMoSA QC. Some additional people lost at registration. 
+
+#1 Total unique individuals who also have MS - 890
+#2 Total unique who had good MIMoSA - 786
+#3 Total unique with bad MIMoSA - 890-786 = 104
+#4 Total lost in streamline filtering - 3
+#5 Final N going into inclusion/exclusion - 783
+
+#read in mimosa data
+mimosa_qc <- read.csv(paste0(homedir, "/data/melissa_martin_files/csv/mimosa_dataframe"), sep = ",", header = FALSE) #n=2840
+
+#preprocess data frame to extract dates, empis, and score
+empis_with_qc <- mimosa_qc %>% 
+  mutate(EMPI = as.factor(gsub(x = V5, pattern = ".*sub-(.*)/ses-.*/.*", replacement="\\1", perl = TRUE))) %>%
+  mutate(EXAM_DATE = gsub(x=V5, pattern = ".*/ses-(.{8})/.*", replacement = "\\1\\2\\3")) %>% 
+  mutate(score = V3) 
+
+
+#merge with whole data frame to make sure we exclude people w/out MS
+mimosa_qc_with_data_empi_acc_f_phq <- merge(data_empi_acc_f_phq, empis_with_qc, by = c("EMPI", "EXAM_DATE")) #n = 3592
+
+#get list of unique patients, n = 890
+mimosa_qc_with_data_empi_acc_f_phq_unique <- mimosa_qc_with_data_empi_acc_f_phq %>%
+  group_by(EMPI) %>%
+  arrange(EXAM_DATE) %>%
+  slice(1) %>%
+  ungroup #n=890
+  
+#get list of unique patients with good QC, n = 786
+mimosa_unique_score_gre_75 <- mimosa_qc_with_data_empi_acc_f_phq %>%
+  filter(score >= 75) %>%
+  group_by(EMPI) %>%
+  arrange(EXAM_DATE) %>%
+  slice(1) %>%
+  ungroup #n=786
+
+#merge with fascicle proportions, we lose 3
+mimosa_qc_with_data_empi_acc_f_phq_fascicle_props <- merge(mimosa_qc_with_data_empi_acc_f_phq, fascicle_proportions, by = c("EMPI", "EXAM_DATE")) #n=2962
+
+mimosa_qc_with_data_empi_acc_f_phq_fascicle_props_unique <- mimosa_qc_with_data_empi_acc_f_phq_fascicle_props %>% 
+  group_by(EMPI) %>%
+  arrange(EXAM_DATE) %>%
+  slice(1) %>%
+  ungroup #n=783
+```
+
 ### PROMIS DATA HANDLING to link a person to their most proximal PROMIS
 
 ```{r promis_data_handling}
@@ -460,7 +517,7 @@ hist(df_people_with_promis_data_scores_added$distance_from_scan/364,
 
 #this will display a demographics table comparing age, race, sex between healthy and depressed groups, using the first presentation to treatment
 
-df_good_mimosa_unique_dep_and_healthy <- df_demo_and_fascicles %>% 
+df_good_mimosa_unique_dep_and_healthy <- df_demo_and_fascicles_prop_and_vol %>% 
   filter(depGroupVar != 0) %>%
   group_by(EMPI) %>% 
   arrange(EXAM_DATE) %>% 
@@ -832,12 +889,12 @@ bar_dep_vs_nondep_scaled_by_network_size <- ggplot(df_proportion_network_volume_
   geom_bar(stat = "identity", fill=Diagnosis_colors_faded, color = Diagnosis_colors, size = 1.5, width = 0.8) +  
   geom_errorbar(aes(ymin=mean-se,ymax=mean+se), width=0.2, size=1.5, color = 'black') + #, position=position_dodge(width=0.5), width = 0.2,size = 1.5, color='black') +
   scale_x_discrete(labels=c("Non-depressed" = "Nondepressed", "Depressed" = "Depressed")) + 
-  ggtitle(paste0("Proportion Fascicle Volume Affected by Diagnosis")) +
-  ylab("Proportion (sum total volume lost/Net Vol) ") +
-  ylim(0,0.5) + 
-  theme(plot.title = element_text(size=16, hjust = 0.55),
-        axis.text = element_text(size = 16, colour = "black"), axis.title.x = element_blank(), 
-        axis.title.y = element_text(size=16),
+#  ggtitle(paste0("Proportion Fascicle Volume Affected by Diagnosis")) +
+  ylab("Proportion of Whole Brain White Matter Volume Affected") +
+  ylim(0,0.6) + 
+  theme(plot.title = element_text(size=14, hjust = 0.55),
+        axis.text = element_text(size = 14, colour = "black"), axis.title.x = element_blank(), 
+        axis.title.y = element_text(size=14),
         axis.line = element_line(size = 1.5, colour = "black", linetype=1),
         legend.position = "none",
         aspect.ratio=7/5,
@@ -866,7 +923,7 @@ interaction_line <- ggplot(data = df_interaction_fit_upper_lower, aes(x = Networ
   geom_point(size = 3) + 
  # geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), width = 0.2,size = 1, color='black') +
   scale_x_discrete(labels=Network_labels) +
-  ylim(0,0.5) + 
+  ylim(0,0.6) + 
     xlab("Diagnosis") + 
     ylab("Proportion Affected") + 
     theme(axis.text.x = element_text(size=16, color="black"),
@@ -882,7 +939,7 @@ interaction_line <- ggplot(data = df_interaction_fit_upper_lower, aes(x = Networ
           legend.text = element_text(size = 14), legend.position = "top") 
 
 #save as pdf
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_line_graph_range0to05_point.pdf"))
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_line_graph_range0to06_point.pdf"))
   interaction_line
 dev.off()
 
@@ -917,11 +974,11 @@ dev.off()
 
 
 #geom_point 0.2-0.5
-interaction_ggplot_point_02_05 <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network, group = interaction(Diagnosis, Network))) + 
+interaction_ggplot_point_02_06 <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network, group = interaction(Diagnosis, Network))) + 
     geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), position=position_dodge(width=0.5), width = 0.2,size = 1.5, color='black') +
     geom_point(position = position_dodge(width=0.5), size = 5) + 
     scale_color_manual(values=Network_colors, labels = c("Depression Network", "Nondepression Network")) + 
-    ylim(0.2,0.5) + 
+    ylim(0.2,0.6) + 
     xlab("Diagnosis") + 
     ylab("Proportion Affected") + 
     theme(axis.text.x = element_text(size=16, color="black"),
@@ -937,40 +994,42 @@ interaction_ggplot_point_02_05 <- ggplot(data = df_interaction_fit_upper_lower, 
           legend.text = element_text(size = 14), #,
           legend.position = "top") #+ 
  #   ggtitle("Diagnosis x Depression Network Disease")
-print(interaction_ggplot_point_02_05)
+print(interaction_ggplot_point_02_06)
 
 #save as pdf
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0_2to0_5_point.pdf"))
-  interaction_ggplot_point_02_05
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0_2to0_6_point.pdf"))
+  interaction_ggplot_point_02_06
 dev.off()
 
 #geom_bar
 interaction_ggplot_bar <- ggplot(data = df_interaction_fit_upper_lower, mapping = aes(x = Diagnosis, y = model_data$predicted, color = Network,  group = interaction(Diagnosis, Network))) + 
     geom_col(position = position_dodge(width=0.6), fill = c(Network_colors_faded, Network_colors_faded), color = c(Network_colors, Network_colors), width = 0.5, size = 1.5) + 
     geom_errorbar(aes(ymin=model_data$conf.low,ymax=model_data$conf.high), position=position_dodge(width=0.6), width = 0.2,size = 1.5, color='black') +
-    #geom_point(position = position_dodge(width=0.5), size = 5) + 
-    scale_color_manual(values=Network_colors) + #, labels = c("Depression Network", "Nondepression Network"))+ 
-    ylim(0,0.5) + 
+    scale_fill_manual(values=Network_colors) + #, labels = c("Depression Network", "Nondepression Network"))+ 
+    ylim(0,0.6) + 
     xlab("Diagnosis") + 
-    ylab("Proportion Affected") + 
-    theme(axis.text.x = element_text(size=16, color="black"),
-          axis.text.y = element_text(size=16, color="black"),
+    ylab("Proportion of White Matter Network Affected") + 
+    theme(axis.text.x = element_text(size=14, color="black"),
+          axis.text.y = element_text(size=14, color="black"),
           axis.title.x = element_blank(), #element_text(size =16), 
-          axis.title.y = element_text(size =16), 
+          axis.title.y = element_text(size =14), 
           plot.title = element_text(size=16, hjust = 0.5),
           axis.line = element_line(size = 1.5, colour = "black", linetype=1),
           aspect.ratio = 7/5,
-          panel.background = element_rect(colour = "white", fill = "white"),
-          legend.key=element_blank(),
-          legend.title = element_blank(),
-          legend.text = element_text(size = 14),
-          legend.position = "top")+ 
-          
-    ggtitle("Diagnosis x Depression Network Disease")
+          panel.background = element_rect(colour = "white", fill = "white"))+ 
+    
+    geom_signif(
+      y_position = c(0.48, 0.48, 0.53, 0.58), 
+      xmin = c(0.85, 1.85, 0.85, 1.15),
+      xmax = c(1.15, 2.15, 1.85, 2.15),
+      annotation = c("***", "***", "*", "NS"), 
+      tip_length = 0.03, color = "black",
+      size = 1.1, textsize = 5) #+
+  #  ggtitle("Diagnosis x Depression Network Disease")
 print(interaction_ggplot_bar)
 
 #save as pdf
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0to05_bar.pdf"))
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_by_network_interaction_plot_range0to06_bar.pdf"))
   interaction_ggplot_bar
 dev.off()
 
@@ -982,7 +1041,8 @@ diagnosis_and_interaction_bar_combined <- ggarrange(bar_dep_vs_nondep_scaled_by_
                                                 ncol = 2, nrow = 1)
 
 
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_intx_line_and_intx_bargraph_range0to05.pdf"))
+print(diagnosis_and_interaction_bar_combined)
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_and_intx_bargraph_range0to06.pdf"))
   diagnosis_and_interaction_bar_combined
   
   
@@ -991,7 +1051,7 @@ diagnosis_and_interaction_all_combined <- ggarrange(bar_dep_vs_nondep_scaled_by_
                                                 ncol = 3, nrow = 1)
 
 
-pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_intx_line_and_intx_bargraph_range0to05.pdf"))
+pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/diagnosis_intx_line_and_intx_bargraph_range0to06.pdf"))
   diagnosis_and_interaction_all_combined
 dev.off()
 ```
