@@ -1046,6 +1046,8 @@ dev.off()
 
 diagnosis_and_interaction_bar_combined <- ggarrange(bar_dep_vs_nondep_scaled_by_network_size,interaction_ggplot_bar, 
                                                 labels = c("A", "B"),
+                                                font.label = list(size = 16, color = "black", family = NULL),
+                                                vjust = 9,
                                                 ncol = 2, nrow = 1)
 
 
