@@ -70,15 +70,17 @@ All images were obtained from the PACS system from the Department of Radiology
 
 ### Sample Construction
 
-We first constructed our sample from the PNC 1,601 imaging dataset. Each participant underwent cognitive testing, clinical phenotyping, and neuroimaging.
+We first constructed our sample from n=890 individuals who were diagnosed with multiple sclerosis by a Multiple Sclerosis provider and received their clinical scans at the University of Pennsylvania. 
 
-The following code takes the PNC 1601 sample, and goes through a variety of exclusions to get the final n. Specifically, it removes subjects with poor QA data, medical comorbidity, abnormal brain structure, or on psychoactive medications.
+The following code takes the n=890 sample, and goes through a variety of exclusions to get the final n. Specifically, after excluding participants with poor image quality (n = 107), 783 were eligible for depression classification.  Inclusion in the depression group (MS+Depression) required 1) an ICD-10 depression diagnosis (F32-F34.\*), 2) a prescription for antidepressant medication, or screening positive via Patient Health Questionairre-2(PHQ2) or -9(PHQ9). The age- and sex-matched nondepressed comparators (MS-Depression) included persons with 1) no prior depression diagnosis, 2) no psychiatric medications, and 3) were asymptomatic on PHQ2/9. 
 
 [n831_alff_cbf_makeSample.R](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/CR_revision/coupling/n831_alff_cbf_makeSample.R)
   
-### CBF-ALFF Map generation
+### Automated white matter lesion segmentation
 
-After we obtained our sample, we constructed single subject CBF-ALFF coupling maps. 
+After we obtained our sample, we used the Method for Intermodal Segmentation Analysis (MIMoSA) to extract white matter lesions for each subject. MIMoSA has been previously described: 
+
+Valcarcel AM, Linn KA, Vandekar SN, Satterthwaite TD, Muschelli J, Calabresi PA, Pham DL, Martin ML, Shinohara RT. MIMoSA: An Automated Method for Intermodal Segmentation Analysis of Multiple Sclerosis Brain Lesions. J Neuroimaging. 2018 Jul;28(4):389-398. doi: 10.1111/jon.12506. Epub 2018 Mar 8. PMID: 29516669; PMCID: PMC6030441.
 
 #### Volume to surface projection
 
