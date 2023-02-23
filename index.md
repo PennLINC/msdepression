@@ -20,7 +20,7 @@ Erica B. Baller, M.D., M.S., Elizabeth M. Sweeney, Ph.D., Amit Bar-Or, M.D., Mat
 ^shared last author
 
 ### Project Start Date:
-My version - 1/2021
+1/2021
 
 ### Current Project Status:
 Completed
