@@ -95,18 +95,23 @@ Full fascicle volumes were also calculated and saved as .niis.
 ##### Step : Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
 
 *Grab the volume of each of the healthy fascicles*
+
 [make_streamline_volumes_for_template.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_for_template.sh)
 
 *Script that cycles through all subjects to do streamline filtering*
+
 [dsi_studio_bash.sh](https://github.com/ballere/msdepression/blob/main/dsi_studio_bash.sh)
 
 *Individual subject streamline filtering, called from above script*
+
 [indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/ballere/msdepression/blob/main/indiv_mimosa_lesion_dsi_studio_script.sh)
 
 *Make streamline volumes for all subjects*
+
 [streamline_volumes_all_subjs.sh](https://github.com/ballere/msdepression/blob/main/streamline_volumes_all_subjs.sh)
 
 *Make streamline volumes for a single subject, called from above script*
+
 [make_streamline_volumes_single_subj_pmacs.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_single_subj_pmacs.sh)
 
 #### White matter depression network construction
@@ -146,12 +151,15 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 #### Coloring scripts for fascicle visualizations (to be fed into DSI studio)
 
 *Sample script for making RGB scales in the red to yellow range*
+
 [make_red_to_yellow_RGB_color_scheme.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_red_to_yellow_RGB_color_scheme.R)
 
 *Sample script for making binary color schemes, simple*
+
 [make_binary_colored_depression_net_maps.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_binary_colored_depression_net_maps.R)
 
 *Sample script for making binary color schemes, coloring by whether fascicle in vs. outside dep network*
+
 [make_binary_colored_depression_net_maps_by_dx.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_binary_colored_depression_net_maps_by_dx.R)
 
 
