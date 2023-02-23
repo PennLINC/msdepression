@@ -82,8 +82,23 @@ After we obtained our sample, we used the Method for Intermodal Segmentation Ana
 
 Valcarcel AM, Linn KA, Vandekar SN, Satterthwaite TD, Muschelli J, Calabresi PA, Pham DL, Martin ML, Shinohara RT. MIMoSA: An Automated Method for Intermodal Segmentation Analysis of Multiple Sclerosis Brain Lesions. J Neuroimaging. 2018 Jul;28(4):389-398. [doi: 10.1111/jon.12506](https://pubmed.ncbi.nlm.nih.gov/29516669/). Epub 2018 Mar 8. PMID: 29516669; PMCID: PMC6030441.
 
-#### Volume to surface projection
+#### Streamline Filtering
 
+
+#### White matter depression network construction
+
+
+#### Main effect of Network, Diagnosis, and Diagnosis\*Network Analyses
+
+#### Individual Fascicle Analyses 
+
+
+#### Main effect of Diagnosis Analysis
+
+
+
+
+#### 
 [Volume to Surface Wiki](https://github.com/PennBBL/tutorials/wiki/3D-Volume-to-Surface-Projection-(FS))
 
 First, brain volumes were projected to the cortical surface using tools from freesurfer. This was performed on chead, an old cluster that has now been retired. Input for this analysis consists of a csv containing bblid, datexscanid, path to the subject-space CBF or ALFF image to be projected, and path to the subject-specific seq2struct coreg .mat file (as well as the associated reference and target images). It further requires that FreeSurfer have been run on the subjects. Files were drawn from the chead 1601 data freeze. Datafreeze information is now also available on pmacs (see above links for pmacs). 
