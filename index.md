@@ -89,30 +89,39 @@ I was then able to calculate the "volume" of the disease in a fascicle (i.e. vol
   
 Full fascicle volumes were also calculated and saved as .niis. 
 
-##### Step : Registering/normalizing MIMoSA binary maps to HCP template
+##### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
 [ants_registration_code.sh](https://github.com/ballere/msdepression/blob/main/ants_registration_code.sh)
 
-##### Step : Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+##### Step 2: Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+*Script that cycles through all subjects to do streamline filtering*
+
+[dsi_studio_bash.sh](https://github.com/ballere/msdepression/blob/main/dsi_studio_bash.sh)
+
+*Individual subject streamline filtering, called from dsi_studio_bash*
+
+[indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/ballere/msdepression/blob/main/indiv_mimosa_lesion_dsi_studio_script.sh)
+
+##### Step 3: Calculate the volume of each fascicle in a template (healthy) brain
 
 *Grab the volume of each of the healthy fascicles*
 
 [make_streamline_volumes_for_template.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_for_template.sh)
 
-*Script that cycles through all subjects to do streamline filtering*
 
-[dsi_studio_bash.sh](https://github.com/ballere/msdepression/blob/main/dsi_studio_bash.sh)
-
-*Individual subject streamline filtering, called from above script*
-
-[indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/ballere/msdepression/blob/main/indiv_mimosa_lesion_dsi_studio_script.sh)
+##### Step 4: Calculate the volume of the fiber tracts that are impaired
 
 *Make streamline volumes for all subjects*
 
 [streamline_volumes_all_subjs.sh](https://github.com/ballere/msdepression/blob/main/streamline_volumes_all_subjs.sh)
 
-*Make streamline volumes for a single subject, called from above script*
+*Make streamline volumes for a single subject, called from streamline_volumes_all_subjs.sh*
 
 [make_streamline_volumes_single_subj_pmacs.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_single_subj_pmacs.sh)
+
+##### Step 5: Generate summary fascicle measures
+
+This specifically makes the fascicle injury ratio measure, calculated by taking the volume of injured fascicle and dividing by the overall volume of the healthy fascicle. 
+[roi_ratio_regressions.R](https://github.com/ballere/msdepression/blob/main/roi_ratio_regressions.R)
 
 #### White matter depression network construction
 This network was made by [Shan Siddiqi et al., 2021 *Nature Human Behavior*](https://www.nature.com/articles/s41562-021-01161-1). 
