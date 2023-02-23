@@ -67,14 +67,14 @@ All images were obtained from the PACS system from the Department of Radiology
 **The analytic workflow implemented in this project is described in detail in the following sections. Analysis steps are described in the order they were implemented; the script(s) used for each step are identified and links to the code on github are provided.** 
 <br>
 
+#### * Functions for project *
+[msdepression_functions.R](https://github.com/ballere/msdepression/blob/main/msdepression_functions.R)
 
 ### Sample Construction
 
 We first constructed our sample from n=890 individuals who were diagnosed with multiple sclerosis by a Multiple Sclerosis provider and received their clinical scans at the University of Pennsylvania. 
 
 The following code takes the n=890 sample, and goes through a variety of exclusions to get the final n. Specifically, after excluding participants with poor image quality (n = 107), 783 were eligible for depression classification.  Inclusion in the depression group (MS+Depression) required 1) an ICD-10 depression diagnosis (F32-F34.\*), 2) a prescription for antidepressant medication, or screening positive via Patient Health Questionairre-2(PHQ2) or -9(PHQ9). The age- and sex-matched nondepressed comparators (MS-Depression) included persons with 1) no prior depression diagnosis, 2) no psychiatric medications, and 3) were asymptomatic on PHQ2/9. 
-
-[n831_alff_cbf_makeSample.R](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/CR_revision/coupling/n831_alff_cbf_makeSample.R)
   
 ### Automated white matter lesion segmentation
 
@@ -89,10 +89,33 @@ I was then able to calculate the "volume" of the disease in a fascicle (i.e. vol
   
 Full fascicle volumes were also calculated and saved as .niis. 
 
+##### Step : Registering/normalizing MIMoSA binary maps to HCP template
+[ants_registration_code.sh](https://github.com/ballere/msdepression/blob/main/ants_registration_code.sh)
+
+##### Step : Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+
+*Grab the volume of each of the healthy fascicles*
+[make_streamline_volumes_for_template.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_for_template.sh)
+
+*Script that cycles through all subjects to do streamline filtering*
+[dsi_studio_bash.sh](https://github.com/ballere/msdepression/blob/main/dsi_studio_bash.sh)
+
+*Individual subject streamline filtering, called from above script*
+[indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/ballere/msdepression/blob/main/indiv_mimosa_lesion_dsi_studio_script.sh)
+
+*Make streamline volumes for all subjects*
+[streamline_volumes_all_subjs.sh](https://github.com/ballere/msdepression/blob/main/streamline_volumes_all_subjs.sh)
+
+*Make streamline volumes for a single subject, called from above script*
+[make_streamline_volumes_single_subj_pmacs.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_single_subj_pmacs.sh)
+
 #### White matter depression network construction
 This network was made by [Shan Siddiqi et al., 2021 *Nature Human Behavior*](https://www.nature.com/articles/s41562-021-01161-1). 
 
-I first thresholded the mask (3.09), binarized it and then used it as an ROI and calculated, per fascicle, the volume occupied by the fascicle that intersected with the depression mask using streamline filtering as above. The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
+I first thresholded the mask (3.09), binarized it and then used it as an ROI and calculated, per fascicle, the volume occupied by the fascicle that intersected with the depression mask using streamline filtering as above.
+[calc_vol_fascicles_within_depression_mask.sh](https://github.com/ballere/msdepression/blob/main/calc_vol_fascicles_within_depression_mask.sh)
+
+The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
 
 #### Disease burden summary measures
   Having computed disease measures at the individual fascicle, I wanted to assess network effects for all future analyses. To do this, I calculated three summary measures per individual. 
@@ -120,6 +143,16 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
     3) This relationship was permuted 10,000 w/boot (w/replacement)
 
 
+#### Coloring scripts for fascicle visualizations (to be fed into DSI studio)
+
+*Sample script for making RGB scales in the red to yellow range*
+[make_red_to_yellow_RGB_color_scheme.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_red_to_yellow_RGB_color_scheme.R)
+
+*Sample script for making binary color schemes, simple*
+[make_binary_colored_depression_net_maps.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_binary_colored_depression_net_maps.R)
+
+*Sample script for making binary color schemes, coloring by whether fascicle in vs. outside dep network*
+[make_binary_colored_depression_net_maps_by_dx.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_binary_colored_depression_net_maps_by_dx.R)
 
 
 #### 
