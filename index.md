@@ -10,10 +10,10 @@ Erica B. Baller
 Theodore D. Satterthwaite and Russell T. Shinohara
 
 ### Brief Project Description:
-380 participants with multiple sclerosis were included (MS+Depression=232, MS-Depression=148). Lesions from research-grade clinical scans were segmented with MIMoSA and normalized to the HCP template. Streamline filtering was performed in DSI studio to generate measures of the degree of fascicle and network impact by lesions. A white matter depression network than connected previously described gray matter regions associated with depression (Siddiqi et al., 2021) was constructed. Main effect of network, depression diagnosis, and diagnosis by network interactions were assessed. was constructed from the gray matter Automated white matter lesion segmentation with MIMOSA was performed
+380 participants with multiple sclerosis were included (MS+Depression=232, MS-Depression=148). Lesions from research-grade clinical scans were segmented with MIMoSA and normalized to the HCP template. Streamline filtering was performed in DSI studio to generate measures of the degree of fascicle and network impact by lesions. A white matter depression network than connected previously described gray matter regions associated with depression (Siddiqi et al., 2021) was constructed. Main effect of network, depression diagnosis, and diagnosis by network interactions were assessed. 
 
 ### Analytic Replicator:
-Elizabeth Sweeney
+Elizabeth Sweeney, Ph.D.
 
 ### Collaborators:
 Erica B. Baller, M.D., M.S., Elizabeth M. Sweeney, Ph.D., Amit Bar-Or, M.D., Matthew C. Cieslak, Ph.D., Sydney C. Covitz, B.A., John A. Detre, M.D., Ameena Elahi, Abigail R. Manning, B.A., Clyde E. Markowitz, Melissa Martin, B.A., Christopher M. Perrone, M.D., Victoria Rautman, Timothy Robert-Fitzgerald, B.A., Matthew K. Schindler, M.D., Ph.D., Shan Siddiqi, M.D., Sunil Thomas, Michael D. Fox, M.D., Ph.D., Russell T. Shinohara, Ph.D.*, Theodore D. Satterthwaite, M.D., M.A.*
