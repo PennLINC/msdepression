@@ -94,14 +94,30 @@ This network was made by [Shan Siddiqi et al., 2021 *Nature Human Behavior*](htt
 
 I first thresholded the mask (3.09), binarized it and then used it as an ROI and calculated, per fascicle, the volume occupied by the fascicle that intersected with the depression mask using streamline filtering as above. The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
 
+#### Disease burden summary measures
+  Having computed disease measures at the individual fascicle, I wanted to assess network effects for all future analyses. To do this, I calculated three summary measures per individual. 
+    
+    1) Total disease : Sum of all 77 volume measures of disease, divided by the total volume of "healthy" fascicles (i.e. taking a sum of all of the full fascicle volumes). This yields a proportion of the overall burden of disease in the brain
+    
+    2) Depression network: Sum of all 19 volume measures of disease in the fascicles within the depression network, divided by the sum of total full fascicle volumes in the depression network.
+    
+    3) Nondepression network: Sum of all 58 volume measures of disease in the fascicles outside the depression network, divided by the sum of total full fascicle volumes in the nondepression network.
+    
 #### Main effect of Network, Diagnosis, and Diagnosis\*Network Analyses
-
-
+A linear mixed effects model was used to assess main effect of Network, Diagnosis, and Diagnosis\*Network interactions with subject as a repeated measure using [lme4](https://cran.r-project.org/web/packages/lme4/index.html). 
 
 #### Individual Fascicle Analyses 
-
-
-#### Main effect of Diagnosis Analysis
+Given the somewhat arbitrary definition of depression network (25%/75%), we next assessed whether the relationship between diagnosis and network was continuous. 
+  
+    1) For each fascicle, two values were computed
+    
+      a) Effect size (r) from the wilcoxon statistic comparing volume of disease in the fascicle between depressed vs nondepressed individuals
+    
+      b) The volume of the overlap of that fascicle with the depression network
+  
+    2) A linear model relating the overlap of volume of the fascicle w/the depression network to the effect size from the depressed v nondepressed wilcoxon analysis.
+  
+    3) This relationship was permuted 10,000 w/boot (w/replacement)
 
 
 
