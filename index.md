@@ -69,6 +69,11 @@ Cubids :
 
      /project/msdepression/cubids/v1_validation.csv
      /project/msdepression/CuBIDS_outputs/*
+     
+MIMoSA QA info:
+
+     /project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe
+
 
 Fascicle proportions (for each subject (one row), % of injured fascicle (each column is a fascicle)): 
 
@@ -85,11 +90,14 @@ Volume of all lesions (NOT fascicles) for each subject:
 Volume of each healthy (full volume) fascicle: 
 
      /project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv
+     /project/msdepression/templates/dti/HCP_YA1065_tractography<association,cerebellum,commissural,projection>
 
-MIMoSA QA info:
+Harvard Depression Mask (thresholded 3.09, resampled to mni_icbm152_t1_tal_nlin_asym_09a.nii)
+     /project/msdepression/templates/harvard_depression/resampled_Dep_clust_T_3_09_binarized.nii
 
-     /project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe
-
+HCP template:
+    /project/msdepression/templates/mni_icbm152_t1_tal_nlin_asym_09a.nii 
+    /project/msdepression/templates/mni_icbm152_t1_tal_nlin_asym_09axbrainmask.nii
 
 <br>
 <br>
