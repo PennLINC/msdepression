@@ -80,7 +80,7 @@ Volume of all lesions (NOT fascicles) for each subject:
 Volume of each healthy (full volume) fascicle: 
 **/project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv**
 
-MIMoSA QA info: 
+MIMoSA QA info:
 **/project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe**
 
 
