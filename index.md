@@ -51,7 +51,7 @@ All clinical data was drawn from the electronic medical record via the Data Acqu
 
 DAC Pull: 
 
-     **/project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv**
+     /project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv
     
     2) Depression network: Sum of all 19 volume measures of disease in the fascicles within the depression network, divided by the sum of total full fascicle volumes in the depression network.
     
@@ -62,41 +62,41 @@ All images were obtained from the PACS system from the Department of Radiology
 
 Psychiatry medication information: 
 
-  **/project/msdepression/drugs_data/nami_psych_meds_antidepressants.csv**
+     /project/msdepression/drugs_data/nami_psych_meds_antidepressants.csv
 
 Patients with parsable depression diagnosis (after incorporating medications):
 
-  **/project/msdepression/drugs_data/parsable_msdepression.csv** *fed into R analysis*
+     /project/msdepression/drugs_data/parsable_msdepression.csv *fed into R analysis*
 
 Subject imaging data: 
 
-  **/project/msdepression/data/subj_directories**
+     /project/msdepression/data/subj_directories
 
-Cubids: 
+Cubids : 
 
-  1) **/project/msdepression/cubids/v1_validation.csv
-  2) /project/msdepression/CuBIDS_outputs/*
+     /project/msdepression/cubids/v1_validation.csv
+     /project/msdepression/CuBIDS_outputs/\*
 
 
 Fascicle proportions (for each subject (one row), % of injured fascicle (each column is a fascicle)): 
 
-  **/project/msdepression/results/fascicle_volumes_all_subjects_roi_n2336.csv**
+     /project/msdepression/results/fascicle_volumes_all_subjects_roi_n2336.csv
 
 Overlap of each fascicle (volume and proportion) with depression network: 
 
-  **/project/msdepression/results/streamline_volume_within_dep_network_3_09.csv**
+     /project/msdepression/results/streamline_volume_within_dep_network_3_09.csv
 
 Volume of all lesions (NOT fascicles) for each subject: 
 
-  **/project/msdepression/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes.csv**
+     /project/msdepression/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes.csv
 
 Volume of each healthy (full volume) fascicle: 
 
-  **/project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv**
+     /project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv
 
 MIMoSA QA info:
 
-  **/project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe**
+     /project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe
 
 
 <br>
