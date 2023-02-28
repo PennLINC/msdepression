@@ -232,16 +232,16 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 ### Final Figures
 
 #### **Figure 2 - Depression network**
-![Depression Network](https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.pdf)
+![Depression Network](https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.png)
 
 #### **Figure 3 - Main Effect of Netowrk**
-![Network](https://github.com/ballere/msdepression/blob/master/Figure_3_Main_eff_of_network.pdf)
+![Network](https://github.com/ballere/msdepression/blob/master/Figure_3_Main_eff_of_network.png)
 
 #### **Figure 4 - Main Effect of Depression Diagnosis and Diagnosis * Network Interaction **
-![Diagnosis](https://github.com/ballere/msdepression/blob/master/Figure_4_Main_effect_of_dx_and_intx.pdf)
+![Diagnosis](https://github.com/ballere/msdepression/blob/master/Figure_4_Main_effect_of_dx_and_intx.png)
 
 #### **Figure 5 - Fascicle Effects **
-![Fascicle](https://github.com/ballere/msdepression/blob/master/Figure_5_vol_by_eff_size.pdf)
+![Fascicle](https://github.com/ballere/msdepression/blob/master/Figure_5_vol_by_eff_size.png)
 
 
 
