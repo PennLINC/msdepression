@@ -90,6 +90,9 @@ Volume of all lesions (NOT fascicles) for each subject:
 Volume of each healthy (full volume) fascicle: 
 
      /project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv
+     
+Individual Healthy Fascicle Maps (.nii)
+
      /project/msdepression/templates/dti/HCP_YA1065_tractography<association,cerebellum,commissural,projection>
 
 Harvard Depression Mask (thresholded 3.09, resampled to mni_icbm152_t1_tal_nlin_asym_09a.nii)
