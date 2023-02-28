@@ -68,7 +68,7 @@ Subject imaging data:
 Cubids : 
 
      /project/msdepression/cubids/v1_validation.csv
-     /project/msdepression/CuBIDS_outputs/\*
+     /project/msdepression/CuBIDS_outputs/*
 
 Fascicle proportions (for each subject (one row), % of injured fascicle (each column is a fascicle)): 
 
