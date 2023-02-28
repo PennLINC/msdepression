@@ -50,17 +50,21 @@ ACNP Poster 12/8/2022 - "Depression as a disease of white matter network disrupt
 All clinical data was drawn from the electronic medical record via the Data Acquisition Center (DAC).
 
 DAC Pull: 
+
 */project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv*
 
 All images were obtained from the PACS system from the Department of Radiology
 
 Psychiatry medication information: 
+
 */project/msdepression/drugs_data/nami_psych_meds_antidepressants.csv*
 
 Patients with parsable depression diagnosis (after incorporating medications):
+
 */project/msdepression/drugs_data/parsable_msdepression.csv* **fed into R analysis**
 
 Subject imaging data: 
+
 */project/msdepression/data/subj_directories*
 
 Cubids: 
