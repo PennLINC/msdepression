@@ -47,19 +47,12 @@ ACNP Poster 12/8/2022 - "Depression as a disease of white matter network disrupt
 
 ### Path to Data on Filesystem **PMACS**
 
-All clinical data was drawn from the electronic medical record via the Data Acquisition Center (DAC).
+All clinical data was drawn from the electronic medical record via the Data Acquisition Center (DAC). All images were obtained from the PACS system from the Department of Radiology.
 
 DAC Pull: 
 
      /project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv
-    
-    2) Depression network: Sum of all 19 volume measures of disease in the fascicles within the depression network, divided by the sum of total full fascicle volumes in the depression network.
-    
-    3) Nondepression network: Sum of all 58 volume measures of disease in the fascicles outside the depression network, divided by the sum of total full fascicle volumes in the nondepression network.
  
-
-All images were obtained from the PACS system from the Department of Radiology
-
 Psychiatry medication information: 
 
      /project/msdepression/drugs_data/nami_psych_meds_antidepressants.csv
@@ -76,7 +69,6 @@ Cubids :
 
      /project/msdepression/cubids/v1_validation.csv
      /project/msdepression/CuBIDS_outputs/\*
-
 
 Fascicle proportions (for each subject (one row), % of injured fascicle (each column is a fascicle)): 
 
