@@ -233,8 +233,7 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 #### **Figure 2 - Depression network**
 
-<img src="(https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.png", style="height: 100px; width:100px;"/>
-
+<img src="[https://mma.prnewswire.com/media/1513369/Educative_Logo.jpg](https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.jpg)"  width="600" height="300">
 
 
 ![Depression Network](https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.png)
