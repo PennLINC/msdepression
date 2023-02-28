@@ -234,6 +234,7 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 #### **Figure 2 - Depression network**
 
 <img src="./Figure_2_Depression_network.jpg"  width="600" height="450">
+![Depression network](./Figure_2_Depression_network.png)
 
 #### **Figure 3 - Main Effect of Netowrk**
 ![Network](./Figure_3_Main_eff_of_network.png)
@@ -242,5 +243,4 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 ![Diagnosis](./Figure_4_Main_effect_of_dx_and_intx.png)
 
 #### **Figure 5 - Fascicle Effects**
-![Fascicle](https://github.com/PennLINC/msdepression/blob/gh-pages/Figure_5_vol_by_eff_size.png)
 ![Fascicle](./Figure_5_vol_by_eff_size.png)
