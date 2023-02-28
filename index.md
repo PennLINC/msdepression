@@ -233,7 +233,7 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 #### **Figure 2 - Depression network**
 
-<img src="https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.jpg"  width="600" height="500">
+<img src="https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.jpg"  width="600" height="400">
 
 #### **Figure 3 - Main Effect of Netowrk**
 ![Network](https://github.com/ballere/msdepression/blob/master/Figure_3_Main_eff_of_network.png)
