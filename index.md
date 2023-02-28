@@ -229,8 +229,22 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 [make_binary_colored_depression_net_maps_by_dx.R](https://github.com/ballere/msdepression/blob/master/msdepression/scripts/make_binary_colored_depression_net_maps_by_dx.R)
 
+### Final Figures
 
-Mean coupling by age
+#### **Figure 2 - Depression network**
+![Depression Network](https://github.com/ballere/msdepression/blob/master/Figure_2_Depression_network.pdf)
+
+#### **Figure 3 - Main Effect of Netowrk**
+![Network](https://github.com/ballere/msdepression/blob/master/Figure_3_Main_eff_of_network.pdf)
+
+#### **Figure 4 - Main Effect of Depression Diagnosis and Diagnosis * Network Interaction **
+![Diagnosis](https://github.com/ballere/msdepression/blob/master/Figure_4_Main_effect_of_dx_and_intx.pdf)
+
+#### **Figure 5 - Fascicle Effects **
+![Fascicle](https://github.com/ballere/msdepression/blob/master/Figure_5_vol_by_eff_size.pdf)
+
+
+
 
 ![Mean Coupling by Age](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/Images/Mean_coupling_by_age_rplot_fdr05_visreg_gam_snr50.jpg?raw=true)
 
