@@ -52,29 +52,32 @@ All clinical data was drawn from the electronic medical record via the Data Acqu
 DAC Pull: /project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv
 All images were obtained from the PACS system from the Department of Radiology
 
-Subject imaging data: /project/msdepression/data/subj_directories
+Psychiatry medication information: /project/msdepression/drugs_data/nami_psych_meds_antidepressants.csv
 
-Psychiatry medication information: /project/msdepression/drugs_data
+Patients with parsable depression diagnosis (after incorporating medications): /project/msdepression/drugs_data/parsable_msdepression.csv *fed into R analysis*
+
+Subject imaging data: /project/msdepression/data/subj_directories
 
 Cubids: 
 
   1) /project/msdepression/cubids/v1_validation.csv
-  2) /project/msdepression/CuBIDS_outputs/
+  2) /project/msdepression/CuBIDS_outputs/*
 
 
+Fascicle proportions (for each subject (one row), % of injured fascicle (each column is a fascicle)): /project/msdepression/results/fascicle_volumes_all_subjects_roi_n2336.csv
 
-> /project/imco/homedir/couplingSurfaceMaps/alffCbf/{lh,rh}/stat/ : directories with individual coupling maps (these were generated on chead)
+Overlap of each fascicle (volume and proportion) with depression network: /project/msdepression/results/streamline_volume_within_dep_network_3_09.csv
 
-> /project/imco//baller/subjectLists/n831_alff_cbf_finalSample_imageOrder.csv : sample and demographics
+Volume of all lesions (NOT fascicles) for each subject: /project/msdepression/results/mimosa_binary_masks_hcp_space_20211026_n2336_volumes.csv
 
-> /project/imco//pnc/clinical/n1601_goassess_itemwise_bifactor_scores_20161219.csv : psychiatric data 
+Volume of each healthy (full volume) fascicle: /project/msdepression/templates/dti/HCP_YA1065_tractography/fiber_volume_values.csv
 
-> /project/imco/pnc/cnb/n1601_cnb_factor_scores_tymoore_20151006.csv : cognitive data    
-
+MIMoSA QA info: /project/msdepression/data/melissa_martin_files/csv/mimosa_dataframe
 
 
 <br>
 <br>
+
 # CODE DOCUMENTATION
 
 **The analytic workflow implemented in this project is described in detail in the following sections. Analysis steps are described in the order they were implemented; the script(s) used for each step are identified and links to the code on github are provided.** 
