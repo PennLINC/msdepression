@@ -244,32 +244,3 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 ![Fascicle](https://github.com/ballere/msdepression/blob/master/Figure_5_vol_by_eff_size.png)
 
 
-
-
-![Mean Coupling by Age](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/Images/Mean_coupling_by_age_rplot_fdr05_visreg_gam_snr50.jpg?raw=true)
-
-![Coupling Exec Accuracy](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/Images/eaxmask_thresh50_values.png?raw=true)
-
-![Mean Coupling Violin plot](https://raw.githubusercontent.com/PennLINC/IntermodalCoupling/gh-pages2/Images/spin_mean_coupling_snr_50.png)
-
-### Helper Functions
-
-All helper functions can be found in [imco_functions.R](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/imco_functions.R)
-
-
-### Final Figures
-
-#### **Figure 1 - Schematic**
-![Schematic](https://raw.githubusercontent.com/PennLINC/IntermodalCoupling/gh-pages2/CR_revision//Full_figures/Fig_1_Schematic.png)
-
-#### **Figure 2 - Mean coupling enriched in frontoparietal network**
-![Mean Coupling](https://raw.githubusercontent.com//PennLINC/IntermodalCoupling/gh-pages2/CR_revision/Full_figures/Figure_2-Mean_Coupling.png)
-
-#### **Figure 3 - Age effects enriched in dorsal attention network**
-![Age](https://raw.githubusercontent.com/PennLINC/IntermodalCoupling/gh-pages2/CR_revision/Full_figures/Figure_3-Age.png)
-
-#### **Figure 4 - Sex effects enriched in frontoparietal network**
-![Sex](https://raw.githubusercontent.com//PennLINC/IntermodalCoupling/gh-pages2/CR_revision/Full_figures/Figure_4-Sex.png)
-
-#### **Figure 5 - Executive accuracy effects enriched in motor network and regions in default mode network**
-![Executive Accuracy](https://raw.githubusercontent.com/PennLINC/IntermodalCoupling/gh-pages2/CR_revision/Full_figures/Figure_5-Executive_Function.png)
