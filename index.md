@@ -48,7 +48,20 @@ ACNP Poster 12/8/2022 - "Depression as a disease of white matter network disrupt
 ### Path to Data on Filesystem **PMACS**
 
 All clinical data was drawn from the electronic medical record via the Data Acquisition Center (DAC).
+
+DAC Pull: /project/msdepression/data/erica_dac_pull/investigatingdepressioninmspatients_dates_right_format.csv
 All images were obtained from the PACS system from the Department of Radiology
+
+Subject imaging data: /project/msdepression/data/subj_directories
+
+Psychiatry medication information: /project/msdepression/drugs_data
+
+Cubids: 
+
+  1) /project/msdepression/cubids/v1_validation.csv
+  2) /project/msdepression/CuBIDS_outputs/
+
+
 
 > /project/imco/homedir/couplingSurfaceMaps/alffCbf/{lh,rh}/stat/ : directories with individual coupling maps (these were generated on chead)
 
@@ -90,9 +103,11 @@ I was then able to calculate the "volume" of the disease in a fascicle (i.e. vol
 Full fascicle volumes were also calculated and saved as .niis. 
 
 ##### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
+
 [ants_registration_code.sh](https://github.com/ballere/msdepression/blob/main/ants_registration_code.sh)
 
 ##### Step 2: Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+
 *Script that cycles through all subjects to do streamline filtering*
 
 [dsi_studio_bash.sh](https://github.com/ballere/msdepression/blob/main/dsi_studio_bash.sh)
@@ -103,10 +118,13 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 ##### Step 3: Calculate the volume of each fascicle in a template (healthy) brain
 
-*Grab the volume of each of the healthy fascicles*
+*Make the volume of each of the healthy fascicles*
 
 [make_streamline_volumes_for_template.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_for_template.sh)
 
+*Calculate the volume within each healthy fascicle*
+
+[get_volume_of_mimosa_lesions.sh](https://github.com/ballere/msdepression/blob/main/get_volume_of_mimosa_lesions.sh)
 
 ##### Step 4: Calculate the volume of the fiber tracts that are impaired
 
@@ -118,16 +136,23 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [make_streamline_volumes_single_subj_pmacs.sh](https://github.com/ballere/msdepression/blob/main/make_streamline_volumes_single_subj_pmacs.sh)
 
+*Calculate the volume of the mimosa lesions*
+
+[get_volume_of_mimosa_lesions.sh](https://github.com/ballere/msdepression/blob/main/get_volume_of_mimosa_lesions.sh)
+
 ##### Step 5: Generate summary fascicle measures
 
 This specifically makes the fascicle injury ratio measure, calculated by taking the volume of injured fascicle and dividing by the overall volume of the healthy fascicle. 
+
 [roi_ratio_regressions.R](https://github.com/ballere/msdepression/blob/main/roi_ratio_regressions.R)
 
 #### White matter depression network construction
+
 This network was made by [Shan Siddiqi et al., 2021 *Nature Human Behavior*](https://www.nature.com/articles/s41562-021-01161-1). 
 
 I first thresholded the mask (3.09), binarized it and then used it as an ROI and calculated, per fascicle, the volume occupied by the fascicle that intersected with the depression mask using streamline filtering as above.
-[calc_vol_fascicles_within_depression_mask.sh](https://github.com/ballere/msdepression/blob/main/calc_vol_fascicles_within_depression_mask.sh)
+
+[calc_vol_fascicles_within_depression_mask_3_09.sh](https://github.com/ballere/msdepression/blob/main/calc_vol_fascicles_within_depression_mask_3_09.sh)
 
 The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
 
@@ -141,9 +166,11 @@ The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volum
     3) Nondepression network: Sum of all 58 volume measures of disease in the fascicles outside the depression network, divided by the sum of total full fascicle volumes in the nondepression network.
     
 #### Main effect of Network, Diagnosis, and Diagnosis\*Network Analyses
+
 A linear mixed effects model was used to assess main effect of Network, Diagnosis, and Diagnosis\*Network interactions with subject as a repeated measure using [lme4](https://cran.r-project.org/web/packages/lme4/index.html). 
 
 #### Individual Fascicle Analyses 
+
 Given the somewhat arbitrary definition of depression network (25%/75%), we next assessed whether the relationship between diagnosis and network was continuous. 
   
     1) For each fascicle, two values were computed
@@ -153,9 +180,6 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
       b) The volume of the overlap of that fascicle with the depression network
   
     2) A linear model relating the overlap of volume of the fascicle w/the depression network to the effect size from the depressed v nondepressed wilcoxon analysis.
-  
-    3) This relationship was permuted 10,000 w/boot (w/replacement)
-
 
 #### Coloring scripts for fascicle visualizations (to be fed into DSI studio)
 
@@ -187,7 +211,7 @@ The following code converts the transform matrix (lta_convert), projects the vol
 
 Then we transfor the matrix from BBL orientation to freesurfer orientation using the code below.
 
-transformMatrix.R](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/CR_revision/surface_projection_and_coupling/transformMatrix.R)  
+[transformMatrix.R](https://github.com/PennLINC/IntermodalCoupling/blob/gh-pages2/CR_revision/surface_projection_and_coupling/transformMatrix.R)  
 
 #### Generating 2D coupling maps 
 
