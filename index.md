@@ -242,7 +242,7 @@ This script is run locally, on R. It does all second level/group data analysis.
 
 <img src="./Figure_2_Depression_network.jpg"  width="600" height="450">
 
-#### **Figure 3 - Main Effect of Netowrk**
+#### **Figure 3 - Main Effect of Network**
 ![Network](./Figure_3_Main_eff_of_network.png)
 
 #### **Figure 4 - Main Effect of Depression Diagnosis and Diagnosis * Network Interaction**
