@@ -140,7 +140,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/main/ants_registration_code.sh)
 
-##### Step 2: Take a subject's mimosa lesions and generate the fiber tracts (individual fascicles) that run through it
+##### Step 2: Take a subject's MIMoSA lesions and generate the fiber tracts (individual fascicles) that run through it
 
 *Script that cycles through all subjects to do streamline filtering*
 
