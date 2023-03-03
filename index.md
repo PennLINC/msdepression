@@ -136,11 +136,11 @@ I was then able to calculate the "volume" of the disease in a fascicle (i.e. vol
   
 Full fascicle volumes were also calculated and saved as .niis. 
 
-##### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
+#### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
 
 [ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/ants_registration_code.sh)
 
-##### Step 2: Take a subject's MIMoSA lesions and generate the fiber tracts (individual fascicles) that run through it
+#### Step 2: Take a subject's MIMoSA lesions and generate the fiber tracts (individual fascicles) that run through it
 
 *Script that cycles through all subjects to do streamline filtering*
 
@@ -150,7 +150,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/PennLINC/msdepression/blob/main/indiv_mimosa_lesion_dsi_studio_script.sh)
 
-##### Step 3: Calculate the volume of each fascicle in a template (healthy) brain
+#### Step 3: Calculate the volume of each fascicle in a template (healthy) brain
 
 *Make the volume of each of the healthy fascicles*
 
@@ -160,7 +160,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/main/get_volume_of_mimosa_lesions.sh)
 
-##### Step 4: Calculate the volume of the fiber tracts that are impaired
+#### Step 4: Calculate the volume of the fiber tracts that are impaired
 
 *Make streamline volumes for all subjects*
 
@@ -174,7 +174,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/main/get_volume_of_mimosa_lesions.sh)
 
-##### Step 5: Generate summary fascicle measures
+#### Step 5: Generate summary fascicle measures
 
 This specifically makes the fascicle injury ratio measure, calculated by taking the volume of injured fascicle and dividing by the overall volume of the healthy fascicle. 
 
