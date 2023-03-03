@@ -29,7 +29,10 @@ Completed
 Multiple Sclerosis Cohort
 
 ### Github repo:
-https://github.com/PennLINC/msdepression
+[https://github.com/PennLINC/msdepression](https://github.com/PennLINC/msdepression/tree/gh-pages)
+
+### Website
+[https://pennlinc.github.io/msdepression/](https://pennlinc.github.io/msdepression/)
 
 ### Path to data on filesystem:
 PMACS:/project/msdepression/ 
