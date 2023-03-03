@@ -170,7 +170,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 [make_streamline_volumes_single_subj_pmacs.sh](https://github.com/PennLINC/msdepression/blob/main/make_streamline_volumes_single_subj_pmacs.sh)
 
-*Calculate the volume of the mimosa lesions*
+*If you want to calculate the volume of the MIMoSA lesions irrespective of the streamlines they affect*
 
 [get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/main/get_volume_of_mimosa_lesions.sh)
 
