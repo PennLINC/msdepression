@@ -227,6 +227,8 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 *Sample script for making binary color schemes, coloring by whether fascicle in vs. outside dep network*
 
+[make_binary_colored_depression_net_maps_by_dx.R](./make_binary_colored_depression_net_maps_by_dx.R)
+
 [make_binary_colored_depression_net_maps_by_dx.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_binary_colored_depression_net_maps_by_dx.R)
 
 
