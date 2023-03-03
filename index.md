@@ -113,7 +113,7 @@ HCP template:
 <br>
 
 ### * Functions for project *
-[msdepression_functions.R](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression_functions.R)
+[msdepression_functions.R](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/msdepression_functions.R)
 
 ### Sample Construction
 
@@ -138,47 +138,47 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 #### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
 
-[ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/ants_registration_code.sh)
+[ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/ants_registration_code.sh)
 
 #### Step 2: Take a subject's MIMoSA lesions and generate the fiber tracts (individual fascicles) that run through it
 
 *Script that cycles through all subjects to do streamline filtering*
 
-[dsi_studio_bash.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/dsi_studio_bash.sh)
+[dsi_studio_bash.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/dsi_studio_bash.sh)
 
 *Individual subject streamline filtering, called from dsi_studio_bash*
 
-[indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/indiv_mimosa_lesion_dsi_studio_script.sh)
+[indiv_mimosa_lesion_dsi_studio_script.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/indiv_mimosa_lesion_dsi_studio_script.sh)
 
 #### Step 3: Calculate the volume of each fascicle in a template (healthy) brain
 
 *Make the volume of each of the healthy fascicles*
 
-[make_streamline_volumes_for_template.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/make_streamline_volumes_for_template.sh)
+[make_streamline_volumes_for_template.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/make_streamline_volumes_for_template.sh)
 
 *Calculate the volume within each healthy fascicle*
 
-[get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/get_volume_of_mimosa_lesions.sh)
+[get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/get_volume_of_mimosa_lesions.sh)
 
 #### Step 4: Calculate the volume of the fiber tracts that are impaired
 
 *Make streamline volumes for all subjects*
 
-[streamline_volumes_all_subjs.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/streamline_volumes_all_subjs.sh)
+[streamline_volumes_all_subjs.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/streamline_volumes_all_subjs.sh)
 
 *Make streamline volumes for a single subject, called from streamline_volumes_all_subjs.sh*
 
-[make_streamline_volumes_single_subj_pmacs.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/make_streamline_volumes_single_subj_pmacs.sh)
+[make_streamline_volumes_single_subj_pmacs.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/make_streamline_volumes_single_subj_pmacs.sh)
 
 *If you want to calculate the volume of the MIMoSA lesions irrespective of the streamlines they affect*
 
-[get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/get_volume_of_mimosa_lesions.sh)
+[get_volume_of_mimosa_lesions.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/get_volume_of_mimosa_lesions.sh)
 
 #### Step 5: Generate summary fascicle measures
 
 This specifically makes the fascicle injury ratio measure, calculated by taking the volume of injured fascicle and dividing by the overall volume of the healthy fascicle. 
 
-[roi_ratio_regressions.R](https://github.com/PennLINC/msdepression/blob/gh-pages/roi_ratio_regressions.R)
+[roi_ratio_regressions.R](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/roi_ratio_regressions.R)
 
 #### White matter depression network construction
 
@@ -186,7 +186,7 @@ This network was made by [Shan Siddiqi et al., 2021 *Nature Human Behavior*](htt
 
 I first thresholded the mask (3.09), binarized it and then used it as an ROI and calculated, per fascicle, the volume occupied by the fascicle that intersected with the depression mask using streamline filtering as above.
 
-[calc_vol_fascicles_within_depression_mask_3_09.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/calc_vol_fascicles_within_depression_mask_3_09.sh)
+[calc_vol_fascicles_within_depression_mask_3_09.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/calc_vol_fascicles_within_depression_mask_3_09.sh)
 
 The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
 
@@ -219,22 +219,22 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 *Sample script for making RGB scales in the red to yellow range*
 
-[make_red_to_yellow_RGB_color_scheme.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_red_to_yellow_RGB_color_scheme.R)
+[make_red_to_yellow_RGB_color_scheme.R](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/make_red_to_yellow_RGB_color_scheme.R)
 
 *Sample script for making binary color schemes, simple*
 
-[make_binary_colored_depression_net_maps.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_binary_colored_depression_net_maps.R)
+[make_binary_colored_depression_net_maps.R](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/make_binary_colored_depression_net_maps.R)
 
 *Sample script for making binary color schemes, coloring by whether fascicle in vs. outside dep network*
 
-[make_binary_colored_depression_net_maps_by_dx.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_binary_colored_depression_net_maps_by_dx.R)
+[make_binary_colored_depression_net_maps_by_dx.R](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/make_binary_colored_depression_net_maps_by_dx.R)
 
 
 ### Final group level analysis
 
 This script is run locally, on R. It does all second level/group data analysis. 
 
-[msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd)
+[msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd)
 
 ### Final Figures
 
