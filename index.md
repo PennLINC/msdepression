@@ -138,7 +138,7 @@ Full fascicle volumes were also calculated and saved as .niis.
 
 ##### Step 1: Registering/normalizing MIMoSA binary maps to HCP template
 
-[ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/main/ants_registration_code.sh)
+[ants_registration_code.sh](https://github.com/PennLINC/msdepression/blob/gh-pages/ants_registration_code.sh)
 
 ##### Step 2: Take a subject's MIMoSA lesions and generate the fiber tracts (individual fascicles) that run through it
 
