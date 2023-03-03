@@ -219,15 +219,15 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 *Sample script for making RGB scales in the red to yellow range*
 
-[make_red_to_yellow_RGB_color_scheme.R](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression/scripts/make_red_to_yellow_RGB_color_scheme.R)
+[make_red_to_yellow_RGB_color_scheme.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_red_to_yellow_RGB_color_scheme.R)
 
 *Sample script for making binary color schemes, simple*
 
-[make_binary_colored_depression_net_maps.R](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression/scripts/make_binary_colored_depression_net_maps.R)
+[make_binary_colored_depression_net_maps.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_binary_colored_depression_net_maps.R)
 
 *Sample script for making binary color schemes, coloring by whether fascicle in vs. outside dep network*
 
-[make_binary_colored_depression_net_maps_by_dx.R](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression/scripts/make_binary_colored_depression_net_maps_by_dx.R)
+[make_binary_colored_depression_net_maps_by_dx.R](https://github.com/PennLINC/msdepression/blob/gh-pages/make_binary_colored_depression_net_maps_by_dx.R)
 
 
 ### Final group level analysis
