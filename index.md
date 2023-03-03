@@ -193,6 +193,9 @@ I first thresholded the mask (3.09), binarized it and then used it as an ROI and
 
 The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volume of network overlap were considered in the depression network. Everything outside of that was considered "non_depression" network. In total, 77 fascicles were evaluated.
 
+#### ** Depression network**
+<img src="./Figure_2_Depression_network.jpg"  width="300" height="225">
+
 #### Disease burden summary measures
   Having computed disease measures at the individual fascicle, I wanted to assess network effects for all future analyses. To do this, I calculated three summary measures per individual. 
     
@@ -206,6 +209,13 @@ The top 25% (top quartile), i.e. the top 25% of fascicles with the highest volum
 
 A linear mixed effects model was used to assess main effect of Network, Diagnosis, and Diagnosis\*Network interactions with subject as a repeated measure using [lme4](https://cran.r-project.org/web/packages/lme4/index.html). 
 
+#### ** Main Effect of Network**
+![Network](./Figure_3_Main_eff_of_network.png)
+
+#### ** Main Effect of Depression Diagnosis and Diagnosis * Network Interaction**
+![Diagnosis](./Figure_4_Main_effect_of_dx_and_intx.png)
+
+
 #### Individual Fascicle Analyses 
 
 Given the somewhat arbitrary definition of depression network (25%/75%), we next assessed whether the relationship between diagnosis and network was continuous. 
@@ -217,6 +227,9 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
       b) The volume of the overlap of that fascicle with the depression network
   
     2) A linear model relating the overlap of volume of the fascicle w/the depression network to the effect size from the depressed v nondepressed wilcoxon analysis.
+    
+#### ** Fascicle Effects**
+![Fascicle](./Figure_5_vol_by_eff_size.png)
 
 #### Coloring scripts for fascicle visualizations (to be fed into DSI studio)
 
@@ -239,17 +252,9 @@ This script is run locally, on R. It does all second level/group data analysis.
 
 [msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd](https://github.com/PennLINC/msdepression/blob/gh-pages/scripts/msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd)
 
-### Final Figures
 
-#### **Figure 2 - Depression network**
 
-<img src="./Figure_2_Depression_network.jpg"  width="300" height="225">
 
-#### **Figure 3 - Main Effect of Network**
-![Network](./Figure_3_Main_eff_of_network.png)
 
-#### **Figure 4 - Main Effect of Depression Diagnosis and Diagnosis * Network Interaction**
-![Diagnosis](./Figure_4_Main_effect_of_dx_and_intx.png)
 
-#### **Figure 5 - Fascicle Effects**
-![Fascicle](./Figure_5_vol_by_eff_size.png)
+
