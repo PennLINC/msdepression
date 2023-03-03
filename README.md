@@ -28,8 +28,9 @@ Completed
 ### Dataset:
 Multiple Sclerosis Cohort
 
-### Github repo:
+### Github repo/website:
 https://github.com/PennLINC/msdepression
+https://pennlinc.github.io/msdepression/
 
 ### Path to data on filesystem:
 PMACS:/project/msdepression/ 
