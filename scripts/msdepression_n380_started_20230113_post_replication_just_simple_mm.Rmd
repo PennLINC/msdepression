@@ -347,6 +347,7 @@ columns_to_make_integer <- c("ACCESSION_NUM", "PAT_AGE_AT_EXAM","MRI_ENC_AGE","C
 ##########################################################
 #             Read in Fascicle info             #
 ##########################################################
+full_fascicle_names <- read.csv(paste0(homedir, "/templates/dti/HCP_YA1065_tractography/fascicle_abbreviation.csv"), header = T, sep = ",")
 
 fascicle_proportions <- read.csv(paste0(homedir, "/results/fascicle_volumes_all_subjects_roi_n2336.csv"), header = T, sep = ",") #n = 2336, n unique = 958
 
@@ -578,6 +579,19 @@ fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map[is.na(
 
 #sort based on overlap with depression depression map
 fascicle_volumes_dep_network_no_cranial_nerves$fascicle <- factor(fascicle_volumes_dep_network_no_cranial_nerves$fascicle, levels = fascicle_volumes_dep_network_no_cranial_nerves$fascicle[order(fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map)])
+
+#create data frame with fascicles sorted by overlap with depression network, replace abbreviations with full fascicle names and swap _ for space in the full name
+df_fascicles_sorted_by_volume_in_mask <- fascicle_volumes_dep_network_no_cranial_nerves %>%  
+  replace(is.na(.), 0) %>% 
+  arrange(desc(non_zero_voxels_in_dep_map)) %>% 
+  left_join(full_fascicle_names, by = c("fascicle" = "Abbreviation")) %>%
+  mutate(full_fascicle_name_space = str_replace_all(Full_name, pattern = "_", replacement = " ")) %>%
+  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " R$", replacement = " Right")) %>%
+  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " L$", replacement = " Left")) %>%
+  mutate(full_fascicle_name_space = gsub(pattern = "([0-9])", replacement = " \\1", x = full_fascicle_name_space))
+
+write.table(df_fascicles_sorted_by_volume_in_mask, paste0(homedir, "/results/df_fascicles_sorted_by_volume_in_mask_for_eTable3.csv"), quote = F, sep = ",") #had to manually change the spreadsheet because the dictionary is based on a spelling mistake - C_R_R is Cingulum Rarolfactory in the dictionary, but should be Parolfactory
+
 
 #figure out how many fascicles are in top quartile
 quartile <- round((dim(fascicle_volumes_dep_network_no_cranial_nerves)[1] / 4),0)
