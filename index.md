@@ -34,9 +34,6 @@ Multiple Sclerosis Cohort
 ### Website
 [https://pennlinc.github.io/msdepression/](https://pennlinc.github.io/msdepression/)
 
-### Path to data on filesystem:
-PMACS:/project/msdepression/ 
-
 ### Slack Channel:
 #msdepression and #msminigroup
 
