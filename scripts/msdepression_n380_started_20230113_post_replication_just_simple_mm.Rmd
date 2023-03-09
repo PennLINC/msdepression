@@ -586,8 +586,8 @@ df_fascicles_sorted_by_volume_in_mask <- fascicle_volumes_dep_network_no_cranial
   arrange(desc(non_zero_voxels_in_dep_map)) %>% 
   left_join(full_fascicle_names, by = c("fascicle" = "Abbreviation")) %>%
   mutate(full_fascicle_name_space = str_replace_all(Full_name, pattern = "_", replacement = " ")) %>%
-  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " R$", replacement = " Right")) %>%
-  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " L$", replacement = " Left")) %>%
+  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " R$", replacement = " (Right)")) %>%
+  mutate(full_fascicle_name_space = str_replace(full_fascicle_name_space, pattern = " L$", replacement = " (Left)")) %>%
   mutate(full_fascicle_name_space = gsub(pattern = "([0-9])", replacement = " \\1", x = full_fascicle_name_space))
 
 write.table(df_fascicles_sorted_by_volume_in_mask, paste0(homedir, "/results/df_fascicles_sorted_by_volume_in_mask_for_eTable3.csv"), quote = F, sep = ",") #had to manually change the spreadsheet because the dictionary is based on a spelling mistake - C_R_R is Cingulum Rarolfactory in the dictionary, but should be Parolfactory
