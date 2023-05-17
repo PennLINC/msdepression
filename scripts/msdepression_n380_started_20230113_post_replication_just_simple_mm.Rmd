@@ -859,6 +859,13 @@ pdf(file=paste0(homedir, "/results/Figures_for_msdepression_paper/violin_dep_vs_
   violin_dep_vs_nondep_scaled_by_network_size
 dev.off()
 
+
+#scatter for Taki
+scatter_net <- ggplot(newdf,  aes(x=dep_net_group, y=net_values)) +  geom_jitter(shape=16, position=position_jitter(0.2)) 
+
+scatter_dx <- ggplot(df_proportion_network_volume_and_diagnosis, aes(x=depGroupVar, y=proportion_volume_lost_per_total_network_size_sum)) +  geom_jitter(shape=16, position=position_jitter(0.2))
+
+
 # bar graph instead of violin
 
 df_proportion_network_volume_and_diagnosis_summary <- df_proportion_network_volume_and_diagnosis %>%
@@ -1127,7 +1134,8 @@ write.table(x = df_for_making_colors, file = paste0(homedir, "results/fascicle_a
 
 ### Sensitivity Analyses
 
-```{r sensitivity analyses}
+#### tercile/quintile cutoffs
+```{r sensitivity_analyses_diff_depression_cutoffs}
 
 ## to check different splits of the networks
 
@@ -1246,6 +1254,116 @@ confint(diagnosis_by_network_interaction_lmer_quintile)
 #Network (.110, CI = 0.10-0.12, P < 2*10^-16)
 #Diagnosis (0.057, CI = 0.011-0.102, P = 0.0148)
 #interaction (0.022, CI = 0.004-0.040, P = 0.018)
+
+
+```
+
+#### dropping corpus callosum
+```{r sensitivity_analysis_no_cc}
+## compare disease within and outside depression network, between diagnoses, and interactions
+
+## volume of corpus collosum
+volume_of_healthy_corpus_callosum = fascicle_volumes_dep_network_no_cranial_nerves$num_voxels_total[fascicle_volumes_dep_network_no_cranial_nerves$fascicle == "CC"]
+
+
+
+###############################
+### Constructing Data Frame ###
+###############################
+
+#make a data frame for only unique individuals, and get means of overall volume of disease across all fascicles, and within/outside dep net
+dep_and_healthy_groups_for_ICD_analysis_no_cc <- df_demo_and_fascicles_prop_and_vol %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>% 
+  
+  #sum of total volume lost and proportion of volume lost 
+  mutate(sum_fascicle_vol_lost = rowSums(across(all_of(fascicle_names_w_vol_suffix[fascicle_names_w_vol_suffix != "CC_vol"])))) %>%
+  mutate(proportion_volume_lost_per_total_network_size_sum = sum_fascicle_vol_lost/(total_volume_all_full_fascicles-volume_of_healthy_corpus_callosum)) %>%
+  
+  #sum of total volume lost in depression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_indepnet_top_quartile = 
+           rowSums(across(all_of(dep_network_names_top_quartile_no_cranial_nerves[dep_network_names_top_quartile_no_cranial_nerves != "CC_vol"])))) %>%
+  mutate(proportion_volume_lost_dep_net_by_network_size_sum = sum_fascicle_vol_lost_indepnet_top_quartile /(dep_network_total_volume_top_quartile_no_cranial_nerves-volume_of_healthy_corpus_callosum)) %>%
+ 
+  #sum of total volume lost in nondepression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_nondep_bottom_3_quartiles = 
+           rowSums(across(all_of(dep_network_names_bottom_3_quartiles_no_cranial_nerves)))) %>%
+  mutate(proportion_volume_lost_nondep_net_by_network_size_sum = sum_fascicle_vol_lost_nondep_bottom_3_quartiles/bottom_75_total_volume_no_cranial_nerves) %>%
+
+  ungroup() 
+
+###################
+
+### Interaction Network x Diagnosis
+
+#clean up data frame
+df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis_no_cc %>%
+  mutate(subject = as.factor(EMPI)) %>%
+  mutate(Diagnosis = ifelse(depGroupVar==1, "MS-Depression", "MS+Depression")) %>%
+  mutate(Diagnosis = as.factor(Diagnosis)) %>%
+  mutate(Dep_network = proportion_volume_lost_dep_net_by_network_size_sum) %>%
+  mutate(Nondep_network = proportion_volume_lost_nondep_net_by_network_size_sum) %>%
+  dplyr::select(subject, Diagnosis, Dep_network, Nondep_network) %>% 
+  gather(Network, proportion_affected, -subject, -Diagnosis) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
+  mutate(Network = as.factor(Network)) %>%
+  ungroup()
+ 
+
+#diagnosis: Dep > nondep, P= 0.013, T 2.49, Estimate 0.06 ; Network dep>nondep P = 9.48*10^-5, T = 3.95, estimate 0.03; intx  P=.03, T = -2.12, Estimate = -0.02
+diagnosis_by_network_interaction_lmer <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject), data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer)
+
+#Diagnosis: MS+ > MS- 0.01-0.10; Network dep>nondep 0.02-0.05; intx: -0.04--0.002 
+confint(diagnosis_by_network_interaction_lmer)
+
+#### Volume x Effect size analysis
+
+fascicle_dep_vs_healthy_effsize <- sapply(fascicle_names_w_vol_suffix[fascicle_names_w_vol_suffix != "CC_vol"], function(fascicle) 
+{
+
+  text_for_eval <- paste0("rstatix::wilcox_effsize(dep_and_healthy_groups_for_ICD_analysis_no_cc, formula = ", fascicle, " ~ depGroupVar, paired = F, conf.level = 0.95, ci.type = \"perc\", nboot = 1000)$effsize")
+  eval(parse(text=text_for_eval))
+})
+names(fascicle_dep_vs_healthy_effsize) <- fascicle_names_w_vol_suffix[fascicle_names_w_vol_suffix != "CC_vol"]
+
+#convert to data frame
+df_effsize_values <- as.data.frame(fascicle_dep_vs_healthy_effsize)
+
+df_fascicle_dep_mask_volume_overlap_effsize_value <- data.frame(fascicle_volumes_dep_network_no_cranial_nerves$fascicle[fascicle_volumes_dep_network_no_cranial_nerves$fascicle != "CC"], fascicle_volumes_dep_network_no_cranial_nerves$non_zero_voxels_in_dep_map[fascicle_volumes_dep_network_no_cranial_nerves$fascicle != "CC"], df_effsize_values)
+names(df_fascicle_dep_mask_volume_overlap_effsize_value) <- c("fascicle", "volume_in_dep_mask", "dep_vs_healthy_effsize")
+
+# plot fascicle overlap x Eff size value
+#statistic, p=0.0002, T =3.865 , eff size (adjusted R^2 = 0.16)
+dep_overlap_x_dep_vs_healthy_vol_effsize <- lm(dep_vs_healthy_effsize ~ volume_in_dep_mask, data=df_fascicle_dep_mask_volume_overlap_effsize_value )
+summary(dep_overlap_x_dep_vs_healthy_vol_effsize)
+
+
+scatter_effsize_val_by_dep_net_overlap_log <- ggplot(data=df_fascicle_dep_mask_volume_overlap_effsize_value, aes(x=volume_in_dep_mask, y=dep_vs_healthy_effsize, color=dep_vs_healthy_effsize)) +
+  geom_point(size=2) + 
+  scale_color_gradient(low = "#FFFFFF", high = "#ff00ff") +
+  geom_smooth(formula = y ~ x, method=lm, color="black")+
+  scale_x_continuous(trans=scales::pseudo_log_trans(base = 10), breaks=c(0, 10, 100, 1000, 10000, 100000)) + 
+  xlab("Volume of Fascicle in Depression Network, excluding CC") + 
+  ylab("Effect Size (r)") + 
+  theme(plot.title=element_text(hjust=0.5),
+        axis.text = element_text(size=16, color = "black"),
+        axis.title = element_text(size=18, color = "black"),
+        axis.line = element_line(color="black", size=1.3),
+        panel.background = element_blank(),
+        legend.position = "none",
+        aspect.ratio = 4/4) + 
+  annotate("text", x=1.6, y=0.14, size = 5, 
+           label = paste0("P = ", round(summary(dep_overlap_x_dep_vs_healthy_vol_effsize)$coef[2,4],4))) 
+
+print(scatter_effsize_val_by_dep_net_overlap_log)
+
+
+#Final data: 
+#Main effect of network Dep > Nondep (Estimate = 0.03, 95% CI 0.02-0.05 , P= 9.48*10^-5)
+#Main effecet of diagnosis MS+Depression > MS-Depression (Estimate = 0.06, 95% CI 0.01-0.10 , P = 0.013)
+#Main effect of interaction (Estimate = 0.02, 95% CI 0.002 -0.04 , P=0.03)
 
 
 ```
