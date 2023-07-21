@@ -769,11 +769,11 @@ summary(diagnosis_by_network_interaction_lmer)
 #Diagnosis: MS+ > MS- 0.011-0.1; Network dep>nondep -.104--.076; intx: -0.040--0.003
 confint(diagnosis_by_network_interaction_lmer)
 
-#with age; diagnosis: Dep > nondep T = 2.4, p = 0.015; Network dep>nondep = T=12.4, p = 2*10^-16; intx = T = 2.3, p = 0.020
+#with age; diagnosis: Dep > nondep T = 2.1, p = 0.035; Network dep>nondep = T=12.4, p = 2*10^-16; intx = T = 2.3, p = 0.020
 diagnosis_by_network_interaction_lmer_age <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject) + PAT_AGE_AT_EXAM, data = df_empi_dx_network_proportions)
 summary(diagnosis_by_network_interaction_lmer_age)
 
-#Diagnosis: MS+ > MS- 0.011-0.1; Network dep>nondep -.104--.076; intx: -0.040--0.003
+#Diagnosis: MS+ > MS- 0.004-0.9; Network dep>nondep -.104--.076; intx: -0.040--0.003
 confint(diagnosis_by_network_interaction_lmer_age)
 
 #Final data: 
