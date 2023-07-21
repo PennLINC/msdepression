@@ -756,8 +756,8 @@ df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
   mutate(Diagnosis = as.factor(Diagnosis)) %>%
   mutate(Dep_network = proportion_volume_lost_dep_net_by_network_size_sum) %>%
   mutate(Nondep_network = proportion_volume_lost_nondep_net_by_network_size_sum) %>%
-  dplyr::select(subject, Diagnosis, Dep_network, Nondep_network) %>% 
-  gather(Network, proportion_affected, -subject, -Diagnosis) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
+  dplyr::select(subject, Diagnosis, Dep_network, Nondep_network, PAT_AGE_AT_EXAM) %>% 
+  gather(Network, proportion_affected, -subject, -Diagnosis, -PAT_AGE_AT_EXAM) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
   mutate(Network = as.factor(Network)) %>%
   ungroup()
  
@@ -768,6 +768,13 @@ summary(diagnosis_by_network_interaction_lmer)
 
 #Diagnosis: MS+ > MS- 0.011-0.1; Network dep>nondep -.104--.076; intx: -0.040--0.003
 confint(diagnosis_by_network_interaction_lmer)
+
+#with age; diagnosis: Dep > nondep T = 2.4, p = 0.015; Network dep>nondep = T=12.4, p = 2*10^-16; intx = T = 2.3, p = 0.020
+diagnosis_by_network_interaction_lmer_age <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject) + PAT_AGE_AT_EXAM, data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer_age)
+
+#Diagnosis: MS+ > MS- 0.011-0.1; Network dep>nondep -.104--.076; intx: -0.040--0.003
+confint(diagnosis_by_network_interaction_lmer_age)
 
 #Final data: 
 #Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.076-0.104, P = 2*10^-16)
