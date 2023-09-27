@@ -2976,7 +2976,118 @@ view_cifti(test.ciftimap, colors=c("magma"), widget=TRUE)
 Need to install python and pennlinc toolkit - did not work. It is broken. Don't use it
 
 #### 20220930 or next week
-[] add post hoc */bars to figure 4
-[] add legend
-[] call it a win!
-[] add statistics to other graphs (p/effect size)
+[x] add post hoc */bars to figure 4
+  - things that are significant - depressed vs nondepressed network for each (big sig), dep net between dep & nondep (p=0.04); non dep network nonsig (p = 0.051)
+[x] add legend
+[x] call it a win!
+[x] add statistics to other graphs (p/effect size)
+[x] fix flow chart
+  - why is it that when you combine a data frame where the EMPIs overlap by 905 people, do you end up with only 783 unique EMPIs?
+  - perhaps the data_empi_ etc pulls people with scans that aren't on the same day as the ones that are mimosa'ed
+  - So what that would mean is when the merge of subject and exam date happens, some things are dropped. it is possible that there are more subjects that overlap in EMPI, but that scans were pulled on different dates (suggesting that there are missing scans, or scans that aren't in the big spreadsheet but are in the mimosa files).
+  - So i will merge data_empi with the mimosa qc, and check to see how many people were available in that overlap. And that will become my number I think.
+[x] start writing science
+
+#### 20230113
+[x] Wilcoxon eff size not working, can report everything from the mixed effect model
+[x] Made new code msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd
+[x] removing wilcoxon code
+[x] getting confidence intervals for mixed model with confint
+[x] in reporting, beta (estimate), CI (from confint), p value
+
+#### 20230510
+[x] going back to do some Yeo stuff. Made sure I could sum up each individual's Yeo network injury
+
+#### 20230511
+[x] make proportions of yeo injury by dividing by total volume within network
+[x] compare disease across networks 
+[x] compare disease within network across diagnoses
+
+#### 20230517
+[x] added sensitivity analyses where I dropped corpus callosum. Findings still great.
+[x] need to update paper with this analysis.
+
+
+#### 2023 0621
+
+[x] Interested in whether lesions to fibers involved in serotonergic projections (primarily UF) are more associated with depression (or response to SSRIs, I imagine people who have completely obliterated it - bad, people who have some left - okay, people who have healthy - maybe not as much impact. Inverted u-shaped curve). No differences in UF
+
+```{r}
+
+#same results when using volume. No difference with UF; W = 16268, p-value = 0.3762
+dep_vs_healthy_wilcoxon_lesion_volume_results <-  wilcox.test(dep_and_healthy_groups_for_ICD_analysis$UF_L_prop[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$UF_L_prop[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired = F)
+
+#same results when using volume. No difference with UF; W = 16076, p-value = 0.2914
+dep_vs_healthy_wilcoxon_lesion_volume_results <-  wilcox.test(dep_and_healthy_groups_for_ICD_analysis$UF_R_prop[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 1], dep_and_healthy_groups_for_ICD_analysis$UF_R_prop[dep_and_healthy_groups_for_ICD_analysis$depGroupVar == 2], paired = F)
+```
+[] Same with NE
+
+[] What if you ranked fascicles based on their overlap with GM areas that have 5HT receptors
+ - need a dasb mask essentially
+ - 5ht1a mask
+ - 5ht2a?
+ - SERT (dasb)
+ 
+[] Birth control study
+  - disease differences in people on/off bcp?
+  - longitudinal outcome models?
+  
+20230824
+SOBP analyses
+[] age x sex, age x dep 
+[x] looking at indiv fascicles in dep network, figure out which ones independently separate dep vs non - theoretically do prop lost ~ dep diagnosis
+   - only uncorrected findings
+[] 
+
+20230829
+[] take each map from golia, project to surface, spin test for overlap with depression map from shan. Rank by overlap. Make white matter backbones. Test for lesion network enrichment in depression group. correlate effect sizes from spin correlation. Idea would be that maps that were more highly related to depression network are also more associated with pt vs control differences. And also, hypothesize that these areas are enriched for major depression neurotransmitters
+[] also consider receptor density studies. 
+[] if you find that fascicles that feed into areas with higher receptor densities, could be data for PET
+[] also wonder whether medication selection using brain imaging data could be useful for depression
+
+#### 20230927 analyses for BP revision
+
+[x] Add sex into model
+
+#with sex; diagnosis: Dep > nondep T = 2.5, p = 0.012; sex: M>F = 1, p = 0.32; Network dep>nondep = T=12.4, p = 2*10^-16; intx = T = 2.3, p = 0.020
+diagnosis_by_network_interaction_lmer_sex <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject) + osex, data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer_sex)
+
+#Diagnosis: MS+ > MS- 0.013-0.10; sex: M>F 0.06 - -0.02 Network dep>nondep -.104--.076; intx: -0.040--0.003
+confint(diagnosis_by_network_interaction_lmer_sex)
+
+
+[x] Prevalence of depression in the PROMIS cohort
+ - chi sq for prevalence? 49 promis scores in depressed group (out of 232); 36 promis scores in nondepressed group (out of 148)
+ - #X-squared = 0.21, p = 0.65, not significant)
+ 
+[] use different threshold of 
+  [] 2.3
+  [] 2.6
+```{bash}
+cd /Users/eballer/BBL/msdepression/templates/harvard_depression
+#we are going to threshold the DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii at 2.3 and 2.6
+3dcalc -a DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii -expr 'ispositive(a-2.3)' -prefix DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_2_3.nii
+3dcalc -a DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii -expr 'ispositive(a-2.6)' -prefix DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_2_6.nii
+
+#send to pmacs
+scp DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_2_* eballer@bblsub.pmacs.upenn.edu:/project/msdepression/templates/harvard_depression/.
+
+#on pmacs
+
+#change the scripts
+more calc_vol_fascicles_within_depression_mask_3_09.sh  | perl -pe 's/3\.09/2\.3/' | perl -pe 's/3_09/2_3/' > calc_vol_fascicles_within_depression_mask_2_3.sh
+
+more calc_vol_fascicles_within_depression_mask_3_09.sh  | perl -pe 's/3\.09/2\.6/' | perl -pe 's/3_09/2_6/' > calc_vol_fascicles_within_depression_mask_2_6.sh
+
+#go in to each script individually and update the mask to be DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked_binarized_2_3.nii and 2_6 individually
+
+#run the scripts
+sh calc_vol_fascicles_within_depression_mask_2_3.sh
+sh calc_vol_fascicles_within_depression_mask_2_6.sh
+
+#send output files back to home; from local, needed to do without wildcard because zsh was giving me a hard time
+scp eballer@bblsub.pmacs.upenn.edu:/project/msdepression/results/streamline_volume_within_dep_network_2_6.csv /Users/eballer/BBL/msdepression/results/.
+scp eballer@bblsub.pmacs.upenn.edu:/project/msdepression/results/streamline_volume_within_dep_network_2_3.csv /Users/eballer/BBL/msdepression/results/.
+
+```
