@@ -294,6 +294,12 @@ dep_network_names_bottom_3_quartiles_no_cranial_nerves
     - chi sq for prevalence? 49 promis scores in depressed group (out of 232); 36 promis scores in nondepressed group (out of 148)
     - X-squared = 0.21, p = 0.65, not significant
     
+[x] sensitivity analysis removing people on methylpred/pred/interferone B (lose 20 people, 5% of sample; MS+Dep = 221 (-11, 4.7%); MS-Dep = 139(-9, 6%))
+
+    -Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.070-0.10, P <0.001)
+    -Main effects of diagnosis MS+Depression > MS-Depression (Estimate = 0.05, 95% CI 0.001-0.095, P= 0.046)
+    -Main effect of interaction (Estimate = 0.018, 95% CI 0.00 - 0.030, P=0.060)
+ 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
@@ -1803,5 +1809,74 @@ confint(diagnosis_by_network_interaction_lmer_sex)
 #Main effect of interaction (Estimate = 0.021, 95% CI 0.0032 - 0.039, P=0.021)
 
 
+
+```
+
+#repeat analysis but remove people on neuroactive MS meds
+```{r depression_vs_healthy_overall_volume_of_fascicles_affected_noifnbeta_steroids}
+## compare disease within and outside depression network, between diagnoses, and interactions
+
+
+###############################
+### Constructing Data Frame ###
+###############################
+
+#make a data frame for only unique individuals, and get means of overall volume of disease across all fascicles, and within/outside dep net
+dep_and_healthy_groups_for_ICD_analysis <- df_demo_and_fascicles_prop_and_vol %>% 
+  filter(depGroupVar != 0)  %>% 
+  group_by(EMPI) %>% 
+  arrange(EXAM_DATE) %>% 
+  slice(1) %>%
+  
+ #sum of total volume lost and proportion of volume lost 
+  mutate(sum_fascicle_vol_lost = rowSums(across(all_of(fascicle_names_w_vol_suffix)))) %>%
+  mutate(proportion_volume_lost_per_total_network_size_sum = sum_fascicle_vol_lost/total_volume_all_full_fascicles) %>%
+  
+  #sum of total volume lost in depression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_indepnet_top_quartile = 
+           rowSums(across(all_of(dep_network_names_top_quartile_no_cranial_nerves)))) %>%
+  mutate(proportion_volume_lost_dep_net_by_network_size_sum = sum_fascicle_vol_lost_indepnet_top_quartile /dep_network_total_volume_top_quartile_no_cranial_nerves) %>%
+ 
+  #sum of total volume lost in nondepression network and proportion of volume lost in depression network (volume lost/network volume size) 
+  mutate(sum_fascicle_vol_lost_nondep_bottom_3_quartiles = 
+           rowSums(across(all_of(dep_network_names_bottom_3_quartiles_no_cranial_nerves)))) %>%
+  mutate(proportion_volume_lost_nondep_net_by_network_size_sum = sum_fascicle_vol_lost_nondep_bottom_3_quartiles /bottom_75_total_volume_no_cranial_nerves) %>%
+  
+  #remove people on ms medications that are known to worsen mood
+ # filter(!str_detect(Medication, 'INTERFERON|PREDNISONE|METHYLPREDNISOLONE')) %>% 
+  #filter(!str_detect(Medication, 'INTERFERON')) %>%
+  filter(!str_detect(Medication, 'PREDNISONE')) %>%
+ # filter(!str_detect(Medication, 'METHYLPREDNISOLONE')) %>%
+  ungroup() 
+
+###################
+
+### Interaction Network x Diagnosis
+
+#clean up data frame
+df_empi_dx_network_proportions <- dep_and_healthy_groups_for_ICD_analysis %>%
+  mutate(subject = as.factor(EMPI)) %>%
+  mutate(Diagnosis = ifelse(depGroupVar==1, "MS-Depression", "MS+Depression")) %>%
+  mutate(Diagnosis = as.factor(Diagnosis)) %>%
+  mutate(Dep_network = proportion_volume_lost_dep_net_by_network_size_sum) %>%
+  mutate(Nondep_network = proportion_volume_lost_nondep_net_by_network_size_sum) %>%
+  dplyr::select(subject, Diagnosis, Dep_network, Nondep_network, PAT_AGE_AT_EXAM) %>% 
+  gather(Network, proportion_affected, -subject, -Diagnosis, -PAT_AGE_AT_EXAM) %>% #this is like a melt. Keeps empi and depGroupVar out of the melt
+  mutate(Network = as.factor(Network)) %>%
+  ungroup()
+ 
+
+#diagnosis: Dep > nondep T = 2.0, p = 0.046; Network dep>nondep = T=12.3, p = 2*10^-16; intx = T = 1.89, p = 0.06
+diagnosis_by_network_interaction_lmer <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject), data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lmer)
+
+#Diagnosis: MS+ > MS- 0.001-0.9; Network dep>nondep -.104--.078; intx: -0.040--0.00
+confint(diagnosis_by_network_interaction_lmer)
+
+#Final data: 
+#Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.070-0.10, P <0.001)
+#Main effects of diagnosis MS+Depression > MS-Depression (Estimate = 0.05, 95% CI 0.001-0.095, P= 0.046)
+#Main effect of interaction (Estimate = 0.018, 95% CI 0.00 - 0.030, P=0.060)
+ 
 
 ```
