@@ -3061,9 +3061,9 @@ confint(diagnosis_by_network_interaction_lmer_sex)
  - chi sq for prevalence? 49 promis scores in depressed group (out of 232); 36 promis scores in nondepressed group (out of 148)
  - #X-squared = 0.21, p = 0.65, not significant)
  
-[] use different threshold of 
-  [] 2.3
-  [] 2.6
+[x] use different threshold of 
+  [x] 2.3
+  [x] 2.6
 ```{bash}
 cd /Users/eballer/BBL/msdepression/templates/harvard_depression
 #we are going to threshold the DepressionCircuit_t_resampled_to_mni_icbm152_asym09a_masked.nii at 2.3 and 2.6
@@ -3090,4 +3090,24 @@ sh calc_vol_fascicles_within_depression_mask_2_6.sh
 scp eballer@bblsub.pmacs.upenn.edu:/project/msdepression/results/streamline_volume_within_dep_network_2_6.csv /Users/eballer/BBL/msdepression/results/.
 scp eballer@bblsub.pmacs.upenn.edu:/project/msdepression/results/streamline_volume_within_dep_network_2_3.csv /Users/eballer/BBL/msdepression/results/.
 
+```
+
+[] a couple of other analyses
+- people on Interferon B (11 total, 5 in nondepressed, 6 in depressed; solumedrol 2/2)
+```{r}
+table(dep_and_healthy_groups_for_ICD_analysis$depGroupVar[grep(pattern = "INTERF", x = dep_and_healthy_groups_for_ICD_analysis$Medication)])
+```
+- people on steroids (prednisone 1 in nondep, 1 in dep)
+- 
+```{r}
+```
+- people on ocrelizumab (17 in healthy group, 14 in depressed group)
+```{r}
+table(dep_and_healthy_groups_for_ICD_analysis$depGroupVar[grep(pattern = "OCRELIZUMAB", x = dep_and_healthy_groups_for_ICD_analysis$Medication)])
+```
+
+Could also do sensitivity analysis and remove the people on interferon Beta, prednisone, methylprednisolone
+```{r}
+dim(dep_and_healthy_groups_for_ICD_analysis %>% filter(!str_detect(Medication, 'INTERFERON|PREDNISON|METHYLPREDNISOLONE')))  #remove
+  
 ```
