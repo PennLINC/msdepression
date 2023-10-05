@@ -299,6 +299,10 @@ dep_network_names_bottom_3_quartiles_no_cranial_nerves
     -Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.070-0.10, P <0.001)
     -Main effects of diagnosis MS+Depression > MS-Depression (Estimate = 0.05, 95% CI 0.001-0.095, P= 0.046)
     -Main effect of interaction (Estimate = 0.018, 95% CI 0.00 - 0.030, P=0.060)
+    
+[x] agexdep to address duration issue: lm(proportion_affected ~ Diagnosis*Age)
+
+  - Age x dep interaction:  (Estimate<0.001, CI -0.003-0.002 , P=0.84)
  
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -834,6 +838,13 @@ summary(diagnosis_by_network_interaction_lmer_age)
 
 #Diagnosis: MS+ > MS- 0.004-0.9; Network dep>nondep -.104--.076; intx: -0.040--0.003
 confint(diagnosis_by_network_interaction_lmer_age)
+
+#Agexdepression interaction - Not significant
+diagnosis_by_network_interaction_lm_agexdep <- lm(proportion_affected ~  Diagnosis*PAT_AGE_AT_EXAM, data = df_empi_dx_network_proportions)
+summary(diagnosis_by_network_interaction_lm_agexdep)
+
+#Age x dep interaction:  (Estimate<0.001, CI -0.003-0.002 , P=0.84)
+confint(diagnosis_by_network_interaction_lm_agexdep)
 
 #with sex; diagnosis: Dep > nondep T = 2.5, p = 0.012; sex: M>F = 1, p = 0.32; Network dep>nondep = T=12.4, p = 2*10^-16; intx = T = 2.3, p = 0.020
 diagnosis_by_network_interaction_lmer_sex <- lmer(proportion_affected ~ Diagnosis*Network + (1|subject) + osex, data = df_empi_dx_network_proportions)
