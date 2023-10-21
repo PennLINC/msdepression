@@ -237,7 +237,7 @@ Given the somewhat arbitrary definition of depression network (25%/75%), we next
 
 This script is run locally, on R. It does all second level/group data analysis. 
 
-[msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression_n380_started_20230113_post_replication_just_simple_mm.Rmd)
+[/msdepression_n380_BP_r1_script.Rmd](https://github.com/PennLINC/msdepression/blob/gh-pages/msdepression_n380_BP_r1_script.Rmd)
 
 ### Final Figures
 
