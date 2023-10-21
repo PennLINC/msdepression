@@ -296,7 +296,7 @@ dep_network_names_bottom_3_quartiles_no_cranial_nerves
     
 [x] sensitivity analysis removing people on methylpred/pred/interferone B (lose 20 people, 5% of sample; MS+Dep = 221 (-11, 4.7%); MS-Dep = 139(-9, 6%))
 
-    -Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.070-0.10, P <0.001)
+    -Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.08-0.11, P <0.001)
     -Main effects of diagnosis MS+Depression > MS-Depression (Estimate = 0.05, 95% CI 0.001-0.095, P= 0.046)
     -Main effect of interaction (Estimate = 0.018, 95% CI 0.00 - 0.030, P=0.060)
     
@@ -1885,7 +1885,7 @@ summary(diagnosis_by_network_interaction_lmer)
 confint(diagnosis_by_network_interaction_lmer)
 
 #Final data: 
-#Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.070-0.10, P <0.001)
+#Main effect of network Dep > Nondep (Estimate = 0.09, 95% CI 0.08-0.11, P <0.001)
 #Main effects of diagnosis MS+Depression > MS-Depression (Estimate = 0.05, 95% CI 0.001-0.095, P= 0.046)
 #Main effect of interaction (Estimate = 0.018, 95% CI 0.00 - 0.030, P=0.060)
  
